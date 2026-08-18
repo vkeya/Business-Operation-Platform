@@ -16,7 +16,7 @@ export default function CurrencyPage() {
 const [toCurrency, setToCurrency] = useState("");
   const [rate, setRate] = useState<number | null>(null);
   const [source, setSource] = useState("");
-  const [effectiveAt, setEffectiveAt] = useState("");
+ const [effectiveAt, setEffectiveAt] = useState<Date | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -185,12 +185,12 @@ useEffect(() => {
             <div className="mt-4 space-y-1 text-xs text-slate-500">
               <p>Source: {source}</p>
 
-              <p>
-                Effective:{" "}
-                {effectiveAt
-                  ? new Date(effectiveAt).toLocaleDateString()
-                  : "—"}
-              </p>
+             <p>
+  Effective:{" "}
+  {effectiveAt
+    ? effectiveAt.toLocaleDateString()
+    : "—"}
+</p>
             </div>
           </div>
         )}

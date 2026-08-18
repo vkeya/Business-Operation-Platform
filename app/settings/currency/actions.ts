@@ -1,18 +1,16 @@
 "use server";
 
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
-import { createExchangeRateService } from "@/lib/currency/exchangeRateService";
-import { frankfurterProvider } from "@/lib/currency/frankfurterProvider";
-
-const exchangeRateService = createExchangeRateService(
-  frankfurterProvider,
-);
+import { exchangeRatePersistenceService } from "@/lib/currency/exchangeRatePersistenceService";
 
 export async function getExchangeRateAction(
   fromCurrency: string,
   toCurrency: string,
 ) {
-  return exchangeRateService.getRate(
+  const business = await getCurrentBusiness();
+
+  return exchangeRatePersistenceService.getRate(
+    business.id,
     fromCurrency,
     toCurrency,
   );
