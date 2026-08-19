@@ -21,14 +21,24 @@ export async function getInventoryBalancesAction(
 export async function getInventoryMovementsAction(
   productId?: string,
   warehouseId?: string,
+  movementType?:
+    | "RECEIPT"
+    | "SALE"
+    | "RETURN"
+    | "ADJUSTMENT"
+    | "TRANSFER_IN"
+    | "TRANSFER_OUT"
+    | "DAMAGE"
+    | "EXPIRY",
 ) {
   const business = await getCurrentBusiness();
 
   return inventoryService.listMovements(
-    business.id,
-    productId,
-    warehouseId,
-  );
+  business.id,
+  productId,
+  warehouseId,
+  movementType,
+);
 }
 
 export async function receiveStockAction(input: {

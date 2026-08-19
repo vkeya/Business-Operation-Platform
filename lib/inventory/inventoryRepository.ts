@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 
+
 function serializeMovement<
   T extends {
     quantity: { toNumber(): number };
@@ -277,17 +278,27 @@ return balances.map(serializeBalance);
   },
 
   async listMovements(
-    businessId: string,
-    productId?: string,
-    warehouseId?: string,
-  ) {
+  businessId: string,
+  productId?: string,
+  warehouseId?: string,
+  movementType?:
+  | "RECEIPT"
+  | "SALE"
+  | "RETURN"
+  | "ADJUSTMENT"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT"
+  | "DAMAGE"
+  | "EXPIRY",
+) {
     const movements =
   await prisma.inventoryMovement.findMany({
     where: {
-      businessId,
-      ...(productId ? { productId } : {}),
-      ...(warehouseId ? { warehouseId } : {}),
-    },
+  businessId,
+  ...(productId ? { productId } : {}),
+  ...(warehouseId ? { warehouseId } : {}),
+  ...(movementType ? { type: movementType } : {}),
+},
     include: {
       product: {
         select: {

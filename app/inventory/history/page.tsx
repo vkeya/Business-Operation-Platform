@@ -1,9 +1,39 @@
 import Link from "next/link";
 import { getInventoryMovementsAction } from "../action";
 
-export default async function InventoryHistoryPage() {
+export default async function InventoryHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    type?: string;
+  }>;
+}) {
+  const params = await searchParams;
+
+  const allowedMovementTypes = [
+  "RECEIPT",
+  "SALE",
+  "RETURN",
+  "ADJUSTMENT",
+  "TRANSFER_IN",
+  "TRANSFER_OUT",
+  "DAMAGE",
+  "EXPIRY",
+] as const;
+
+const movementType =
+  allowedMovementTypes.includes(
+    params.type as (typeof allowedMovementTypes)[number],
+  )
+    ? (params.type as (typeof allowedMovementTypes)[number])
+    : undefined;
+
   const movements =
-    await getInventoryMovementsAction();
+    await getInventoryMovementsAction(
+      undefined,
+      undefined,
+      movementType || undefined,
+    );
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -28,6 +58,33 @@ export default async function InventoryHistoryPage() {
           movements.
         </p>
       </div>
+	  
+	  <div className="mt-6 flex flex-wrap gap-2">
+  <Link
+    href="/inventory/history"
+    className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+      !movementType
+        ? "border-slate-900 bg-slate-900 text-white"
+        : "border-slate-300 text-slate-700 hover:bg-slate-50"
+    }`}
+  >
+    All
+  </Link>
+
+  {allowedMovementTypes.map((type) => (
+    <Link
+      key={type}
+      href={`/inventory/history?type=${type}`}
+      className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+        movementType === type
+          ? "border-slate-900 bg-slate-900 text-white"
+          : "border-slate-300 text-slate-700 hover:bg-slate-50"
+      }`}
+    >
+      {type.replaceAll("_", " ")}
+    </Link>
+  ))}
+</div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {movements.length === 0 ? (

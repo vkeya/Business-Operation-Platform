@@ -136,18 +136,28 @@ export const inventoryService = {
   },
 
   async listMovements(
-    businessId: string,
-    productId?: string,
-    warehouseId?: string,
-  ) {
+  businessId: string,
+  productId?: string,
+  warehouseId?: string,
+  movementType?:
+    | "RECEIPT"
+    | "SALE"
+    | "RETURN"
+    | "ADJUSTMENT"
+    | "TRANSFER_IN"
+    | "TRANSFER_OUT"
+    | "DAMAGE"
+    | "EXPIRY",
+) {
     if (!businessId) {
       throw new Error("Business context is required.");
     }
 
     return inventoryRepository.listMovements(
-      businessId,
-      productId,
-      warehouseId,
-    );
+  businessId,
+  productId,
+  warehouseId,
+  movementType,
+);
   },
 };
