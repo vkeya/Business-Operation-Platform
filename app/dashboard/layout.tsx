@@ -1,11 +1,21 @@
 import Link from "next/link";
-import { appNavigation } from "@/lib/navigation/appNavigation";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const business = await getCurrentBusiness();
+
+  const navigation =
+    getBusinessNavigation(
+      business.type as Parameters<
+        typeof getBusinessNavigation
+      >[0],
+    );
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex min-h-screen">
@@ -20,7 +30,7 @@ export default function DashboardLayout({
           </div>
 
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {appNavigation.map((item) => (
+            {navigation.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
