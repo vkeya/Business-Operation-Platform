@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import ProductSearch from "./ProductSearch";
+import { getAllInventoryBalancesAction } from "./listActions";
 
 interface Product {
   id: string;
@@ -24,6 +29,9 @@ export default function ProductList({
 }: ProductListProps) {
   const [products, setProducts] =
     useState(initialProducts);
+	
+	const [stockTotals, setStockTotals] =
+  useState<Record<string, number>>({});
 
   const handleResults = useCallback(
     (results: Product[]) => {
@@ -31,6 +39,33 @@ export default function ProductList({
     },
     [],
   );
+  
+  useEffect(() => {
+  let active = true;
+
+  async function loadStock() {
+    const balances =
+      await getAllInventoryBalancesAction();
+
+    const totals: Record<string, number> = {};
+
+    for (const balance of balances) {
+      totals[balance.productId] =
+        (totals[balance.productId] ?? 0) +
+        balance.quantity;
+    }
+
+    if (active) {
+      setStockTotals(totals);
+    }
+  }
+
+  loadStock();
+
+  return () => {
+    active = false;
+  };
+}, [products]);
 
   return (
     <>
@@ -126,10 +161,10 @@ export default function ProductList({
                   </td>
 
                   <td className="px-6 py-4 text-sm text-slate-600">
-                    {product.trackInventory
-                      ? "Tracked"
-                      : "Not tracked"}
-                  </td>
+  {product.trackInventory
+    ? stockTotals[product.id] ?? 0
+    : "Not tracked"}
+</td>
 
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
