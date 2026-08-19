@@ -94,6 +94,63 @@ export const inventoryService = {
 
   return inventoryRepository.receiveStock(input);
 },
+async transferStock(input: {
+  businessId: string;
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  currency: string;
+  createdBy: string;
+  notes?: string;
+}) {
+  if (!input.businessId) {
+    throw new Error("Business context is required.");
+  }
+
+  if (!input.productId) {
+    throw new Error("Product is required.");
+  }
+
+  if (!input.fromWarehouseId) {
+    throw new Error(
+      "Source warehouse is required.",
+    );
+  }
+
+  if (!input.toWarehouseId) {
+    throw new Error(
+      "Destination warehouse is required.",
+    );
+  }
+
+  if (
+    input.fromWarehouseId ===
+    input.toWarehouseId
+  ) {
+    throw new Error(
+      "Source and destination warehouses must be different.",
+    );
+  }
+
+  if (input.quantity <= 0) {
+    throw new Error(
+      "Transfer quantity must be greater than zero.",
+    );
+  }
+
+  if (!input.currency) {
+    throw new Error("Currency is required.");
+  }
+
+  if (!input.createdBy) {
+    throw new Error("User context is required.");
+  }
+
+  return inventoryRepository.transferStock(
+    input,
+  );
+},
 
   async getBalance(
     businessId: string,
@@ -148,6 +205,8 @@ export const inventoryService = {
     | "TRANSFER_OUT"
     | "DAMAGE"
     | "EXPIRY",
+  fromDate?: Date,
+  toDate?: Date,
 ) {
     if (!businessId) {
       throw new Error("Business context is required.");
@@ -158,6 +217,8 @@ export const inventoryService = {
   productId,
   warehouseId,
   movementType,
+  fromDate,
+  toDate,
 );
   },
 };

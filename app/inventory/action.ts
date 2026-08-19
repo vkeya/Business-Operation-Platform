@@ -30,6 +30,8 @@ export async function getInventoryMovementsAction(
     | "TRANSFER_OUT"
     | "DAMAGE"
     | "EXPIRY",
+  fromDate?: Date,
+  toDate?: Date,
 ) {
   const business = await getCurrentBusiness();
 
@@ -38,6 +40,8 @@ export async function getInventoryMovementsAction(
   productId,
   warehouseId,
   movementType,
+  fromDate,
+  toDate,
 );
 }
 
@@ -84,6 +88,31 @@ export async function getInventorySetupAction() {
     products,
     warehouses,
   };
+}
+
+export async function transferStockAction(input: {
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  currency: string;
+  notes?: string;
+}) {
+  const business =
+    await getCurrentBusiness();
+
+  return inventoryService.transferStock({
+    businessId: business.id,
+    productId: input.productId,
+    fromWarehouseId:
+      input.fromWarehouseId,
+    toWarehouseId:
+      input.toWarehouseId,
+    quantity: input.quantity,
+    currency: input.currency,
+    createdBy: business.id,
+    notes: input.notes,
+  });
 }
 
 export async function adjustStockAction(input: {

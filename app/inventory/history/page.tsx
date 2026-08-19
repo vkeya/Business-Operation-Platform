@@ -11,9 +11,19 @@ export default async function InventoryHistoryPage({
   type?: string;
   productId?: string;
   warehouseId?: string;
+  from?: string;
+  to?: string;
 }>;
 }) {
   const params = await searchParams;
+  
+  const fromDate = params.from
+  ? new Date(`${params.from}T00:00:00`)
+  : undefined;
+
+const toDate = params.to
+  ? new Date(`${params.to}T23:59:59.999`)
+  : undefined;
   
   const business =
   await getCurrentBusiness();
@@ -57,6 +67,8 @@ const movementType =
     params.productId || undefined,
     params.warehouseId || undefined,
     movementType,
+    fromDate,
+    toDate,
   );
 
   return (
@@ -224,6 +236,76 @@ const movementType =
   })}
 </div>
 
+<form
+  method="GET"
+  action="/inventory/history"
+  className="mt-4 flex flex-wrap items-end gap-3"
+>
+  {movementType && (
+    <input
+      type="hidden"
+      name="type"
+      value={movementType}
+    />
+  )}
+
+  {params.productId && (
+    <input
+      type="hidden"
+      name="productId"
+      value={params.productId}
+    />
+  )}
+
+  {params.warehouseId && (
+    <input
+      type="hidden"
+      name="warehouseId"
+      value={params.warehouseId}
+    />
+  )}
+
+  <div>
+    <label
+      htmlFor="from"
+      className="block text-xs font-medium text-slate-500"
+    >
+      From
+    </label>
+
+    <input
+      id="from"
+      name="from"
+      type="date"
+      defaultValue={params.from || ""}
+      className="mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+    />
+  </div>
+
+  <div>
+    <label
+      htmlFor="to"
+      className="block text-xs font-medium text-slate-500"
+    >
+      To
+    </label>
+
+    <input
+      id="to"
+      name="to"
+      type="date"
+      defaultValue={params.to || ""}
+      className="mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+    />
+  </div>
+
+  <button
+    type="submit"
+    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+  >
+    Apply dates
+  </button>
+</form>
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {movements.length === 0 ? (
           <div className="px-6 py-16 text-center">

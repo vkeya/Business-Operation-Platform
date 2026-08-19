@@ -237,6 +237,193 @@ export const inventoryRepository = {
   });
 },
 
+async transferStock(input: {
+  businessId: string;
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  currency: string;
+  createdBy: string;
+  notes?: string;
+}) {
+  if (input.quantity <= 0) {
+    throw new Error(
+      "Transfer quantity must be greater than zero.",
+    );
+  }
+
+  if (
+    input.fromWarehouseId ===
+    input.toWarehouseId
+  ) {
+    throw new Error(
+      "Source and destination warehouses must be different.",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const sourceBalance =
+      await tx.inventoryBalance.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId: input.productId,
+            warehouseId:
+              input.fromWarehouseId,
+          },
+        },
+      });
+
+    const sourceQuantity =
+      sourceBalance?.quantity.toNumber() ?? 0;
+
+    if (
+      sourceQuantity < input.quantity
+    ) {
+      throw new Error(
+        "Transfer would result in negative stock.",
+      );
+    }
+
+    const sourceAverageCost =
+      sourceBalance?.averageCost.toNumber() ??
+      0;
+
+    const destinationBalance =
+      await tx.inventoryBalance.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId: input.productId,
+            warehouseId:
+              input.toWarehouseId,
+          },
+        },
+      });
+
+    const destinationQuantity =
+      destinationBalance?.quantity.toNumber() ??
+      0;
+
+    const destinationAverageCost =
+      destinationBalance?.averageCost.toNumber() ??
+      sourceAverageCost;
+
+    const newSourceQuantity =
+      sourceQuantity - input.quantity;
+
+    const newDestinationQuantity =
+      destinationQuantity + input.quantity;
+
+    const transferCost =
+      input.quantity * sourceAverageCost;
+
+    const transferOut =
+      await tx.inventoryMovement.create({
+        data: {
+          businessId: input.businessId,
+          productId: input.productId,
+          warehouseId:
+            input.fromWarehouseId,
+          type: "TRANSFER_OUT",
+          quantity: input.quantity,
+          unitCost: sourceAverageCost,
+          totalCost: transferCost,
+          createdBy: input.createdBy,
+          notes: input.notes,
+        },
+      });
+
+    const transferIn =
+      await tx.inventoryMovement.create({
+        data: {
+          businessId: input.businessId,
+          productId: input.productId,
+          warehouseId:
+            input.toWarehouseId,
+          type: "TRANSFER_IN",
+          quantity: input.quantity,
+          unitCost: sourceAverageCost,
+          totalCost: transferCost,
+          createdBy: input.createdBy,
+          notes: input.notes,
+        },
+      });
+
+    const sourceBalanceUpdated =
+      await tx.inventoryBalance.upsert({
+        where: {
+          productId_warehouseId: {
+            productId: input.productId,
+            warehouseId:
+              input.fromWarehouseId,
+          },
+        },
+        create: {
+          businessId: input.businessId,
+          productId: input.productId,
+          warehouseId:
+            input.fromWarehouseId,
+          quantity: newSourceQuantity,
+          reservedQuantity: 0,
+          averageCost: sourceAverageCost,
+          currency: input.currency,
+        },
+        update: {
+          quantity: newSourceQuantity,
+        },
+      });
+
+    const destinationBalanceUpdated =
+      await tx.inventoryBalance.upsert({
+        where: {
+          productId_warehouseId: {
+            productId: input.productId,
+            warehouseId:
+              input.toWarehouseId,
+          },
+        },
+        create: {
+          businessId: input.businessId,
+          productId: input.productId,
+          warehouseId:
+            input.toWarehouseId,
+          quantity: newDestinationQuantity,
+          reservedQuantity: 0,
+          averageCost: sourceAverageCost,
+          currency: input.currency,
+        },
+        update: {
+          quantity: newDestinationQuantity,
+          averageCost:
+            destinationQuantity === 0
+              ? sourceAverageCost
+              : (
+                  destinationQuantity *
+                    destinationAverageCost +
+                  input.quantity *
+                    sourceAverageCost
+                ) /
+                  newDestinationQuantity,
+        },
+      });
+
+    return {
+      transferOut:
+        serializeMovement(transferOut),
+      transferIn:
+        serializeMovement(transferIn),
+      sourceBalance:
+        serializeBalance(
+          sourceBalanceUpdated,
+        ),
+      destinationBalance:
+        serializeBalance(
+          destinationBalanceUpdated,
+        ),
+    };
+  });
+},
+
   async getBalance(
     businessId: string,
     productId: string,
@@ -282,14 +469,16 @@ return balances.map(serializeBalance);
   productId?: string,
   warehouseId?: string,
   movementType?:
-  | "RECEIPT"
-  | "SALE"
-  | "RETURN"
-  | "ADJUSTMENT"
-  | "TRANSFER_IN"
-  | "TRANSFER_OUT"
-  | "DAMAGE"
-  | "EXPIRY",
+    | "RECEIPT"
+    | "SALE"
+    | "RETURN"
+    | "ADJUSTMENT"
+    | "TRANSFER_IN"
+    | "TRANSFER_OUT"
+    | "DAMAGE"
+    | "EXPIRY",
+  fromDate?: Date,
+  toDate?: Date,
 ) {
     const movements =
   await prisma.inventoryMovement.findMany({
@@ -298,6 +487,18 @@ return balances.map(serializeBalance);
   ...(productId ? { productId } : {}),
   ...(warehouseId ? { warehouseId } : {}),
   ...(movementType ? { type: movementType } : {}),
+  ...(fromDate || toDate
+    ? {
+        createdAt: {
+          ...(fromDate
+            ? { gte: fromDate }
+            : {}),
+          ...(toDate
+            ? { lte: toDate }
+            : {}),
+        },
+      }
+    : {}),
 },
     include: {
       product: {
