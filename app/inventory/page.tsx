@@ -55,7 +55,7 @@ const products =
   await productService.listProducts(
     business.id,
   );
-  
+
   const warehouses =
   await prisma.warehouse.findMany({
     where: {
@@ -66,7 +66,7 @@ const products =
       name: "asc",
     },
   });
-  
+
   const stockRows = balances
   .map((balance) => {
     const product = products.find(
@@ -100,7 +100,7 @@ const products =
     ): row is NonNullable<typeof row> =>
       row !== null,
   );
-  
+
   const inventoryProducts =
   products.filter(
     (product) =>
@@ -144,7 +144,63 @@ const lowStockCount =
 
     return productQuantity <= threshold;
   }).length;
-  
+
+  const stockAlerts = inventoryProducts
+  .map((product) => {
+    const quantity =
+      balances
+        .filter(
+          (balance) =>
+            balance.productId ===
+            product.id,
+        )
+        .reduce(
+          (total, balance) =>
+            total + balance.quantity,
+          0,
+        );
+
+    const threshold =
+      product.reorderLevel ??
+      product.minimumStock;
+
+    if (
+      threshold === null ||
+      threshold === undefined
+    ) {
+      return null;
+    }
+
+    if (quantity <= 0) {
+      return {
+        product,
+        quantity,
+        threshold,
+        status: "OUT_OF_STOCK" as const,
+      };
+    }
+
+    if (quantity <= threshold) {
+      return {
+        product,
+        quantity,
+        threshold,
+        status: "LOW_STOCK" as const,
+      };
+    }
+
+    return null;
+  })
+  .filter(
+    (
+      alert,
+    ): alert is NonNullable<
+      typeof alert
+    > => alert !== null,
+  );
+
+
+
   const stockValueByCurrency =
   balances.reduce<Record<string, number>>(
     (totals, balance) => {
@@ -160,10 +216,10 @@ const lowStockCount =
     },
     {},
   );
-  
+
   const stockValueEntries =
   Object.entries(stockValueByCurrency);
-  
+
   return (
     <div className="mx-auto max-w-7xl">
       <div className="mb-8">
@@ -322,8 +378,84 @@ const lowStockCount =
     </Link>
   </div>
 </div>
-         
-        
+
+
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900">
+              Stock attention
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Products that may need replenishment.
+            </p>
+          </div>
+
+          {stockAlerts.length > 0 && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+              {stockAlerts.length}{" "}
+              {stockAlerts.length === 1
+                ? "item"
+                : "items"}{" "}
+              need attention
+            </span>
+          )}
+        </div>
+
+        <div className="mt-6">
+          {stockAlerts.length === 0 ? (
+            <div className="rounded-xl bg-slate-50 p-5">
+              <p className="text-sm font-medium text-slate-900">
+                Stock levels look healthy
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                No products are currently below their configured stock threshold.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
+              {stockAlerts.map((alert) => (
+                <div
+                  key={alert.product.id}
+                  className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      {alert.product.name}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      {alert.product.sku}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {alert.quantity}
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        threshold {alert.threshold}
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      {alert.status ===
+                      "OUT_OF_STOCK"
+                        ? "Out of stock"
+                        : "Low stock"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
@@ -370,7 +502,7 @@ const lowStockCount =
               {lowStockCount}
             </p>
           </div>
-		  
+
 		  <div className="rounded-xl bg-slate-50 p-5">
   <p className="text-sm text-slate-500">
     Stock value
