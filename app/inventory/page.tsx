@@ -1,15 +1,29 @@
+import Link from "next/link";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { inventoryService } from "@/lib/inventory/inventoryService";
+import { productService } from "@/lib/inventory/productService";
+import { prisma } from "@/lib/database/prisma";
+
 const stockActions = [
   {
     title: "Add product",
     description: "Create a product or service.",
+    href: "/inventory/products/new",
   },
   {
     title: "Receive stock",
     description: "Record products coming into your business.",
+    href: "/inventory/receive",
   },
   {
     title: "Adjust stock",
     description: "Correct a stock quantity when needed.",
+    href: "/inventory/adjust",
+  },
+  {
+    title: "Transfer stock",
+    description: "Move stock between warehouses.",
+    href: "/inventory/transfer",
   },
 ];
 
@@ -28,7 +42,128 @@ const stockSections = [
   },
 ];
 
-export default function InventoryPage() {
+export default async function InventoryPage() {
+  const business =
+  await getCurrentBusiness();
+
+const balances =
+  await inventoryService.listBalances(
+    business.id,
+  );
+
+const products =
+  await productService.listProducts(
+    business.id,
+  );
+  
+  const warehouses =
+  await prisma.warehouse.findMany({
+    where: {
+      businessId: business.id,
+      isActive: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+  
+  const stockRows = balances
+  .map((balance) => {
+    const product = products.find(
+      (item) =>
+        item.id === balance.productId,
+    );
+
+    const warehouse = warehouses.find(
+      (item) =>
+        item.id === balance.warehouseId,
+    );
+
+    if (!product || !warehouse) {
+      return null;
+    }
+
+    return {
+      id: balance.id,
+      productName: product.name,
+      sku: product.sku,
+      warehouseName: warehouse.name,
+      warehouseCode: warehouse.code,
+      quantity: balance.quantity,
+      averageCost: balance.averageCost,
+      currency: balance.currency,
+    };
+  })
+  .filter(
+    (
+      row,
+    ): row is NonNullable<typeof row> =>
+      row !== null,
+  );
+  
+  const inventoryProducts =
+  products.filter(
+    (product) =>
+      product.type === "PRODUCT" &&
+      product.trackInventory,
+  );
+
+const totalUnitsInStock =
+  balances.reduce(
+    (total, balance) =>
+      total + balance.quantity,
+    0,
+  );
+
+const lowStockCount =
+  inventoryProducts.filter((product) => {
+    if (
+      product.minimumStock === null &&
+      product.reorderLevel === null
+    ) {
+      return false;
+    }
+
+    const productQuantity =
+      balances
+        .filter(
+          (balance) =>
+            balance.productId ===
+            product.id,
+        )
+        .reduce(
+          (total, balance) =>
+            total + balance.quantity,
+          0,
+        );
+
+    const threshold =
+      product.reorderLevel ??
+      product.minimumStock ??
+      0;
+
+    return productQuantity <= threshold;
+  }).length;
+  
+  const stockValueByCurrency =
+  balances.reduce<Record<string, number>>(
+    (totals, balance) => {
+      const value =
+        balance.quantity *
+        balance.averageCost;
+
+      totals[balance.currency] =
+        (totals[balance.currency] ?? 0) +
+        value;
+
+      return totals;
+    },
+    {},
+  );
+  
+  const stockValueEntries =
+  Object.entries(stockValueByCurrency);
+  
   return (
     <div className="mx-auto max-w-7xl">
       <div className="mb-8">
@@ -57,25 +192,25 @@ export default function InventoryPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stockActions.map((action) => (
-            <button
-              key={action.title}
-              type="button"
-              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:border-slate-300 hover:shadow-sm"
-            >
-              <p className="font-medium text-slate-900">
-                {action.title}
-              </p>
+            <Link
+  key={action.title}
+  href={action.href}
+  className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:border-slate-300 hover:shadow-sm"
+>
+  <p className="font-medium text-slate-900">
+    {action.title}
+  </p>
 
-              <p className="mt-2 text-sm leading-5 text-slate-500">
-                {action.description}
-              </p>
+  <p className="mt-2 text-sm leading-5 text-slate-500">
+    {action.description}
+  </p>
 
-              <p className="mt-4 text-sm font-medium text-slate-700">
-                Open →
-              </p>
-            </button>
+  <p className="mt-4 text-sm font-medium text-slate-700">
+    Open →
+  </p>
+</Link>
           ))}
         </div>
       </section>
@@ -92,27 +227,103 @@ export default function InventoryPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          {stockSections.map((section) => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <h3 className="font-semibold text-slate-900">
+      Products
+    </h3>
+
+    <p className="mt-2 text-sm leading-6 text-slate-500">
+      Manage the products and services you sell.
+    </p>
+
+    <div className="mt-5 rounded-xl bg-slate-50 p-4">
+      <p className="text-2xl font-semibold text-slate-900">
+        {products.length}
+      </p>
+
+      <p className="mt-1 text-sm text-slate-500">
+        products and services
+      </p>
+    </div>
+
+    <Link
+      href="/inventory/products"
+      className="mt-5 inline-block text-sm font-medium text-slate-700 hover:text-slate-900"
+    >
+      Manage products →
+    </Link>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <h3 className="font-semibold text-slate-900">
+      Stock levels
+    </h3>
+
+    <p className="mt-2 text-sm leading-6 text-slate-500">
+      See what you currently have available.
+    </p>
+
+    <div className="mt-5 rounded-xl bg-slate-50 p-4">
+      {stockRows.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          No stock records yet
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {stockRows.slice(0, 5).map((row) => (
             <div
-              key={section.title}
-              className="rounded-2xl border border-slate-200 bg-white p-6"
+              key={row.id}
+              className="flex items-start justify-between gap-4"
             >
-              <h3 className="font-semibold text-slate-900">
-                {section.title}
-              </h3>
+              <div>
+                <p className="text-sm font-medium text-slate-900">
+                  {row.productName}
+                </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {section.description}
-              </p>
-
-              <div className="mt-5 rounded-xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">
-                  No records yet
+                <p className="mt-1 text-xs text-slate-500">
+                  {row.sku} · {row.warehouseName}
                 </p>
               </div>
+
+              <p className="text-sm font-semibold text-slate-900">
+                {row.quantity}
+              </p>
             </div>
           ))}
         </div>
+      )}
+    </div>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <h3 className="font-semibold text-slate-900">
+      Stock movements
+    </h3>
+
+    <p className="mt-2 text-sm leading-6 text-slate-500">
+      Review receipts, transfers, adjustments and other movements.
+    </p>
+
+    <div className="mt-5 rounded-xl bg-slate-50 p-4">
+      <p className="text-2xl font-semibold text-slate-900">
+        View history
+      </p>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Review inventory activity
+      </p>
+    </div>
+
+    <Link
+      href="/inventory/history"
+      className="mt-5 inline-block text-sm font-medium text-slate-700 hover:text-slate-900"
+    >
+      View movements →
+    </Link>
+  </div>
+</div>
+         
+        
       </section>
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
@@ -132,13 +343,13 @@ export default function InventoryPage() {
           </span>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-4">
           <div className="rounded-xl bg-slate-50 p-5">
             <p className="text-sm text-slate-500">
               Products
             </p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">
-              —
+              {inventoryProducts.length}
             </p>
           </div>
 
@@ -147,7 +358,7 @@ export default function InventoryPage() {
               Units in stock
             </p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">
-              —
+              {totalUnitsInStock}
             </p>
           </div>
 
@@ -156,9 +367,42 @@ export default function InventoryPage() {
               Low stock
             </p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">
-              —
+              {lowStockCount}
             </p>
           </div>
+		  
+		  <div className="rounded-xl bg-slate-50 p-5">
+  <p className="text-sm text-slate-500">
+    Stock value
+  </p>
+
+  <div className="mt-2 space-y-1">
+    {stockValueEntries.length === 0 ? (
+      <p className="text-2xl font-semibold text-slate-900">
+        —
+      </p>
+    ) : (
+      stockValueEntries.map(
+        ([currency, value]) => (
+          <p
+            key={currency}
+            className="text-xl font-semibold text-slate-900"
+          >
+            {currency}{" "}
+            {value.toLocaleString(
+              undefined,
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              },
+            )}
+          </p>
+        ),
+      )
+    )}
+  </div>
+</div>
+
         </div>
       </section>
     </div>
