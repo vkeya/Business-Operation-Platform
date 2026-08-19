@@ -23,6 +23,7 @@ const capabilityToNavigationModule:
   expenses: "money",
   accounting: "accounting",
   reports: "reports",
+  menu: "menu",
 };
 
 export function getBusinessNavigation(

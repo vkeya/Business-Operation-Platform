@@ -107,6 +107,9 @@ suppliers  Supplier[]
 sales      Sale[]
 purchases  Purchase[]
 
+restaurantMenus RestaurantMenu[]
+restaurantMenuItems RestaurantMenuItem[]
+
   @@index([status])
 }
 
@@ -282,10 +285,57 @@ model Product {
   inventoryBalances  InventoryBalance[]
   inventoryMovements InventoryMovement[]
 
+  restaurantMenuItems RestaurantMenuItem[]
+
   @@unique([businessId, sku])
   @@index([businessId])
   @@index([categoryId])
   @@index([barcode])
+}
+
+model RestaurantMenu {
+  id          String   @id @default(cuid())
+  businessId  String
+
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business    Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items       RestaurantMenuItem[]
+
+  @@unique([businessId, name])
+  @@index([businessId])
+}
+
+model RestaurantMenuItem {
+  id            String   @id @default(cuid())
+  businessId    String
+  menuId        String
+  productId     String?
+
+  name          String
+  description   String?
+
+  sellingPrice  Decimal  @db.Decimal(18, 4)
+  currency      String
+
+  isAvailable   Boolean  @default(true)
+  displayOrder  Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business      Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  menu          RestaurantMenu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  product       Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([menuId])
+  @@index([productId])
 }
 
 model InventoryBalance {

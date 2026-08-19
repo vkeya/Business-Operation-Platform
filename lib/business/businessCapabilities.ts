@@ -10,7 +10,8 @@ export type BusinessCapability =
   | "payments"
   | "expenses"
   | "accounting"
-  | "reports";
+  | "reports"
+  | "menu";
 
 export const coreBusinessCapabilities: BusinessCapability[] = [
   "dashboard",
@@ -31,6 +32,7 @@ export const businessCapabilities: Record<
 > = {
   restaurant: [
     ...coreBusinessCapabilities,
+	"menu",
   ],
 
   bar: [

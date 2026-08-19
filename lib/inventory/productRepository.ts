@@ -74,7 +74,7 @@ export const productRepository = {
 
     return products.map(serializeProduct);
   },
-  
+
   async search(
   businessId: string,
   query: string,
@@ -131,5 +131,22 @@ export const productRepository = {
     });
 
     return product ? serializeProduct(product) : null;
+  },
+
+    async findById(
+    businessId: string,
+    productId: string,
+  ) {
+    const product =
+      await prisma.product.findFirst({
+        where: {
+          id: productId,
+          businessId,
+        },
+      });
+
+    return product
+      ? serializeProduct(product)
+      : null;
   },
 };

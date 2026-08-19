@@ -8,7 +8,8 @@ export type NavigationModule =
   | "money"
   | "accounting"
   | "reports"
-  | "settings";
+  | "settings"
+  | "menu";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -24,6 +25,13 @@ export const appNavigation: NavigationItem[] = [
     description: "See how your business is doing.",
     href: "/dashboard",
   },
+  {
+    id: "menu",
+    label: "Menu",
+    description: "Manage your restaurant menu.",
+    href: "/restaurant/menu",
+  },
+
   {
     id: "sales",
     label: "Sales",
