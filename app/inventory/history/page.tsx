@@ -1,14 +1,38 @@
 import Link from "next/link";
 import { getInventoryMovementsAction } from "../action";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { productService } from "@/lib/inventory/productService";
+import { prisma } from "@/lib/database/prisma";
 
 export default async function InventoryHistoryPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    type?: string;
-  }>;
+  type?: string;
+  productId?: string;
+  warehouseId?: string;
+}>;
 }) {
   const params = await searchParams;
+  
+  const business =
+  await getCurrentBusiness();
+
+const products =
+  await productService.listProducts(
+    business.id,
+  );
+  
+  const warehouses =
+  await prisma.warehouse.findMany({
+    where: {
+      businessId: business.id,
+      isActive: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   const allowedMovementTypes = [
   "RECEIPT",
@@ -29,11 +53,11 @@ const movementType =
     : undefined;
 
   const movements =
-    await getInventoryMovementsAction(
-      undefined,
-      undefined,
-      movementType || undefined,
-    );
+  await getInventoryMovementsAction(
+    params.productId || undefined,
+    params.warehouseId || undefined,
+    movementType,
+  );
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -84,6 +108,120 @@ const movementType =
       {type.replaceAll("_", " ")}
     </Link>
   ))}
+</div>
+
+<div className="mt-3 flex flex-wrap gap-2">
+  <Link
+    href={
+      movementType
+        ? `/inventory/history?type=${movementType}`
+        : "/inventory/history"
+    }
+    className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+      !params.productId
+        ? "border-slate-900 bg-slate-900 text-white"
+        : "border-slate-300 text-slate-700 hover:bg-slate-50"
+    }`}
+  >
+    All products
+  </Link>
+
+  {products
+    .filter(
+      (product) =>
+        product.type === "PRODUCT" &&
+        product.trackInventory,
+    )
+    .map((product) => {
+      const query = new URLSearchParams();
+
+      if (movementType) {
+        query.set("type", movementType);
+      }
+
+      query.set("productId", product.id);
+
+      return (
+        <Link
+          key={product.id}
+          href={`/inventory/history?${query.toString()}`}
+          className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+            params.productId === product.id
+              ? "border-slate-900 bg-slate-900 text-white"
+              : "border-slate-300 text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          {product.name}
+        </Link>
+      );
+    })}
+</div>
+
+<div className="mt-3 flex flex-wrap gap-2">
+  <Link
+    href={(() => {
+      const query = new URLSearchParams();
+
+      if (movementType) {
+        query.set("type", movementType);
+      }
+
+      if (params.productId) {
+        query.set(
+          "productId",
+          params.productId,
+        );
+      }
+
+      const queryString =
+        query.toString();
+
+      return queryString
+        ? `/inventory/history?${queryString}`
+        : "/inventory/history";
+    })()}
+    className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+      !params.warehouseId
+        ? "border-slate-900 bg-slate-900 text-white"
+        : "border-slate-300 text-slate-700 hover:bg-slate-50"
+    }`}
+  >
+    All warehouses
+  </Link>
+
+  {warehouses.map((warehouse) => {
+    const query = new URLSearchParams();
+
+    if (movementType) {
+      query.set("type", movementType);
+    }
+
+    if (params.productId) {
+      query.set(
+        "productId",
+        params.productId,
+      );
+    }
+
+    query.set(
+      "warehouseId",
+      warehouse.id,
+    );
+
+    return (
+      <Link
+        key={warehouse.id}
+        href={`/inventory/history?${query.toString()}`}
+        className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+          params.warehouseId === warehouse.id
+            ? "border-slate-900 bg-slate-900 text-white"
+            : "border-slate-300 text-slate-700 hover:bg-slate-50"
+        }`}
+      >
+        {warehouse.name}
+      </Link>
+    );
+  })}
 </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white">
