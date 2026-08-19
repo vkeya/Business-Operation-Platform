@@ -75,3 +75,25 @@ export async function getInventorySetupAction() {
     warehouses,
   };
 }
+
+export async function adjustStockAction(input: {
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  unitCost?: number;
+  currency: string;
+  notes?: string;
+}) {
+  const business = await getCurrentBusiness();
+
+  return inventoryService.adjustStock({
+    businessId: business.id,
+    productId: input.productId,
+    warehouseId: input.warehouseId,
+    quantity: input.quantity,
+    unitCost: input.unitCost,
+    currency: input.currency,
+    createdBy: business.id,
+    notes: input.notes,
+  });
+}
