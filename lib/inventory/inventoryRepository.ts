@@ -281,15 +281,32 @@ return balances.map(serializeBalance);
     productId?: string,
     warehouseId?: string,
   ) {
-    return prisma.inventoryMovement.findMany({
-      where: {
-        businessId,
-        ...(productId ? { productId } : {}),
-        ...(warehouseId ? { warehouseId } : {}),
+    const movements =
+  await prisma.inventoryMovement.findMany({
+    where: {
+      businessId,
+      ...(productId ? { productId } : {}),
+      ...(warehouseId ? { warehouseId } : {}),
+    },
+    include: {
+      product: {
+        select: {
+          name: true,
+          sku: true,
+        },
       },
-      orderBy: {
-        createdAt: "desc",
+      warehouse: {
+        select: {
+          name: true,
+          code: true,
+        },
       },
-    });
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+return movements.map(serializeMovement);
   },
 };
