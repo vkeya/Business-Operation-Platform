@@ -80,4 +80,18 @@ export const productService = {
 
     return productRepository.list(businessId);
   },
+  
+  async searchProducts(
+  businessId: string,
+  query: string,
+) {
+  if (!businessId) {
+    throw new Error("Business context is required.");
+  }
+
+  return productRepository.search(
+    businessId,
+    query,
+  );
+},
 };

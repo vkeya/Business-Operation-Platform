@@ -74,6 +74,48 @@ export const productRepository = {
 
     return products.map(serializeProduct);
   },
+  
+  async search(
+  businessId: string,
+  query: string,
+) {
+  const searchTerm = query.trim();
+
+  if (!searchTerm) {
+    return this.list(businessId);
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      businessId,
+      OR: [
+        {
+          name: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          sku: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          barcode: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return products.map(serializeProduct);
+},
 
   async findBySku(
     businessId: string,
