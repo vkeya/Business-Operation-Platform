@@ -1,7 +1,7 @@
 import { inventoryRepository } from "./inventoryRepository";
 
 export const inventoryService = {
-	
+
 	async adjustStock(input: {
   businessId: string;
   productId: string;
@@ -49,7 +49,7 @@ export const inventoryService = {
 
   return inventoryRepository.adjustStock(input);
 },
-	
+
 	async receiveStock(input: {
   businessId: string;
   productId: string;
@@ -250,6 +250,8 @@ async transferStock(input: {
       input,
     );
   },
+
+
 
   async getBalance(
     businessId: string,

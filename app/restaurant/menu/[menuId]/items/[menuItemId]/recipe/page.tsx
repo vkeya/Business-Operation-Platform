@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import {
+  getCurrentBusiness,
+  getCurrentBusinessWarehouses,
+} from "@/lib/business/currentBusiness";
 import {
   getRestaurantMenuItemAction,
   getRestaurantRecipeAction,
 } from "@/app/restaurant/actions";
 import { getProductsAction } from "@/app/inventory/products/listActions";
+import { recipeService } from "@/lib/restaurant/recipeService";
 import AddIngredientForm from "./AddIngredientForm";
-
 
 interface RecipePageProps {
   params: Promise<{
@@ -23,7 +26,6 @@ export default async function RecipePage({
     menuId,
     menuItemId,
   } = await params;
-
 
   const business =
     await getCurrentBusiness();
@@ -46,7 +48,48 @@ export default async function RecipePage({
       menuItemId,
     );
 
-	const products = await getProductsAction();
+  const products =
+    await getProductsAction();
+
+  const warehouses =
+    await getCurrentBusinessWarehouses(
+      business.id,
+    );
+
+  let recipeCost:
+    | Awaited<
+        ReturnType<
+          typeof recipeService.calculateRecipeCost
+        >
+      >
+    | null = null;
+
+  if (
+    recipe &&
+    recipe.ingredients.length > 0 &&
+    warehouses.length > 0
+  ) {
+    recipeCost =
+      await recipeService.calculateRecipeCost({
+        businessId: business.id,
+        menuItemId,
+        warehouseId:
+          warehouses[0].id,
+      });
+  }
+
+  const sellingPrice =
+  Number(menuItem.sellingPrice);
+
+const grossProfit =
+  recipeCost
+    ? sellingPrice - recipeCost.totalCost
+    : 0;
+
+const grossMargin =
+  sellingPrice > 0
+    ? (grossProfit / sellingPrice) * 100
+    : 0;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -67,7 +110,8 @@ export default async function RecipePage({
         </h1>
 
         <p className="mt-2 text-sm text-slate-600">
-          Manage the recipe and ingredients used to prepare this menu item.
+          Manage the recipe and ingredients used to
+          prepare this menu item.
         </p>
       </div>
 
@@ -79,7 +123,8 @@ export default async function RecipePage({
             </p>
 
             <p className="mt-2 text-sm text-slate-500">
-              Create a recipe to define the ingredients used for this menu item.
+              Create a recipe to define the ingredients
+              used for this menu item.
             </p>
 
             <div className="mt-5">
@@ -140,7 +185,7 @@ export default async function RecipePage({
 
                         <p className="mt-1 text-xs text-slate-500">
                           {ingredient.quantity.toString()}{" "}
-{ingredient.unit}
+                          {ingredient.unit}
                         </p>
                       </div>
                     </div>
@@ -148,12 +193,130 @@ export default async function RecipePage({
                 )}
               </div>
             )}
-			<AddIngredientForm
-  recipeId={recipe.id}
-  menuId={menuId}
-  menuItemId={menuItemId}
-  products={products}
-/>
+
+            {recipeCost && (
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      Recipe cost
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Based on average inventory cost in{" "}
+                      {warehouses[0].name}.
+                    </p>
+                  </div>
+
+                  <p className="text-xl font-semibold text-slate-900">
+                    {business.baseCurrency}{" "}
+                    {recipeCost.totalCost.toFixed(2)}
+                  </p>
+                </div>
+
+				<div className="mt-5 grid gap-4 sm:grid-cols-3">
+  <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <p className="text-xs font-medium text-slate-500">
+      Selling price
+    </p>
+
+    <p className="mt-1 text-lg font-semibold text-slate-900">
+      {business.baseCurrency}{" "}
+      {sellingPrice.toFixed(2)}
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <p className="text-xs font-medium text-slate-500">
+      Gross profit
+    </p>
+
+    <p className="mt-1 text-lg font-semibold text-slate-900">
+      {business.baseCurrency}{" "}
+      {grossProfit.toFixed(2)}
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <p className="text-xs font-medium text-slate-500">
+      Gross margin
+    </p>
+
+    <p className="mt-1 text-lg font-semibold text-slate-900">
+      {grossMargin.toFixed(1)}%
+    </p>
+  </div>
+</div>
+
+                <div className="mt-5 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                  {recipeCost.ingredients.map(
+                    (ingredient) => (
+                      <div
+                        key={ingredient.productId}
+                        className="flex items-center justify-between gap-4 p-4"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">
+                            {ingredient.productName}
+                          </p>
+
+                          <div className="mt-2 space-y-1 text-xs text-slate-500">
+  <p>
+    Recipe quantity:{" "}
+    <span className="font-medium text-slate-700">
+      {ingredient.recipeQuantity}{" "}
+      {ingredient.recipeUnit}
+    </span>
+  </p>
+
+  <p>
+    Inventory quantity:{" "}
+    <span className="font-medium text-slate-700">
+      {ingredient.inventoryQuantity}{" "}
+      {ingredient.inventoryUnit}
+    </span>
+  </p>
+
+  <p>
+    Average cost:{" "}
+    <span className="font-medium text-slate-700">
+      {business.baseCurrency}{" "}
+      {ingredient.averageCost.toFixed(2)}
+    </span>
+    {" / "}
+    {ingredient.inventoryUnit}
+  </p>
+</div>
+                        </div>
+
+                        <p className="text-sm font-semibold text-slate-900">
+                          {business.baseCurrency}{" "}
+                          {ingredient.totalCost.toFixed(
+                            2,
+                          )}
+                        </p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {recipe &&
+              recipe.ingredients.length > 0 &&
+              warehouses.length === 0 && (
+                <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Add an active warehouse with inventory
+                  before recipe costing can be calculated.
+                </div>
+              )}
+
+            <AddIngredientForm
+              recipeId={recipe.id}
+              menuId={menuId}
+              menuItemId={menuItemId}
+              products={products}
+            />
           </div>
         </section>
       )}

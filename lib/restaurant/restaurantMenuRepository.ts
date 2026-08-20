@@ -120,6 +120,37 @@ export const restaurantMenuRepository = {
     );
   },
 
+    async listAvailableMenuItems(
+    businessId: string,
+  ) {
+    const items =
+      await prisma.restaurantMenuItem.findMany({
+        where: {
+          businessId,
+          isAvailable: true,
+          menu: {
+            isActive: true,
+          },
+        },
+        include: {
+          menu: true,
+          product: true,
+        },
+        orderBy: [
+          {
+            displayOrder: "asc",
+          },
+          {
+            name: "asc",
+          },
+        ],
+      });
+
+    return items.map(
+      serializeMenuItem,
+    );
+  },
+
     async findMenuItemById(
     businessId: string,
     menuItemId: string,

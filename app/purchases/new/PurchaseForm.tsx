@@ -37,6 +37,7 @@ interface PurchaseFormProps {
   suppliers: Supplier[];
   warehouses: Warehouse[];
   currency: string;
+  initialProductId?: string;
 }
 
 interface PurchaseItem {
@@ -51,6 +52,7 @@ export default function PurchaseForm({
   suppliers,
   warehouses,
   currency: defaultCurrency,
+  initialProductId,
 }: PurchaseFormProps) {
   const router = useRouter();
 
@@ -73,14 +75,15 @@ export default function PurchaseForm({
     useState("");
 
   const [items, setItems] =
-    useState<PurchaseItem[]>([
-      {
-        id: crypto.randomUUID(),
-        productId: "",
-        quantity: "",
-        unitCost: "",
-      },
-    ]);
+  useState<PurchaseItem[]>([
+    {
+      id: crypto.randomUUID(),
+      productId:
+        initialProductId ?? "",
+      quantity: "",
+      unitCost: "",
+    },
+  ]);
 
   const [submitting, setSubmitting] =
     useState(false);

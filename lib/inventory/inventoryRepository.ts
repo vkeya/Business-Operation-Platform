@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
+import type { Prisma } from "../../generated/prisma/client";
 
 
 function serializeMovement<
@@ -612,7 +613,7 @@ return movements.map(serializeMovement);
     });
   },
 
-    async consumeStockBatch(input: {
+      async consumeStockBatch(input: {
     businessId: string;
     warehouseId: string;
     currency: string;
@@ -639,81 +640,100 @@ return movements.map(serializeMovement);
       }
     }
 
-    return prisma.$transaction(async (tx) => {
-      const results = [];
+    return prisma.$transaction((tx) =>
+      this.consumeStockBatchWithTx(tx, input),
+    );
+  },
 
-      for (const item of input.items) {
-        const existingBalance =
-          await tx.inventoryBalance.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: input.warehouseId,
-              },
-            },
-          });
+  async consumeStockBatchWithTx(
+    tx: Prisma.TransactionClient,
+    input: {
+      businessId: string;
+      warehouseId: string;
+      currency: string;
+      createdBy: string;
+      referenceType?: string;
+      referenceId?: string;
+      notes?: string;
+      items: Array<{
+        productId: string;
+        quantity: number;
+      }>;
+    },
+  ) {
+    const results = [];
 
-        const currentQuantity =
-          existingBalance?.quantity.toNumber() ?? 0;
-
-        if (currentQuantity < item.quantity) {
-          throw new Error(
-            `Insufficient stock for product "${item.productId}".`,
-          );
-        }
-
-        const averageCost =
-          existingBalance?.averageCost.toNumber() ?? 0;
-
-        const newQuantity =
-          currentQuantity - item.quantity;
-
-        const totalCost =
-          item.quantity * averageCost;
-
-        const movement =
-          await tx.inventoryMovement.create({
-            data: {
-              businessId: input.businessId,
+    for (const item of input.items) {
+      const existingBalance =
+        await tx.inventoryBalance.findUnique({
+          where: {
+            productId_warehouseId: {
               productId: item.productId,
               warehouseId: input.warehouseId,
-              type: "SALE",
-              quantity: item.quantity,
-              unitCost: averageCost,
-              totalCost,
-              referenceType:
-                input.referenceType,
-              referenceId:
-                input.referenceId,
-              createdBy: input.createdBy,
-              notes: input.notes,
             },
-          });
-
-        const balance =
-          await tx.inventoryBalance.update({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: input.warehouseId,
-              },
-            },
-            data: {
-              quantity: newQuantity,
-              currency: input.currency,
-            },
-          });
-
-        results.push({
-          movement:
-            serializeMovement(movement),
-          balance:
-            serializeBalance(balance),
+          },
         });
+
+      const currentQuantity =
+        existingBalance?.quantity.toNumber() ?? 0;
+
+      if (currentQuantity < item.quantity) {
+        throw new Error(
+          `Insufficient stock for product "${item.productId}".`,
+        );
       }
 
-      return results;
-    });
+      const averageCost =
+        existingBalance?.averageCost.toNumber() ?? 0;
+
+      const newQuantity =
+        currentQuantity - item.quantity;
+
+      const totalCost =
+        item.quantity * averageCost;
+
+      const movement =
+        await tx.inventoryMovement.create({
+          data: {
+            businessId: input.businessId,
+            productId: item.productId,
+            warehouseId: input.warehouseId,
+            type: "SALE",
+            quantity: item.quantity,
+            unitCost: averageCost,
+            totalCost,
+            referenceType:
+              input.referenceType,
+            referenceId:
+              input.referenceId,
+            createdBy: input.createdBy,
+            notes: input.notes,
+          },
+        });
+
+      const balance =
+        await tx.inventoryBalance.update({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: input.warehouseId,
+            },
+          },
+          data: {
+            quantity: newQuantity,
+            currency: input.currency,
+          },
+        });
+
+      results.push({
+        movement:
+          serializeMovement(movement),
+        balance:
+          serializeBalance(balance),
+      });
+    }
+
+    return results;
   },
 
 };

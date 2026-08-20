@@ -1,9 +1,20 @@
 import PurchaseForm from "./PurchaseForm";
 import { getPurchaseDefaultsAction } from "../action";
 
-export default async function NewPurchasePage() {
+interface NewPurchasePageProps {
+  searchParams: Promise<{
+    productId?: string;
+  }>;
+}
+
+export default async function NewPurchasePage({
+  searchParams,
+}: NewPurchasePageProps) {
   const defaults =
     await getPurchaseDefaultsAction();
+
+  const { productId } =
+    await searchParams;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -26,6 +37,7 @@ export default async function NewPurchasePage() {
         products={defaults.products}
         warehouses={defaults.warehouses}
         currency={defaults.currency}
+        initialProductId={productId}
       />
     </div>
   );

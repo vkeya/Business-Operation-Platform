@@ -161,6 +161,20 @@ export const restaurantMenuService = {
     );
   },
 
+    async listAvailableMenuItems(
+    businessId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    return restaurantMenuRepository.listAvailableMenuItems(
+      businessId,
+    );
+  },
+
     async findMenuItemById(
     businessId: string,
     menuItemId: string,

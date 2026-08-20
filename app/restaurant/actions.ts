@@ -183,3 +183,18 @@ export async function getRestaurantMenuItemAction(
     menuItemId,
   );
 }
+
+export async function getAvailableRestaurantMenuItemsAction() {
+  const business =
+    await getCurrentBusiness();
+
+  if (business.type !== "restaurant") {
+    throw new Error(
+      "Menu management is only available for restaurants.",
+    );
+  }
+
+  return restaurantMenuService.listAvailableMenuItems(
+    business.id,
+  );
+}

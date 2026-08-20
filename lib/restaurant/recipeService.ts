@@ -4,6 +4,12 @@ import {
   type CreateRecipeIngredientInput,
 } from "./recipeRepository";
 import {
+  convertQuantity,
+  canConvertUnit,
+} from "@/lib/inventory/unitConversion";
+import { normalizeProductUnit } from "@/lib/inventory/normalizeProductUnit";
+import type { ProductUnit } from "@/lib/inventory/productUnits";
+import {
   calculateRecipeConsumption,
 } from "./recipeConsumption";
 import { inventoryService } from "@/lib/inventory/inventoryService";
@@ -101,6 +107,142 @@ export const recipeService = {
       ...input,
       unit,
     });
+  },
+
+  async calculateRecipeCost(input: {
+    businessId: string;
+    menuItemId: string;
+    warehouseId: string;
+  }) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.menuItemId) {
+      throw new Error(
+        "Menu item is required.",
+      );
+    }
+
+    if (!input.warehouseId) {
+      throw new Error(
+        "Warehouse is required.",
+      );
+    }
+
+    const recipe =
+      await recipeRepository.findRecipeByMenuItemId(
+        input.businessId,
+        input.menuItemId,
+      );
+
+    if (!recipe) {
+      throw new Error(
+        "No recipe exists for this menu item.",
+      );
+    }
+
+    if (recipe.ingredients.length === 0) {
+      throw new Error(
+        "Recipe has no ingredients.",
+      );
+    }
+
+    const ingredients = [];
+
+    let totalCost = 0;
+
+    for (const ingredient of recipe.ingredients) {
+      const balance =
+        await inventoryService.getBalance(
+          input.businessId,
+          ingredient.productId,
+          input.warehouseId,
+        );
+
+      const averageCost =
+        balance?.averageCost ?? 0;
+
+      const recipeQuantity =
+        ingredient.quantity.toNumber();
+
+      const inventoryUnit =
+        normalizeProductUnit(
+          ingredient.product.unit,
+        );
+
+      const recipeUnit =
+        ingredient.unit as ProductUnit;
+
+      if (
+        !canConvertUnit(
+          recipeUnit,
+          inventoryUnit,
+        )
+      ) {
+        throw new Error(
+          `Cannot convert recipe unit "${recipeUnit}" to inventory unit "${inventoryUnit}" for product "${ingredient.product.name}".`,
+        );
+      }
+
+      const inventoryQuantity =
+        convertQuantity(
+          recipeQuantity,
+          recipeUnit,
+          inventoryUnit,
+        );
+
+      const ingredientCost =
+        inventoryQuantity * averageCost;
+
+      totalCost += ingredientCost;
+
+      ingredients.push({
+  productId:
+    ingredient.productId,
+
+  productName:
+    ingredient.product.name,
+
+  quantity:
+    recipeQuantity,
+
+  unit:
+    recipeUnit,
+
+  recipeQuantity,
+
+  recipeUnit,
+
+  inventoryQuantity,
+
+  inventoryUnit,
+
+  averageCost,
+
+  totalCost:
+    ingredientCost,
+});
+    }
+
+    return {
+      recipeId: recipe.id,
+
+      menuItemId:
+        input.menuItemId,
+
+      recipeName:
+        recipe.name,
+
+      warehouseId:
+        input.warehouseId,
+
+      totalCost,
+
+      ingredients,
+    };
   },
 
      async calculateConsumption(input: {
@@ -263,6 +405,99 @@ export const recipeService = {
         (item) => ({
           productId: item.productId,
           quantity: item.quantity,
+        }),
+      ),
+    });
+  },
+
+    async consumeSaleRecipes(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceId: string;
+    items: Array<{
+      menuItemId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (!input.businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    if (!input.warehouseId) {
+      throw new Error("Warehouse is required.");
+    }
+
+    if (!input.currency) {
+      throw new Error("Currency is required.");
+    }
+
+    if (!input.createdBy) {
+      throw new Error("User context is required.");
+    }
+
+    if (!input.referenceId) {
+      throw new Error("Sale reference is required.");
+    }
+
+    if (input.items.length === 0) {
+      return [];
+    }
+
+    const consumptionByProduct = new Map<
+      string,
+      number
+    >();
+
+    for (const item of input.items) {
+      if (!item.menuItemId) {
+        continue;
+      }
+
+      if (item.quantity <= 0) {
+        throw new Error(
+          "Menu item sale quantity must be greater than zero.",
+        );
+      }
+
+      const result =
+        await this.calculateConsumption({
+          businessId: input.businessId,
+          menuItemId: item.menuItemId,
+          saleQuantity: item.quantity,
+        });
+
+      for (const consumption of result.consumption) {
+        const existing =
+          consumptionByProduct.get(
+            consumption.productId,
+          ) ?? 0;
+
+        consumptionByProduct.set(
+          consumption.productId,
+          existing + consumption.quantity,
+        );
+      }
+    }
+
+    if (consumptionByProduct.size === 0) {
+      return [];
+    }
+
+    return inventoryService.consumeStockBatch({
+      businessId: input.businessId,
+      warehouseId: input.warehouseId,
+      currency: input.currency,
+      createdBy: input.createdBy,
+      referenceType: "SALE",
+      referenceId: input.referenceId,
+      items: Array.from(
+        consumptionByProduct.entries(),
+      ).map(
+        ([productId, quantity]) => ({
+          productId,
+          quantity,
         }),
       ),
     });

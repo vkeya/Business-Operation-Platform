@@ -36,6 +36,7 @@ export interface SaleItem {
   id: string;
   saleId: string;
   productId: string;
+  menuItemId?: string;
 
   productName: string;
   sku?: string;
