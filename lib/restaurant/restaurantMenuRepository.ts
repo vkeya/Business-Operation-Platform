@@ -56,7 +56,7 @@ export const restaurantMenuRepository = {
       },
     });
   },
-  
+
     async findMenuById(
     businessId: string,
     menuId: string,
@@ -118,5 +118,26 @@ export const restaurantMenuRepository = {
     return items.map(
       serializeMenuItem,
     );
+  },
+
+    async findMenuItemById(
+    businessId: string,
+    menuItemId: string,
+  ) {
+    const item =
+      await prisma.restaurantMenuItem.findFirst({
+        where: {
+          id: menuItemId,
+          businessId,
+        },
+        include: {
+          menu: true,
+          product: true,
+        },
+      });
+
+    return item
+      ? serializeMenuItem(item)
+      : null;
   },
 };

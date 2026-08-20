@@ -152,6 +152,105 @@ async transferStock(input: {
   );
 },
 
+  async consumeStock(input: {
+    businessId: string;
+    productId: string;
+    warehouseId: string;
+    quantity: number;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+  }) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.productId) {
+      throw new Error(
+        "Product is required.",
+      );
+    }
+
+    if (!input.warehouseId) {
+      throw new Error(
+        "Warehouse is required.",
+      );
+    }
+
+    if (input.quantity <= 0) {
+      throw new Error(
+        "Consumption quantity must be greater than zero.",
+      );
+    }
+
+    if (!input.currency) {
+      throw new Error(
+        "Currency is required.",
+      );
+    }
+
+    if (!input.createdBy) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    return inventoryRepository.consumeStock(
+      input,
+    );
+  },
+    async consumeStockBatch(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.warehouseId) {
+      throw new Error(
+        "Warehouse is required.",
+      );
+    }
+
+    if (!input.currency) {
+      throw new Error(
+        "Currency is required.",
+      );
+    }
+
+    if (!input.createdBy) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    if (input.items.length === 0) {
+      throw new Error(
+        "At least one stock consumption item is required.",
+      );
+    }
+
+    return inventoryRepository.consumeStockBatch(
+      input,
+    );
+  },
+
   async getBalance(
     businessId: string,
     productId: string,

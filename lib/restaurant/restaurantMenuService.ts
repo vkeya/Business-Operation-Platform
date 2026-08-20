@@ -42,7 +42,7 @@ export const restaurantMenuService = {
       businessId,
     );
   },
-  
+
     async findMenuById(
     businessId: string,
     menuId: string,
@@ -88,7 +88,7 @@ export const restaurantMenuService = {
         "Menu is required.",
       );
     }
-	
+
 	    if (input.productId) {
       const product =
         await productRepository.findById(
@@ -159,5 +159,36 @@ export const restaurantMenuService = {
       businessId,
       menuId,
     );
+  },
+
+    async findMenuItemById(
+    businessId: string,
+    menuItemId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!menuItemId) {
+      throw new Error(
+        "Menu item is required.",
+      );
+    }
+
+    const item =
+      await restaurantMenuRepository.findMenuItemById(
+        businessId,
+        menuItemId,
+      );
+
+    if (!item) {
+      throw new Error(
+        "Menu item not found.",
+      );
+    }
+
+    return item;
   },
 };

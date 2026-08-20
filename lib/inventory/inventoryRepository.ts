@@ -33,7 +33,7 @@ function serializeBalance<
 }
 
 export const inventoryRepository = {
-	
+
 	async adjustStock(input: {
   businessId: string;
   productId: string;
@@ -137,7 +137,7 @@ export const inventoryRepository = {
     };
   });
 },
-	
+
 	async receiveStock(input: {
   businessId: string;
   productId: string;
@@ -200,7 +200,7 @@ export const inventoryRepository = {
           unitCost: input.unitCost,
           totalCost:
             input.quantity * input.unitCost,
-          
+
           createdBy: input.createdBy,
           notes: input.notes,
         },
@@ -521,4 +521,199 @@ return balances.map(serializeBalance);
 
 return movements.map(serializeMovement);
   },
+
+
+
+  async consumeStock(input: {
+    businessId: string;
+    productId: string;
+    warehouseId: string;
+    quantity: number;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+  }) {
+    if (input.quantity <= 0) {
+      throw new Error(
+        "Consumption quantity must be greater than zero.",
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const existingBalance =
+        await tx.inventoryBalance.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: input.productId,
+              warehouseId: input.warehouseId,
+            },
+          },
+        });
+
+      const currentQuantity =
+        existingBalance?.quantity.toNumber() ?? 0;
+
+      if (currentQuantity < input.quantity) {
+        throw new Error(
+          "Insufficient stock for consumption.",
+        );
+      }
+
+      const averageCost =
+        existingBalance?.averageCost.toNumber() ?? 0;
+
+      const newQuantity =
+        currentQuantity - input.quantity;
+
+      const totalCost =
+        input.quantity * averageCost;
+
+      const movement =
+        await tx.inventoryMovement.create({
+          data: {
+            businessId: input.businessId,
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            type: "SALE",
+            quantity: input.quantity,
+            unitCost: averageCost,
+            totalCost,
+            referenceType:
+              input.referenceType,
+            referenceId:
+              input.referenceId,
+            createdBy: input.createdBy,
+            notes: input.notes,
+          },
+        });
+
+      const balance =
+        await tx.inventoryBalance.update({
+          where: {
+            productId_warehouseId: {
+              productId: input.productId,
+              warehouseId: input.warehouseId,
+            },
+          },
+          data: {
+            quantity: newQuantity,
+            currency: input.currency,
+          },
+        });
+
+      return {
+        movement:
+          serializeMovement(movement),
+        balance:
+          serializeBalance(balance),
+      };
+    });
+  },
+
+    async consumeStockBatch(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (input.items.length === 0) {
+      throw new Error(
+        "At least one stock consumption item is required.",
+      );
+    }
+
+    for (const item of input.items) {
+      if (item.quantity <= 0) {
+        throw new Error(
+          "Consumption quantity must be greater than zero.",
+        );
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const results = [];
+
+      for (const item of input.items) {
+        const existingBalance =
+          await tx.inventoryBalance.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: input.warehouseId,
+              },
+            },
+          });
+
+        const currentQuantity =
+          existingBalance?.quantity.toNumber() ?? 0;
+
+        if (currentQuantity < item.quantity) {
+          throw new Error(
+            `Insufficient stock for product "${item.productId}".`,
+          );
+        }
+
+        const averageCost =
+          existingBalance?.averageCost.toNumber() ?? 0;
+
+        const newQuantity =
+          currentQuantity - item.quantity;
+
+        const totalCost =
+          item.quantity * averageCost;
+
+        const movement =
+          await tx.inventoryMovement.create({
+            data: {
+              businessId: input.businessId,
+              productId: item.productId,
+              warehouseId: input.warehouseId,
+              type: "SALE",
+              quantity: item.quantity,
+              unitCost: averageCost,
+              totalCost,
+              referenceType:
+                input.referenceType,
+              referenceId:
+                input.referenceId,
+              createdBy: input.createdBy,
+              notes: input.notes,
+            },
+          });
+
+        const balance =
+          await tx.inventoryBalance.update({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: input.warehouseId,
+              },
+            },
+            data: {
+              quantity: newQuantity,
+              currency: input.currency,
+            },
+          });
+
+        results.push({
+          movement:
+            serializeMovement(movement),
+          balance:
+            serializeBalance(balance),
+        });
+      }
+
+      return results;
+    });
+  },
+
 };
