@@ -72,10 +72,11 @@ function serializeSale<
     taxAmount: { toNumber(): number };
     totalAmount: { toNumber(): number };
     items: Array<{
-      id: string;
-      productId: string;
-      productName: string;
-      sku: string | null;
+  id: string;
+  productId: string;
+  menuItemId?: string | null;
+  productName: string;
+  sku: string | null;
       quantity: { toNumber(): number };
       unitPrice: { toNumber(): number };
       discountAmount: { toNumber(): number };

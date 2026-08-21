@@ -303,17 +303,17 @@ const topSellingMenuItems =
     .slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-slate-500">
+  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <div className="mb-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
           Restaurant / Overview
         </p>
 
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-slate-950">
           Restaurant dashboard
         </h1>
 
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
           Monitor your restaurant operations, menus,
           inventory and sales from one place.
         </p>
@@ -349,14 +349,14 @@ const topSellingMenuItems =
 },
         ].map((card) => (
           <div
-            key={card.title}
-            className="rounded-2xl border border-slate-200 bg-white p-5"
-          >
-            <p className="text-sm font-medium text-slate-500">
+  key={card.title}
+  className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               {card.title}
             </p>
 
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
+           <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-slate-950">
               {card.value}
             </p>
 
@@ -371,7 +371,7 @@ const topSellingMenuItems =
   aria-label="Restaurant activity metrics"
   className="mt-4 grid gap-4 sm:grid-cols-2"
 >
-  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+  <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
     <p className="text-sm font-medium text-slate-500">
       Average sale
     </p>
@@ -386,7 +386,7 @@ const topSellingMenuItems =
     </p>
   </div>
 
-  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+  <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
     <p className="text-sm font-medium text-slate-500">
       Completed sales
     </p>
@@ -401,9 +401,9 @@ const topSellingMenuItems =
   </div>
 </section>
 
-<section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+<section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
-    <h2 className="font-semibold text-slate-900">
+    <h2 className="text-base font-semibold tracking-tight text-slate-950">
       Today&apos;s sales breakdown
     </h2>
 
@@ -413,7 +413,7 @@ const topSellingMenuItems =
   </div>
 
   {dailySalesItems.length === 0 ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No menu item sales today
       </p>
@@ -485,26 +485,26 @@ const topSellingMenuItems =
             <Link
               key={action.title}
               href={action.href}
-              className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm"
+              className="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_10px_30px_rgba(15,23,42,0.07)]"
             >
-              <p className="font-medium text-slate-900">
+              <p className="font-semibold text-slate-950">
                 {action.title}
               </p>
 
-              <p className="mt-2 text-sm leading-5 text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-500">
                 {action.description}
               </p>
 
-              <p className="mt-4 text-sm font-medium text-slate-700">
-                Open →
-              </p>
+              <p className="mt-5 text-sm font-semibold text-slate-500 transition-colors group-hover:text-emerald-600">
+  Open <span aria-hidden="true">→</span>
+</p>
             </Link>
           ))}
         </div>
       </section>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-  <h2 className="font-semibold text-slate-900">
+           <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <h2 className="text-base font-semibold tracking-tight text-slate-950">
     Restaurant performance
   </h2>
 
@@ -513,7 +513,7 @@ const topSellingMenuItems =
   </p>
 
   <div className="mt-6 grid gap-4 sm:grid-cols-2">
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Sales
       </p>
@@ -524,7 +524,7 @@ const topSellingMenuItems =
       </p>
     </div>
 
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Food cost
       </p>
@@ -535,7 +535,7 @@ const topSellingMenuItems =
       </p>
     </div>
 
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Gross profit
       </p>
@@ -546,7 +546,7 @@ const topSellingMenuItems =
       </p>
     </div>
 
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Gross margin
       </p>
@@ -556,7 +556,7 @@ const topSellingMenuItems =
       </p>
     </div>
 
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Average sale
       </p>
@@ -567,7 +567,7 @@ const topSellingMenuItems =
       </p>
     </div>
 
-    <div className="rounded-xl bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         Completed sales
       </p>
@@ -577,11 +577,12 @@ const topSellingMenuItems =
       </p>
     </div>
   </div>
-</div>
+</section>
+
 	  
-	  <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+	  <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
-    <h2 className="font-semibold text-slate-900">
+    <h2 className="text-base font-semibold tracking-tight text-slate-950">
       Top-selling menu items
     </h2>
 
@@ -591,7 +592,7 @@ const topSellingMenuItems =
   </div>
 
   {topSellingMenuItems.length === 0 ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No menu item sales today
       </p>
@@ -609,7 +610,7 @@ const topSellingMenuItems =
             className="flex items-center justify-between gap-4 py-4"
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
                 {index + 1}
               </span>
 
@@ -635,9 +636,9 @@ const topSellingMenuItems =
   )}
 </section>
 
-<section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+<section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
-    <h2 className="font-semibold text-slate-900">
+    <h2 className="text-base font-semibold tracking-tight text-slate-950">
       Recent sales
     </h2>
 
@@ -647,7 +648,7 @@ const topSellingMenuItems =
   </div>
 
   {completedSalesToday.length === 0 ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No completed sales today
       </p>
@@ -664,7 +665,7 @@ const topSellingMenuItems =
           <Link
             key={sale.id}
             href={`/sales/${sale.id}`}
-            className="flex items-center justify-between gap-4 py-4 transition hover:bg-slate-50"
+            className="flex items-center justify-between gap-4 rounded-xl px-2 py-4 transition-colors hover:bg-slate-50"
           >
             <div>
               <p className="text-sm font-medium text-slate-900">
@@ -700,9 +701,9 @@ const topSellingMenuItems =
   )}
 </section>
 
-<section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+<section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
-    <h2 className="font-semibold text-slate-900">
+    <h2 className="text-base font-semibold tracking-tight text-slate-950">
       Low-stock ingredients
     </h2>
 
@@ -712,7 +713,7 @@ const topSellingMenuItems =
   </div>
 
   {!costingWarehouse ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No active warehouse
       </p>
@@ -722,7 +723,7 @@ const topSellingMenuItems =
       </p>
     </div>
   ) : lowStockIngredients.length === 0 ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No low-stock ingredients
       </p>
@@ -765,7 +766,7 @@ const topSellingMenuItems =
 
               <Link
                 href={`/purchases/new?productId=${balance.productId}`}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
               >
                 Replenish
               </Link>
@@ -777,9 +778,9 @@ const topSellingMenuItems =
   )}
 </section>
 
-<section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+<section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
-    <h2 className="font-semibold text-slate-900">
+    <h2 className="text-base font-semibold tracking-tight text-slate-950">
       Menu profitability
     </h2>
 
@@ -789,7 +790,7 @@ const topSellingMenuItems =
   </div>
 
   {menuProfitability.length === 0 ? (
-    <div className="rounded-xl bg-slate-50 p-5 text-center">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
         No menu profitability data
       </p>

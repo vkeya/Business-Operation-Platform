@@ -12,6 +12,18 @@ export interface CreatePurchasePaymentInput {
   createdBy: string;
 }
 
+export interface CreateSalePaymentInput {
+  businessId: string;
+  saleId: string;
+  reference: string;
+  method: string;
+  amount: number;
+  currency: string;
+  exchangeRate?: number;
+  notes?: string;
+  createdBy: string;
+}
+
 function serializePayment<
   T extends {
     amount: { toNumber(): number };
@@ -55,8 +67,8 @@ export const paymentRepository = {
 
     return serializePayment(payment);
   },
-  
-    async findPurchaseWithPayments(
+
+  async findPurchaseWithPayments(
     businessId: string,
     purchaseId: string,
   ) {
@@ -70,8 +82,8 @@ export const paymentRepository = {
       },
     });
   },
-  
-    async updatePurchasePaymentStatus(
+
+  async updatePurchasePaymentStatus(
     businessId: string,
     purchaseId: string,
     paymentStatus:
@@ -89,8 +101,8 @@ export const paymentRepository = {
       },
     });
   },
-  
-    async listPurchasePayments(
+
+  async listPurchasePayments(
     businessId: string,
     purchaseId: string,
   ) {
@@ -99,6 +111,87 @@ export const paymentRepository = {
         where: {
           businessId,
           purchaseId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+    return payments.map(serializePayment);
+  },
+
+  async createSalePayment(
+    input: CreateSalePaymentInput,
+  ) {
+    const payment =
+      await prisma.payment.create({
+        data: {
+          businessId: input.businessId,
+          saleId: input.saleId,
+
+          reference: input.reference,
+          method: input.method,
+
+          amount: input.amount,
+          currency: input.currency,
+          exchangeRate:
+            input.exchangeRate,
+
+          status: "PAID",
+
+          notes: input.notes,
+          createdBy: input.createdBy,
+        },
+      });
+
+    return serializePayment(payment);
+  },
+
+  async findSaleWithPayments(
+    businessId: string,
+    saleId: string,
+  ) {
+    return prisma.sale.findFirst({
+      where: {
+        id: saleId,
+        businessId,
+      },
+      include: {
+        payments: true,
+      },
+    });
+  },
+
+  async updateSalePaymentStatus(
+    businessId: string,
+    saleId: string,
+    paymentStatus:
+      | "PENDING"
+      | "PARTIAL"
+      | "PAID"
+      | "FAILED"
+      | "REFUNDED",
+  ) {
+    return prisma.sale.update({
+      where: {
+        id: saleId,
+        businessId,
+      },
+      data: {
+        paymentStatus,
+      },
+    });
+  },
+
+  async listSalePayments(
+    businessId: string,
+    saleId: string,
+  ) {
+    const payments =
+      await prisma.payment.findMany({
+        where: {
+          businessId,
+          saleId,
         },
         orderBy: {
           createdAt: "desc",

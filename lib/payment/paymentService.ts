@@ -1,6 +1,7 @@
 import {
   paymentRepository,
   type CreatePurchasePaymentInput,
+  type CreateSalePaymentInput,
 } from "./paymentRepository";
 
 export const paymentService = {
@@ -48,8 +49,8 @@ export const paymentService = {
         "User context is required.",
       );
     }
-	
-	    const purchase =
+
+    const purchase =
       await paymentRepository.findPurchaseWithPayments(
         input.businessId,
         input.purchaseId,
@@ -60,8 +61,8 @@ export const paymentService = {
         "Purchase not found.",
       );
     }
-	
-	    const paidAmount =
+
+    const paidAmount =
       purchase.payments.reduce(
         (total, payment) =>
           total + payment.amount.toNumber(),
@@ -77,8 +78,8 @@ export const paymentService = {
         "Payment amount exceeds the outstanding purchase balance.",
       );
     }
-	
-	    const newPaidAmount =
+
+    const newPaidAmount =
       paidAmount + input.amount;
 
     const paymentStatus =
@@ -87,13 +88,16 @@ export const paymentService = {
         ? "PAID"
         : "PARTIAL";
 
-        const payment =
+    const payment =
       await paymentRepository.createPurchasePayment(
         {
           ...input,
-          reference: input.reference.trim(),
-          method: input.method.trim(),
-          currency: input.currency.trim(),
+          reference:
+            input.reference.trim(),
+          method:
+            input.method.trim(),
+          currency:
+            input.currency.trim(),
         },
       );
 
@@ -105,8 +109,8 @@ export const paymentService = {
 
     return payment;
   },
-  
-    async listPurchasePayments(
+
+  async listPurchasePayments(
     businessId: string,
     purchaseId: string,
   ) {
@@ -125,6 +129,139 @@ export const paymentService = {
     return paymentRepository.listPurchasePayments(
       businessId,
       purchaseId,
+    );
+  },
+
+  async createSalePayment(
+    input: CreateSalePaymentInput,
+  ) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.saleId) {
+      throw new Error(
+        "Sale is required.",
+      );
+    }
+
+    if (!input.reference.trim()) {
+      throw new Error(
+        "Payment reference is required.",
+      );
+    }
+
+    if (!input.method.trim()) {
+      throw new Error(
+        "Payment method is required.",
+      );
+    }
+
+    if (input.amount <= 0) {
+      throw new Error(
+        "Payment amount must be greater than zero.",
+      );
+    }
+
+    if (!input.currency.trim()) {
+      throw new Error(
+        "Payment currency is required.",
+      );
+    }
+
+    if (!input.createdBy) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    const sale =
+      await paymentRepository.findSaleWithPayments(
+        input.businessId,
+        input.saleId,
+      );
+
+    if (!sale) {
+      throw new Error(
+        "Sale not found.",
+      );
+    }
+
+    const paidAmount =
+      sale.payments.reduce(
+        (total, payment) =>
+          total + payment.amount.toNumber(),
+        0,
+      );
+
+    const outstandingAmount =
+      sale.totalAmount.toNumber() -
+      paidAmount;
+
+    if (outstandingAmount <= 0) {
+      throw new Error(
+        "This sale has already been fully paid.",
+      );
+    }
+
+    if (input.amount > outstandingAmount) {
+      throw new Error(
+        "Payment amount exceeds the outstanding sale balance.",
+      );
+    }
+
+    const newPaidAmount =
+      paidAmount + input.amount;
+
+    const paymentStatus =
+      newPaidAmount >=
+      sale.totalAmount.toNumber()
+        ? "PAID"
+        : "PARTIAL";
+
+    const payment =
+      await paymentRepository.createSalePayment(
+        {
+          ...input,
+          reference:
+            input.reference.trim(),
+          method:
+            input.method.trim(),
+          currency:
+            input.currency.trim(),
+        },
+      );
+
+    await paymentRepository.updateSalePaymentStatus(
+      input.businessId,
+      input.saleId,
+      paymentStatus,
+    );
+
+    return payment;
+  },
+
+  async listSalePayments(
+    businessId: string,
+    saleId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!saleId) {
+      throw new Error(
+        "Sale is required.",
+      );
+    }
+
+    return paymentRepository.listSalePayments(
+      businessId,
+      saleId,
     );
   },
 };

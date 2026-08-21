@@ -7,6 +7,12 @@ import {
 import type {
   CreateSaleInput,
 } from "@/lib/sales/saleRepository";
+import type {
+  CreateSalePaymentInput,
+} from "@/lib/payment/paymentRepository";
+import {
+  paymentService,
+} from "@/lib/payment/paymentService";
 
 export async function createSaleAction(
   input: Omit<
@@ -18,10 +24,10 @@ export async function createSaleAction(
     await getCurrentBusiness();
 
   return saleService.create({
-  ...input,
-  businessId: business.id,
-  createdBy: business.id,
-});
+    ...input,
+    businessId: business.id,
+    createdBy: business.id,
+  });
 }
 
 export async function getSalesAction() {
@@ -97,4 +103,32 @@ export async function completeSaleAction(
     saleId,
     "COMPLETED",
   );
+}
+
+export async function getSalePaymentsAction(
+  saleId: string,
+) {
+  const business =
+    await getCurrentBusiness();
+
+  return paymentService.listSalePayments(
+    business.id,
+    saleId,
+  );
+}
+
+export async function createSalePaymentAction(
+  input: Omit<
+    CreateSalePaymentInput,
+    "businessId" | "createdBy"
+  >,
+) {
+  const business =
+    await getCurrentBusiness();
+
+  return paymentService.createSalePayment({
+    ...input,
+    businessId: business.id,
+    createdBy: business.id,
+  });
 }
