@@ -4,6 +4,8 @@ import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
 import TransferStockForm from "./TransferStockForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function TransferStockPage() {
   const business =
     await getCurrentBusiness();

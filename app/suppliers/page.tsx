@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getSuppliersAction } from "./action";
 
+export const dynamic = "force-dynamic";
+
 export default async function SuppliersPage() {
   const suppliers = await getSuppliersAction();
 

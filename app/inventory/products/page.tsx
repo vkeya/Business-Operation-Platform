@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getProductsAction } from "./listActions";
 import ProductList from "./ProductList";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductsPage() {
   const products = await getProductsAction();
 

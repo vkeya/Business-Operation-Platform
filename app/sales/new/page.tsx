@@ -7,6 +7,7 @@ import {
 } from "@/lib/business/currentBusiness";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
 
+export const dynamic = "force-dynamic";
 
 export default async function NewSalePage() {
   const business =

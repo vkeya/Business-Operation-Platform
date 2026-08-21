@@ -1,6 +1,8 @@
 import ExpenseForm from "./ExpenseForm";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewExpensePage() {
   const business =
     await getCurrentBusiness();

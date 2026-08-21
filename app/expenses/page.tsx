@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { expenseService } from "@/lib/expenses/expenseService";
 
+export const dynamic = "force-dynamic";
+
 export default async function ExpensesPage() {
   const business =
     await getCurrentBusiness();

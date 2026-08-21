@@ -10,6 +10,8 @@ import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
 
+export const dynamic = "force-dynamic";
+
 const quickActions = [
   {
     title: "Record a sale",

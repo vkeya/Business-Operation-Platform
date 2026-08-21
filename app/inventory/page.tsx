@@ -4,6 +4,8 @@ import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
 
+export const dynamic = "force-dynamic";
+
 const stockActions = [
   {
     title: "Add product",

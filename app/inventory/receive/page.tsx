@@ -4,6 +4,8 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReceiveStockPage() {
  const business = await getCurrentBusiness();
 

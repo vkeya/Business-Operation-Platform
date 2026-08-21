@@ -4,6 +4,8 @@ import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
 import AdjustStockForm from "./AdjustStockForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdjustStockPage() {
   const business = await getCurrentBusiness();
 

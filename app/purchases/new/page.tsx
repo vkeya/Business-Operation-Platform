@@ -1,6 +1,8 @@
 import PurchaseForm from "./PurchaseForm";
 import { getPurchaseDefaultsAction } from "../action";
 
+export const dynamic = "force-dynamic";
+
 interface NewPurchasePageProps {
   searchParams: Promise<{
     productId?: string;

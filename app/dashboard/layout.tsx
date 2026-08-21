@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
 
+
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: Readonly<{

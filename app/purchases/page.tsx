@@ -4,6 +4,8 @@ import OrderPurchaseButton from "./OrderPurchaseButton";
 import ReceivePurchaseButton from "./ReceivePurchaseButton";
 import CancelPurchaseButton from "./CancelPurchaseButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function PurchasesPage() {
   const purchases = await getPurchasesAction();
 
