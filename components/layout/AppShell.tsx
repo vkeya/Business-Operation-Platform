@@ -42,10 +42,14 @@ const navigation = [
 
 interface AppShellProps {
   children: React.ReactNode;
+  businessName?: string;
+  businessType?: string;
 }
 
 export default function AppShell({
   children,
+  businessName,
+  businessType,
 }: AppShellProps) {
   const pathname = usePathname();
 
@@ -67,11 +71,14 @@ export default function AppShell({
 
                 <div>
                   <p className="text-sm font-semibold tracking-tight text-white">
-                    Business Operations
+                    {businessName ?? "Teketeke"}
                   </p>
 
                   <p className="mt-0.5 text-[11px] text-slate-400">
-                    Business operating system
+                    {businessType
+  ? businessType.charAt(0).toUpperCase() +
+    businessType.slice(1)
+  : "Business operating system"}
                   </p>
                 </div>
               </div>
@@ -139,7 +146,7 @@ export default function AppShell({
           <header className="hidden h-16 items-center justify-between border-b border-slate-200/80 bg-white/95 px-6 backdrop-blur lg:flex">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                Your Business
+                {businessName ?? "Your Business"}
               </p>
 
               <p className="mt-0.5 text-xs text-slate-500">
