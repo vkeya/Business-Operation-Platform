@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { businessTypeOptions } from "@/lib/business/businessTypes";
 import { getSetupDefaults } from "@/lib/business/setupDefaults";
 import { validateBusinessSetup } from "@/lib/business/setupValidation";
@@ -14,6 +15,8 @@ import type { BusinessSetup } from "@/types/setup";
 import type { BusinessType } from "@/types";
 
 export default function SetupPage() {
+   const router = useRouter();
+
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] =
     useState<BusinessType>("restaurant");
@@ -112,6 +115,7 @@ export default function SetupPage() {
 try {
   await createBusinessAction(setup, "setup-user");
   setSubmitted(true);
+  router.push("/dashboard");
 } catch (error) {
   console.error("Failed to create business:", error);
 
