@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getDashboardMetrics } from "@/lib/dashboard/dashboardMetrics";
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
@@ -56,11 +57,29 @@ function formatActivityDate(date: Date) {
 export default async function DashboardPage() {
   const business = await getCurrentBusiness();
 
-  const [sales, purchases, balances, recentMovements] =
-  await Promise.all([
-    saleService.list(business.id),
-    purchaseService.listPurchases(business.id),
-    inventoryService.listBalances(business.id),
+  const metrics =
+    await getDashboardMetrics(
+      business.id,
+    );
+
+  const [
+    sales,
+    purchases,
+    balances,
+    recentMovements,
+  ] = await Promise.all([
+    saleService.list(
+      business.id,
+    ),
+
+    purchaseService.listPurchases(
+      business.id,
+    ),
+
+    inventoryService.listBalances(
+      business.id,
+    ),
+
     inventoryService.listMovements(
       business.id,
       undefined,
@@ -71,6 +90,8 @@ export default async function DashboardPage() {
     ),
   ]);
 
+
+
   const today = new Date();
   const isRestaurant = business.type === "restaurant";
 
@@ -80,29 +101,15 @@ export default async function DashboardPage() {
       isSameDay(new Date(sale.createdAt), today),
   );
 
-  const salesTodayTotal = completedSalesToday.reduce(
-    (total, sale) => total + sale.totalAmount,
-    0,
-  );
+  const salesTodayTotal = metrics.revenue;
 
   const purchasesThisMonth = purchases.filter((purchase) =>
     isSameMonth(new Date(purchase.createdAt), today),
   );
 
-  const purchasesThisMonthTotal = purchasesThisMonth.reduce(
-    (total, purchase) => total + purchase.totalAmount,
-    0,
-  );
+  const purchasesThisMonthTotal = metrics.payables;
 
-  const totalStockQuantity = balances.reduce(
-    (total, balance) =>
-      total +
-      Math.max(
-        0,
-        balance.quantity - balance.reservedQuantity,
-      ),
-    0,
-  );
+  const totalStockQuantity = metrics.inventoryValue;
 
   const completedSales = sales.filter(
     (sale) => sale.status === "COMPLETED",
@@ -247,12 +254,12 @@ export default async function DashboardPage() {
   );
 
   const salesStatusLabel =
-    completedSalesToday.length > 0
+    metrics.salesCount > 0
       ? "Trading activity recorded"
       : "No completed sales today";
 
   const inventoryStatusLabel =
-    availableStockBalances.length > 0
+    metrics.lowStockItems === 0
       ? "Stock available"
       : "No available stock";
 
@@ -325,13 +332,13 @@ export default async function DashboardPage() {
           <p className="mt-4 text-2xl font-semibold tracking-tight text-emerald-950">
             {formatCurrency(
               business.baseCurrency,
-              salesTodayTotal,
+              metrics.revenue,
             )}
           </p>
 
           <p className="mt-2 text-xs text-emerald-700">
-            {completedSalesToday.length} completed{" "}
-            {completedSalesToday.length === 1
+            {metrics.salesCount} completed{" "}
+            {metrics.salesCount === 1
               ? "sale"
               : "sales"}{" "}
             today
@@ -341,25 +348,28 @@ export default async function DashboardPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Inventory
+              Inventory Value
             </p>
 
             <span className="text-slate-300">◈</span>
           </div>
 
           <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-            {totalStockQuantity.toFixed(2)}
+            {formatCurrency(
+              business.baseCurrency,
+              metrics.inventoryValue,
+            )}
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Available quantity across stock
+            Current stock value
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Purchases
+              Payables
             </p>
 
             <span className="text-slate-300">↗</span>
@@ -368,12 +378,12 @@ export default async function DashboardPage() {
           <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
             {formatCurrency(
               business.baseCurrency,
-              purchasesThisMonthTotal,
+              metrics.payables,
             )}
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Recorded this month
+            Outstanding supplier obligations
           </p>
         </div>
 
@@ -401,6 +411,103 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
+
+      {/* Business health expansion */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Cash Position
+          </p>
+
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+            {formatCurrency(
+              business.baseCurrency,
+              metrics.cashPosition,
+            )}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Available business cash position
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Receivables
+          </p>
+
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+            {formatCurrency(
+              business.baseCurrency,
+              metrics.receivables,
+            )}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Customer balances outstanding
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
+            Attention Required
+          </p>
+
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+            Business alerts
+          </h2>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+            {metrics.lowStockItems > 0
+              ? `${metrics.lowStockItems} low stock item${metrics.lowStockItems === 1 ? "" : "s"} require attention`
+              : "No low stock issues"}
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+            {metrics.pendingPurchases > 0
+              ? `${metrics.pendingPurchases} purchase${metrics.pendingPurchases === 1 ? "" : "s"} awaiting action`
+              : "No pending purchases"}
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+            {metrics.receivables > 0
+              ? "Customer balances require review"
+              : "No outstanding receivables"}
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+            {metrics.payables > 0
+              ? "Supplier obligations require review"
+              : "No outstanding payables"}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">Revenue Health</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900">Active</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">Profit Health</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900">
+            {metrics.profit >= 0 ? "Healthy" : "Review"}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">Inventory Health</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900">
+            {metrics.lowStockItems === 0 ? "Stable" : "Attention"}
+          </p>
+        </div>
+      </section>
+
       {/* Operational pulse */}
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
@@ -411,7 +518,7 @@ export default async function DashboardPage() {
           <div className="mt-3 flex items-center gap-2">
             <span
               className={`h-2 w-2 rounded-full ${
-                completedSalesToday.length > 0
+                metrics.salesCount > 0
                   ? "bg-emerald-500"
                   : "bg-slate-300"
               }`}
@@ -431,7 +538,7 @@ export default async function DashboardPage() {
           <div className="mt-3 flex items-center gap-2">
             <span
               className={`h-2 w-2 rounded-full ${
-                availableStockBalances.length > 0
+                metrics.lowStockItems === 0
                   ? "bg-emerald-500"
                   : "bg-amber-400"
               }`}
@@ -451,16 +558,16 @@ export default async function DashboardPage() {
           <div className="mt-3 flex items-center gap-2">
             <span
               className={`h-2 w-2 rounded-full ${
-                pendingPurchases.length > 0
+                metrics.pendingPurchases > 0
                   ? "bg-amber-400"
                   : "bg-emerald-500"
               }`}
             />
 
             <p className="text-sm font-semibold text-slate-800">
-              {pendingPurchases.length > 0
-                ? `${pendingPurchases.length} purchase${
-                    pendingPurchases.length === 1
+              {metrics.pendingPurchases > 0
+                ? `${metrics.pendingPurchases} purchase${
+                    metrics.pendingPurchases === 1
                       ? ""
                       : "s"
                   } in progress`
@@ -646,7 +753,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  {stockBalanceCount} stock balances
+                  {balances.length} stock balances
                 </p>
               </div>
 
@@ -665,7 +772,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  {pendingPurchases.length} awaiting action
+                  {metrics.pendingPurchases} awaiting action
                 </p>
               </div>
 
