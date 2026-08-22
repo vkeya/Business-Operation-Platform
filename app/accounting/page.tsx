@@ -22,7 +22,7 @@ export default async function AccountingPage() {
 	
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">
@@ -50,7 +50,7 @@ export default async function AccountingPage() {
         </form>
       </div>
 
-<section className="mb-8 grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+<section className="mb-8 grid gap-5 md:grid-cols-3 lg:grid-cols-6">
   <div className="rounded-2xl border border-slate-200 bg-white p-5">
     <p className="text-sm text-slate-500">
       Revenue
