@@ -27,10 +27,13 @@ export async function getCashFlow(
     });
 
 
-  if (!cashAccount) {
-    throw new Error(
-      "Cash account not configured.",
-    );
+    if (!cashAccount) {
+    return {
+      cashIn: 0,
+      cashOut: 0,
+      netCashMovement: 0,
+      transactions: [],
+    };
   }
 
 
