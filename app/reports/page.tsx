@@ -9,7 +9,7 @@ export default async function ReportsPage() {
     await getBusinessReportAction();
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
       <div className="mb-8">
         <p className="text-sm font-medium text-slate-500">
           Analytics
@@ -25,7 +25,7 @@ export default async function ReportsPage() {
         </p>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-5 md:grid-cols-4">
         <ReportCard
           title="Revenue"
           value={report.sales.amount}
@@ -51,7 +51,7 @@ export default async function ReportsPage() {
         />
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-2">
+      <section className="mt-8 grid gap-5 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="font-semibold text-slate-900">
             Sales performance
@@ -73,7 +73,7 @@ export default async function ReportsPage() {
             Inventory position
           </h2>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <div className="rounded-xl bg-slate-50 p-5">
               <p className="text-sm text-slate-500">
                 Units

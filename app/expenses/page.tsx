@@ -60,7 +60,7 @@ export default async function ExpensesPage() {
     partialExpenses.length + unpaidExpenses.length;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 lg:px-10">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-7 shadow-[0_18px_45px_rgba(15,23,42,0.10)] sm:px-8 sm:py-8">
         <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
@@ -110,7 +110,7 @@ export default async function ExpensesPage() {
       </section>
 
       {/* Financial KPIs */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
             Total expenses
@@ -189,7 +189,7 @@ export default async function ExpensesPage() {
       </section>
 
       {/* Spending intelligence */}
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-600">
