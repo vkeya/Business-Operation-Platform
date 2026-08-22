@@ -61,6 +61,37 @@ export const productRepository = {
 
     return serializeProduct(product);
   },
+  
+    async update(
+    businessId: string,
+    productId: string,
+    input: Omit<CreateProductInput, "businessId">,
+  ) {
+    const product = await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        categoryId: input.categoryId,
+        name: input.name,
+        sku: input.sku,
+        barcode: input.barcode,
+        type: input.type,
+        description: input.description,
+        unit: input.unit,
+        costPrice: input.costPrice,
+        sellingPrice: input.sellingPrice,
+        currency: input.currency,
+        taxRate: input.taxRate,
+        taxCode: input.taxCode,
+        trackInventory: input.trackInventory,
+        minimumStock: input.minimumStock,
+        reorderLevel: input.reorderLevel,
+      },
+    });
+
+    return serializeProduct(product);
+  },
 
   async list(businessId: string) {
     const products = await prisma.product.findMany({

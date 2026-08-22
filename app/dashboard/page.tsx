@@ -4,6 +4,8 @@ import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 
+export const dynamic = "force-dynamic";
+
 function isSameDay(date: Date, comparison: Date) {
   return (
     date.getFullYear() === comparison.getFullYear() &&
@@ -19,137 +21,111 @@ function isSameMonth(date: Date, comparison: Date) {
   );
 }
 
-function formatCurrency(
-  currency: string,
-  value: number,
-) {
-  return `${currency} ${value.toFixed(2)}`;
+function formatCurrency(currency: string, value: number) {
+  return `${currency} ${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-const quickActions = [
-  {
-    title: "Record a sale",
-    description: "Add a new sale and payment.",
-    href: "/sales",
-    icon: "S",
-  },
-  {
-    title: "Add stock",
-    description: "Receive products into your stock.",
-    href: "/inventory",
-    icon: "I",
-  },
-  {
-    title: "Record a purchase",
-    description: "Capture a supplier purchase.",
-    href: "/purchases",
-    icon: "P",
-  },
-  {
-    title: "Add an expense",
-    description: "Record money spent by the business.",
-    href: "/money",
-    icon: "E",
-  },
-];
+function formatBusinessType(type: string) {
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) {
+    return "Good morning";
+  }
+
+  if (hour < 18) {
+    return "Good afternoon";
+  }
+
+  return "Good evening";
+}
+
+function formatActivityDate(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export default async function DashboardPage() {
   const business = await getCurrentBusiness();
 
-  const [sales, purchases, balances] =
-    await Promise.all([
-      saleService.list(business.id),
-      purchaseService.listPurchases(business.id),
-      inventoryService.listBalances(business.id),
-    ]);
+  const [sales, purchases, balances, recentMovements] =
+  await Promise.all([
+    saleService.list(business.id),
+    purchaseService.listPurchases(business.id),
+    inventoryService.listBalances(business.id),
+    inventoryService.listMovements(
+      business.id,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ),
+  ]);
 
   const today = new Date();
+  const isRestaurant = business.type === "restaurant";
 
   const completedSalesToday = sales.filter(
     (sale) =>
       sale.status === "COMPLETED" &&
-      isSameDay(
-        new Date(sale.createdAt),
-        today,
-      ),
+      isSameDay(new Date(sale.createdAt), today),
   );
 
-  const salesTodayTotal =
-    completedSalesToday.reduce(
-      (total, sale) =>
-        total + sale.totalAmount,
-      0,
-    );
+  const salesTodayTotal = completedSalesToday.reduce(
+    (total, sale) => total + sale.totalAmount,
+    0,
+  );
 
-  const purchasesThisMonth =
-    purchases.filter((purchase) =>
-      isSameMonth(
-        new Date(purchase.createdAt),
-        today,
+  const purchasesThisMonth = purchases.filter((purchase) =>
+    isSameMonth(new Date(purchase.createdAt), today),
+  );
+
+  const purchasesThisMonthTotal = purchasesThisMonth.reduce(
+    (total, purchase) => total + purchase.totalAmount,
+    0,
+  );
+
+  const totalStockQuantity = balances.reduce(
+    (total, balance) =>
+      total +
+      Math.max(
+        0,
+        balance.quantity - balance.reservedQuantity,
       ),
-    );
+    0,
+  );
 
-  const purchasesThisMonthTotal =
-    purchasesThisMonth.reduce(
-      (total, purchase) =>
-        total + purchase.totalAmount,
-      0,
-    );
+  const completedSales = sales.filter(
+    (sale) => sale.status === "COMPLETED",
+  );
 
-  const totalStockQuantity =
-    balances.reduce(
-      (total, balance) =>
-        total +
-        Math.max(
-          0,
-          balance.quantity -
-            balance.reservedQuantity,
-        ),
-      0,
-    );
+  const pendingPurchases = purchases.filter(
+    (purchase) =>
+      purchase.status === "DRAFT" ||
+      purchase.status === "ORDERED",
+  );
 
-  const overviewCards = [
-    {
-      title: "Sales today",
-      value: formatCurrency(
-        business.baseCurrency,
-        salesTodayTotal,
-      ),
-      description: `${completedSalesToday.length} completed sale${
-        completedSalesToday.length === 1
-          ? ""
-          : "s"
-      } today`,
-      accent: "emerald",
-    },
-    {
-      title: "Stock",
-      value: totalStockQuantity.toFixed(2),
-      description: "Available inventory quantity",
-      accent: "slate",
-    },
-    {
-      title: "Purchases",
-      value: formatCurrency(
-        business.baseCurrency,
-        purchasesThisMonthTotal,
-      ),
-      description: "Purchases recorded this month",
-      accent: "slate",
-    },
-    {
-      title: "Expenses",
-      value: "Not connected",
-      description:
-        "Expense tracking is not yet connected",
-      accent: "slate",
-    },
-  ];
+  const cancelledSales = sales.filter(
+    (sale) => sale.status === "CANCELLED",
+  );
+
+  const availableStockBalances = balances.filter(
+    (balance) => balance.quantity > balance.reservedQuantity,
+  );
+
+  const stockBalanceCount = balances.length;
 
   const recentSales = sales
-    .filter(
-      (sale) => sale.status !== "CANCELLED",
-    )
+    .filter((sale) => sale.status !== "CANCELLED")
     .slice(0, 5)
     .map((sale) => ({
       id: `sale-${sale.id}`,
@@ -170,8 +146,7 @@ export default async function DashboardPage() {
       type: "Purchase",
       title: purchase.referenceNumber,
       description:
-        purchase.supplier?.name ??
-        "Supplier purchase",
+        purchase.supplier?.name ?? "Supplier purchase",
       value: formatCurrency(
         purchase.currency,
         purchase.totalAmount,
@@ -179,37 +154,20 @@ export default async function DashboardPage() {
       date: new Date(purchase.createdAt),
     }));
 
-  const recentMovements =
-    await inventoryService.listMovements(
-      business.id,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    );
-
-  const recentInventoryMovements =
-    recentMovements.slice(0, 5).map(
-      (movement) => ({
-        id: `movement-${movement.id}`,
-        type: "Inventory",
-        title: movement.type.replace(
-          /_/g,
-          " ",
-        ),
-        description:
-          movement.notes ??
-          "Inventory movement",
-        value:
-          movement.quantity > 0
-            ? `+${movement.quantity}`
-            : movement.quantity.toString(),
-        date: new Date(
-          movement.createdAt,
-        ),
-      }),
-    );
+  const recentInventoryMovements = recentMovements
+    .slice(0, 5)
+    .map((movement) => ({
+      id: `movement-${movement.id}`,
+      type: "Inventory",
+      title: movement.type.replace(/_/g, " "),
+      description:
+        movement.notes ?? "Inventory movement",
+      value:
+        movement.quantity > 0
+          ? `+${movement.quantity}`
+          : movement.quantity.toString(),
+      date: new Date(movement.createdAt),
+    }));
 
   const recentActivity = [
     ...recentSales,
@@ -218,118 +176,336 @@ export default async function DashboardPage() {
   ]
     .sort(
       (a, b) =>
-        b.date.getTime() -
-        a.date.getTime(),
+        b.date.getTime() - a.date.getTime(),
     )
     .slice(0, 6);
 
+  const quickActions = isRestaurant
+    ? [
+        {
+          title: "Record a sale",
+          description:
+            "Capture today's customer orders and payments.",
+          href: "/sales/new",
+          label: "Sale",
+        },
+        {
+          title: "Manage menu",
+          description:
+            "Update dishes, drinks and menu pricing.",
+          href: "/restaurant/menu",
+          label: "Menu",
+        },
+        {
+          title: "Receive stock",
+          description:
+            "Bring ingredients and products into inventory.",
+          href: "/inventory/receive",
+          label: "Stock",
+        },
+        {
+          title: "Record expense",
+          description:
+            "Capture money spent running the restaurant.",
+          href: "/expenses/new",
+          label: "Expense",
+        },
+      ]
+    : [
+        {
+          title: "Record a sale",
+          description:
+            "Capture a new sale and payment.",
+          href: "/sales/new",
+          label: "Sale",
+        },
+        {
+          title: "Add stock",
+          description:
+            "Receive products into your inventory.",
+          href: "/inventory/receive",
+          label: "Stock",
+        },
+        {
+          title: "Record a purchase",
+          description:
+            "Capture a supplier purchase.",
+          href: "/purchases/new",
+          label: "Purchase",
+        },
+        {
+          title: "Record expense",
+          description:
+            "Record money spent by the business.",
+          href: "/expenses/new",
+          label: "Expense",
+        },
+      ];
+
+  const businessTypeLabel = formatBusinessType(
+    business.type,
+  );
+
+  const salesStatusLabel =
+    completedSalesToday.length > 0
+      ? "Trading activity recorded"
+      : "No completed sales today";
+
+  const inventoryStatusLabel =
+    availableStockBalances.length > 0
+      ? "Stock available"
+      : "No available stock";
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-      <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-emerald-600">
-            Business overview
-          </p>
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Premium hero */}
+      <section className="relative overflow-hidden rounded-[28px] bg-slate-950 px-6 py-7 shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
+                {businessTypeLabel} workspace
+              </span>
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Good morning
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            Your central view of sales, stock, purchasing and
-            business spending.
-          </p>
-        </div>
-
-        <div className="hidden rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:block">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Workspace
-          </p>
-
-          <p className="mt-1 text-sm font-semibold text-slate-700">
-            Business operations
-          </p>
-        </div>
-      </div>
-
-      <section
-        aria-label="Business overview"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {overviewCards.map((card) => (
-          <div
-            key={card.title}
-            className="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
-          >
-            <div className="flex items-start justify-between">
-              <p className="text-sm font-semibold text-slate-600">
-                {card.title}
-              </p>
-
-              <span
-                className={
-                  card.accent === "emerald"
-                    ? "h-2 w-2 rounded-full bg-emerald-500"
-                    : "h-2 w-2 rounded-full bg-slate-300"
-                }
-              />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Live operations
+              </span>
             </div>
 
-            <p
-              className={
-                card.value === "Not connected"
-                  ? "mt-5 text-lg font-semibold tracking-tight text-slate-400"
-                  : "mt-5 text-3xl font-semibold tracking-tight text-slate-950"
-              }
-            >
-              {card.value}
-            </p>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[42px]">
+              {getGreeting()}, {business.name}.
+            </h1>
 
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              {card.description}
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+              {isRestaurant
+                ? "Your restaurant at a glance. Monitor today's trading activity, stock and purchasing from one workspace."
+                : "Your business at a glance. Monitor daily activity, stock and purchasing from one workspace."}
             </p>
           </div>
-        ))}
+
+          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+            <Link
+              href="/sales/new"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+            >
+              Record a sale
+              <span className="ml-2 text-emerald-600">
+                →
+              </span>
+            </Link>
+
+            <Link
+              href="/inventory"
+              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Open inventory
+            </Link>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-36 right-24 h-72 w-72 rounded-full bg-sky-400/5 blur-3xl" />
       </section>
 
-      <section className="mt-10">
-        <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-            Workspace
+      {/* KPI row */}
+      <section
+        aria-label="Business performance"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
+              Sales today
+            </p>
+
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          </div>
+
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-emerald-950">
+            {formatCurrency(
+              business.baseCurrency,
+              salesTodayTotal,
+            )}
           </p>
 
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">
-            Quick actions
+          <p className="mt-2 text-xs text-emerald-700">
+            {completedSalesToday.length} completed{" "}
+            {completedSalesToday.length === 1
+              ? "sale"
+              : "sales"}{" "}
+            today
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+              Inventory
+            </p>
+
+            <span className="text-slate-300">◈</span>
+          </div>
+
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+            {totalStockQuantity.toFixed(2)}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Available quantity across stock
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+              Purchases
+            </p>
+
+            <span className="text-slate-300">↗</span>
+          </div>
+
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+            {formatCurrency(
+              business.baseCurrency,
+              purchasesThisMonthTotal,
+            )}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Recorded this month
+          </p>
+        </div>
+
+        <Link
+          href="/expenses"
+          className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+              Expenses
+            </p>
+
+            <span className="text-slate-300 transition group-hover:text-slate-900">
+              →
+            </span>
+          </div>
+
+          <p className="mt-4 text-lg font-semibold text-slate-900">
+            Review expenses
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Review and manage business spending
+          </p>
+        </Link>
+      </section>
+
+      {/* Operational pulse */}
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Sales status
+          </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                completedSalesToday.length > 0
+                  ? "bg-emerald-500"
+                  : "bg-slate-300"
+              }`}
+            />
+
+            <p className="text-sm font-semibold text-slate-800">
+              {salesStatusLabel}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Inventory status
+          </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                availableStockBalances.length > 0
+                  ? "bg-emerald-500"
+                  : "bg-amber-400"
+              }`}
+            />
+
+            <p className="text-sm font-semibold text-slate-800">
+              {inventoryStatusLabel}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Purchasing
+          </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                pendingPurchases.length > 0
+                  ? "bg-amber-400"
+                  : "bg-emerald-500"
+              }`}
+            />
+
+            <p className="text-sm font-semibold text-slate-800">
+              {pendingPurchases.length > 0
+                ? `${pendingPurchases.length} purchase${
+                    pendingPurchases.length === 1
+                      ? ""
+                      : "s"
+                  } in progress`
+                : "No purchases awaiting action"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick actions */}
+      <section>
+        <div className="mb-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
+            Shortcuts
+          </p>
+
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+            Run the business
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Get common business tasks done quickly.
+            Get the most common operational tasks done quickly.
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {quickActions.map((action) => (
             <Link
               key={action.title}
               href={action.href}
-              className="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_10px_30px_rgba(15,23,42,0.07)]"
+              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-xs font-bold text-white">
-                  {action.icon}
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-[9px] font-bold uppercase tracking-wide text-white">
+                  {action.label.slice(0, 2)}
                 </div>
 
-                <span
-                  className="text-slate-300 transition-colors group-hover:text-emerald-500"
-                  aria-hidden="true"
-                >
+                <span className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-emerald-500">
                   →
                 </span>
               </div>
 
-              <p className="mt-6 font-semibold text-slate-950">
+              <h3 className="mt-5 font-semibold text-slate-950">
                 {action.title}
-              </p>
+              </h3>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 {action.description}
@@ -339,49 +515,62 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="mt-10 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      {/* Activity and workspace */}
+      <section className="grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
                 Activity
               </p>
 
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
                 Recent activity
               </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                The latest movement across your operation.
+              </p>
             </div>
 
-            <span className="text-xs font-medium text-slate-400">
-              Live feed
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+              Live
             </span>
           </div>
 
           {recentActivity.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/70 p-7 text-center">
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
               <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white text-sm font-semibold text-slate-400 shadow-sm">
                 —
               </div>
 
-              <p className="mt-4 text-sm font-semibold text-slate-700">
-                No activity yet
+              <p className="mt-4 text-sm font-semibold text-slate-800">
+                Your activity feed is waiting
               </p>
 
               <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                Your sales, purchases and stock movements will
-                appear here as your business activity grows.
+                Sales, purchases and inventory movements will
+                appear here as you operate the business.
               </p>
             </div>
           ) : (
-            <div className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-100">
+            <div className="mt-6 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-100">
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between gap-4 p-4"
+                  className="flex items-center justify-between gap-4 p-4 transition hover:bg-slate-50"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      <span
+                        className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                          activity.type === "Sale"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : activity.type === "Purchase"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
                         {activity.type}
                       </span>
 
@@ -401,7 +590,7 @@ export default async function DashboardPage() {
                     </p>
 
                     <p className="mt-1 text-[11px] text-slate-400">
-                      {activity.date.toLocaleDateString()}
+                      {formatActivityDate(activity.date)}
                     </p>
                   </div>
                 </div>
@@ -410,63 +599,129 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-              Intelligence
-            </p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
+            Operations
+          </p>
 
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">
-              Business health
-            </h2>
-          </div>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+            {isRestaurant
+              ? "Restaurant workspace"
+              : "Business workspace"}
+          </h2>
 
-          <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/70 p-7">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-sm font-semibold text-emerald-600">
-                +
-              </div>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {isRestaurant
+              ? "Your core restaurant tools are connected and ready for daily operations."
+              : "Your core business tools are connected and ready for daily operations."}
+          </p>
 
+          <div className="mt-6 space-y-3">
+            <Link
+              href="/sales"
+              className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-slate-200 hover:bg-white"
+            >
               <div>
-                <p className="text-sm font-semibold text-slate-800">
-                  Business intelligence is taking shape
-                </p>
+                <span className="text-sm font-medium text-slate-700">
+                  Sales
+                </span>
 
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Your operational data is now feeding this
-                  workspace. Deeper performance indicators,
-                  trends and recommendations can be layered on
-                  top of this foundation.
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {completedSales.length} completed records
                 </p>
               </div>
-            </div>
+
+              <span className="text-slate-400">
+                →
+              </span>
+            </Link>
+
+            <Link
+              href="/inventory"
+              className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-slate-200 hover:bg-white"
+            >
+              <div>
+                <span className="text-sm font-medium text-slate-700">
+                  Inventory
+                </span>
+
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {stockBalanceCount} stock balances
+                </p>
+              </div>
+
+              <span className="text-slate-400">
+                →
+              </span>
+            </Link>
+
+            <Link
+              href="/purchases"
+              className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-slate-200 hover:bg-white"
+            >
+              <div>
+                <span className="text-sm font-medium text-slate-700">
+                  Purchasing
+                </span>
+
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {pendingPurchases.length} awaiting action
+                </p>
+              </div>
+
+              <span className="text-slate-400">
+                →
+              </span>
+            </Link>
+
+            {isRestaurant && (
+              <Link
+                href="/restaurant/menu"
+                className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:border-slate-200 hover:bg-white"
+              >
+                <div>
+                  <span className="text-sm font-medium text-slate-700">
+                    Menu
+                  </span>
+
+                  <p className="mt-0.5 text-[11px] text-slate-400">
+                    Manage dishes and pricing
+                  </p>
+                </div>
+
+                <span className="text-slate-400">
+                  →
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="mt-10 rounded-2xl border border-slate-200/80 bg-slate-950 p-7 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:p-8">
+      {/* Platform / business value */}
+      <section className="overflow-hidden rounded-3xl bg-slate-950 p-7 shadow-[0_18px_45px_rgba(15,23,42,0.10)] sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-400">
-              Business operations
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-400">
+              Teketeke
             </p>
 
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">
-              Everything in one workspace.
+              One workspace for the work that matters.
             </h2>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-              Manage the day-to-day operations of your business from
-              sales and inventory through purchasing, expenses and
-              reporting.
+              {isRestaurant
+                ? "Sales, menu, inventory and purchasing are connected in one place so you can spend less time managing systems and more time running your restaurant."
+                : "Sales, inventory, purchasing and expenses are connected in one place so you can spend less time managing systems and more time running your business."}
             </p>
           </div>
 
           <Link
-            href="/reports"
-            className="inline-flex w-fit items-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+            href="/inventory"
+            className="inline-flex w-fit shrink-0 items-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
           >
-            View reports
+            Open inventory
             <span
               className="ml-2 text-emerald-600"
               aria-hidden="true"

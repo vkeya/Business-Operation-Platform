@@ -1,5 +1,6 @@
 import type { BusinessType } from "@/types";
 
+
 export type BusinessCapability =
   | "dashboard"
   | "inventory"

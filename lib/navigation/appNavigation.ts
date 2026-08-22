@@ -1,3 +1,4 @@
+
 export type NavigationModule =
   | "dashboard"
   | "sales"
@@ -9,7 +10,8 @@ export type NavigationModule =
   | "accounting"
   | "reports"
   | "settings"
-  | "menu";
+  | "menu"
+  | "expenses";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -18,10 +20,16 @@ export interface NavigationItem {
   href: string;
 }
 
+export interface NavigationSection {
+  id: string;
+  label: string;
+  items: NavigationItem[];
+}
+
 export const appNavigation: NavigationItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     description: "See how your business is doing.",
     href: "/dashboard",
   },
@@ -31,7 +39,6 @@ export const appNavigation: NavigationItem[] = [
     description: "Manage your restaurant menu.",
     href: "/restaurant/menu",
   },
-
   {
     id: "sales",
     label: "Sales",
@@ -40,7 +47,7 @@ export const appNavigation: NavigationItem[] = [
   },
   {
     id: "inventory",
-    label: "Stock",
+    label: "Inventory",
     description: "Manage products and inventory.",
     href: "/inventory",
   },
@@ -61,6 +68,12 @@ export const appNavigation: NavigationItem[] = [
     label: "Suppliers",
     description: "Manage your suppliers.",
     href: "/suppliers",
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    description: "Track business expenses.",
+    href: "/expenses",
   },
   {
     id: "money",

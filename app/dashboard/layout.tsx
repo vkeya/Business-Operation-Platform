@@ -1,9 +1,74 @@
 import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
-
+import type { NavigationItem } from "@/lib/navigation/appNavigation";
 
 export const dynamic = "force-dynamic";
+
+function getNavigationSections(
+  navigation: NavigationItem[],
+) {
+  const sections = [
+    {
+      id: "workspace",
+      label: "Workspace",
+      items: navigation.filter(
+        (item) => item.id === "dashboard",
+      ),
+    },
+    {
+      id: "restaurant",
+      label: "Restaurant",
+      items: navigation.filter(
+        (item) => item.id === "menu",
+      ),
+    },
+    {
+      id: "operations",
+      label: "Operations",
+      items: navigation.filter((item) =>
+        [
+          "sales",
+          "inventory",
+          "purchases",
+          "suppliers",
+          "customers",
+        ].includes(item.id),
+      ),
+    },
+    {
+      id: "finance",
+      label: "Finance",
+      items: navigation.filter((item) =>
+        ["expenses", "money", "accounting"].includes(
+          item.id,
+        ),
+      ),
+    },
+    {
+      id: "insights",
+      label: "Insights",
+      items: navigation.filter((item) =>
+        ["reports"].includes(item.id),
+      ),
+    },
+    {
+      id: "system",
+      label: "System",
+      items: navigation.filter(
+        (item) => item.id === "settings",
+      ),
+    },
+  ];
+
+  return sections.filter(
+    (section) => section.items.length > 0,
+  );
+}
+
+function getBusinessInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "T";
+}
 
 export default async function DashboardLayout({
   children,
@@ -12,70 +77,116 @@ export default async function DashboardLayout({
 }>) {
   const business = await getCurrentBusiness();
 
-  const navigation =
-    getBusinessNavigation(
-      business.type as Parameters<
-        typeof getBusinessNavigation
-      >[0],
-    );
+  const navigation = getBusinessNavigation(
+    business.type as Parameters<
+      typeof getBusinessNavigation
+    >[0],
+  );
+
+  const sections = getNavigationSections(
+    navigation,
+  );
+
+  const businessInitial = getBusinessInitial(
+    business.name,
+  );
+
+  const businessTypeLabel =
+    business.type.charAt(0).toUpperCase() +
+    business.type.slice(1);
 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Business Operations
-            </p>
-            <h1 className="mt-1 text-lg font-semibold text-slate-900">
-              Your Business
-            </h1>
+        <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+          {/* Business identity */}
+          <div className="border-b border-slate-200 px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-sm">
+                {businessInitial}
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-slate-900">
+                  {business.name}
+                </p>
+
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  {businessTypeLabel}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <nav className="flex-1 space-y-1 px-3 py-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="block rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                {item.label}
-              </Link>
-            ))}
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-4 py-5">
+            <div className="space-y-6">
+              {sections.map((section) => (
+                <div key={section.id}>
+                  <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    {section.label}
+                  </p>
+
+                  <div className="space-y-1">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className="group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-950"
+                      >
+                        <span className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-xs font-semibold text-slate-500 transition group-hover:bg-white group-hover:text-slate-900">
+                          {item.label.charAt(0)}
+                        </span>
+
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </nav>
 
-          <div className="border-t border-slate-200 p-4">
-            <p className="text-xs text-slate-400">
-              Simple tools for running your business.
+          {/* Platform footer */}
+          <div className="border-t border-slate-200 px-5 py-4">
+            <p className="text-xs font-medium text-slate-500">
+              {business.name}
+            </p>
+
+            <p className="mt-1 text-[11px] text-slate-400">
+              Powered by Teketeke
             </p>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Business Operations
+          {/* Header */}
+          <header className="flex min-h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {business.name}
               </p>
+
               <p className="hidden text-xs text-slate-500 sm:block">
-                Manage your business in one place.
+                Your {businessTypeLabel.toLowerCase()} workspace
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 type="button"
-                className="rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
               >
                 Help
               </button>
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                 U
               </div>
             </div>
           </header>
 
+          {/* Main content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {children}
           </main>

@@ -19,8 +19,8 @@ const capabilityToNavigationModule:
   sales: "sales",
   customers: "customers",
   suppliers: "suppliers",
-  payments: "money",
-  expenses: "money",
+  payments: null,
+  expenses: "expenses",
   accounting: "accounting",
   reports: "reports",
   menu: "menu",
@@ -57,3 +57,4 @@ export function getBusinessNavigation(
       item.id === "settings",
   );
 }
+

@@ -22,3 +22,16 @@ export async function getProductDefaultsAction() {
     currency: business.baseCurrency,
   };
 }
+
+export async function updateProductAction(
+  productId: string,
+  input: Omit<CreateProductInput, "businessId">,
+) {
+  const business = await getCurrentBusiness();
+
+  return productService.updateProduct(
+    business.id,
+    productId,
+    input,
+  );
+}
