@@ -58,14 +58,11 @@ export default function AppShell({
       <MobileNav />
 
       <div className="flex min-h-[calc(100vh-4rem)]">
-        <aside className="hidden w-64 shrink-0 flex-col bg-slate-950 text-white lg:flex">
+        <aside className="hidden w-72 shrink-0 flex-col bg-slate-950 text-white lg:flex">
           <div className="border-b border-white/10 px-6 py-6">
-            <Link
-              href="/"
-              className="group block"
-            >
+            <Link href="/" className="group block">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
                   B
                 </div>
 
@@ -74,24 +71,21 @@ export default function AppShell({
                     {businessName ?? "Teketeke"}
                   </p>
 
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-400">
                     {businessType
-  ? businessType.charAt(0).toUpperCase() +
-    businessType.slice(1)
-  : "Business operating system"}
+                      ? businessType.charAt(0).toUpperCase() +
+                        businessType.slice(1)
+                      : "Business operating system"}
                   </p>
                 </div>
               </div>
             </Link>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-4 py-6">
+          <nav className="flex-1 overflow-y-auto px-5 py-6">
             {navigation.map((group) => (
-              <div
-                key={group.section}
-                className="mb-7"
-              >
-                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <div key={group.section} className="mb-8">
+                <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {group.section}
                 </p>
 
@@ -100,25 +94,23 @@ export default function AppShell({
                     const isActive =
                       item.href === "/"
                         ? pathname === "/"
-                        : pathname.startsWith(
-                            item.href,
-                          );
+                        : pathname.startsWith(item.href);
 
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                        className={`flex items-center rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
                           isActive
-                            ? "bg-emerald-500 text-white shadow-sm"
-                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                            ? "border-emerald-500/20 bg-emerald-500/15 text-emerald-300"
+                            : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"
                         }`}
                       >
                         <span
-                          className={`mr-3 h-1.5 w-1.5 rounded-full transition ${
+                          className={`mr-3 h-1.5 w-1.5 rounded-full ${
                             isActive
-                              ? "bg-white"
-                              : "bg-slate-700 group-hover:bg-slate-500"
+                              ? "bg-emerald-400"
+                              : "bg-slate-700"
                           }`}
                         />
 
@@ -131,7 +123,7 @@ export default function AppShell({
             ))}
           </nav>
 
-          <div className="border-t border-white/10 p-4">
+          <div className="border-t border-white/10 p-5">
             <Link
               href="/settings"
               className="flex items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -143,14 +135,14 @@ export default function AppShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="hidden h-16 items-center justify-between border-b border-slate-200/80 bg-white/95 px-6 backdrop-blur lg:flex">
+          <header className="hidden h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur lg:flex">
             <div>
               <p className="text-sm font-semibold text-slate-900">
                 {businessName ?? "Your Business"}
               </p>
 
-              <p className="mt-0.5 text-xs text-slate-500">
-                Main location
+              <p className="mt-1 text-xs text-slate-500">
+                Business operating system
               </p>
             </div>
 
@@ -160,12 +152,12 @@ export default function AppShell({
                   Admin User
                 </p>
 
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Administrator
                 </p>
               </div>
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-semibold text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-semibold text-white">
                 A
               </div>
             </div>
