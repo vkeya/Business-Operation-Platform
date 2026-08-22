@@ -4,6 +4,11 @@ import { getDashboardMetrics } from "@/lib/dashboard/dashboardMetrics";
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
+import MetricCard from "@/components/dashboard/MetricCard";
+import HealthCard from "@/components/dashboard/HealthCard";
+import AttentionPanel from "@/components/dashboard/AttentionPanel";
+import QuickActionCard from "@/components/dashboard/QuickActionCard";
+import ActivityList from "@/components/dashboard/ActivityList";
 
 export const dynamic = "force-dynamic";
 
@@ -595,29 +600,12 @@ export default async function DashboardPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {quickActions.map((action) => (
-            <Link
+            <QuickActionCard
               key={action.title}
+              title={action.title}
+              description={action.description}
               href={action.href}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-[9px] font-bold uppercase tracking-wide text-white">
-                  {action.label.slice(0, 2)}
-                </div>
-
-                <span className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-emerald-500">
-                  →
-                </span>
-              </div>
-
-              <h3 className="mt-5 font-semibold text-slate-950">
-                {action.title}
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {action.description}
-              </p>
-            </Link>
+            />
           ))}
         </div>
       </section>
