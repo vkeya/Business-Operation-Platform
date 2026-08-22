@@ -2,6 +2,7 @@ import {
   saleRepository,
   type CreateSaleInput,
 } from "./saleRepository";
+import { postSaleToAccounting } from "@/lib/accounting/posting/salesPosting";
 
 export const saleService = {
   async create(input: CreateSaleInput) {
@@ -142,7 +143,7 @@ export const saleService = {
     );
   },
 
-  async updateStatus(
+    async updateStatus(
     businessId: string,
     saleId: string,
     status:
@@ -173,6 +174,8 @@ export const saleService = {
         "Sale not found.",
       );
     }
+
+    const existingSale = sale;
 
     if (sale.status === "CANCELLED") {
       throw new Error(
@@ -247,13 +250,32 @@ export const saleService = {
           businessId,
           warehouseId:
             sale.warehouseId,
-          currency: sale.currency,
+          currency:
+            sale.currency,
           createdBy:
             sale.createdBy,
-          referenceId: sale.id,
-          items: restaurantItems,
+          referenceId:
+            sale.id,
+          items:
+            restaurantItems,
         });
       }
+
+      await postSaleToAccounting({
+        businessId,
+        saleId:
+          existingSale.id,
+        referenceNumber:
+          existingSale.referenceNumber,
+        totalAmount:
+          existingSale.totalAmount.toNumber(),
+        currency:
+          existingSale.currency,
+        customerId:
+          existingSale.customerId,
+        createdBy:
+          existingSale.createdBy,
+      });
 
       return saleRepository.updateStatus(
         businessId,

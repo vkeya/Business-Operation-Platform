@@ -2,6 +2,7 @@ import {
   expenseRepository,
   type CreateExpenseInput,
 } from "./expenseRepository";
+import { postExpenseToAccounting } from "@/lib/accounting/posting/expensePosting";
 
 export const expenseService = {
   async createExpense(
@@ -52,17 +53,46 @@ export const expenseService = {
       );
     }
 
-    return expenseRepository.create({
-      ...input,
-      reference:
-        input.reference.trim(),
-      category:
-        input.category.trim(),
-      description:
-        input.description.trim(),
-      currency:
-        input.currency.trim(),
-    });
+    const expense =
+  await expenseRepository.create({
+    ...input,
+    reference:
+      input.reference.trim(),
+    category:
+      input.category.trim(),
+    description:
+      input.description.trim(),
+    currency:
+      input.currency.trim(),
+  });
+
+await postExpenseToAccounting({
+  businessId:
+    expense.businessId,
+
+  expenseId:
+    expense.id,
+
+  reference:
+    expense.reference,
+
+  category:
+    expense.category,
+
+  description:
+    expense.description,
+
+  amount:
+    expense.amount.toNumber(),
+
+  currency:
+    expense.currency,
+
+  createdBy:
+    expense.createdBy,
+});
+
+return expense;
   },
 
   async listExpenses(

@@ -3,6 +3,7 @@ import {
   type CreatePurchasePaymentInput,
   type CreateSalePaymentInput,
 } from "./paymentRepository";
+import { postPaymentToAccounting } from "@/lib/accounting/posting/paymentPosting";
 
 export const paymentService = {
   async createPurchasePayment(
@@ -102,10 +103,58 @@ export const paymentService = {
       );
 
     await paymentRepository.updatePurchasePaymentStatus(
-      input.businessId,
-      input.purchaseId,
-      paymentStatus,
-    );
+  input.businessId,
+  input.purchaseId,
+  paymentStatus,
+);
+
+await postPaymentToAccounting({
+  businessId:
+    payment.businessId,
+
+  paymentId:
+    payment.id,
+
+  reference:
+    payment.reference,
+
+  amount:
+    payment.amount.toNumber(),
+
+  currency:
+    payment.currency,
+
+  createdBy:
+    payment.createdBy,
+
+  type:
+    "PURCHASE",
+});
+
+return payment;
+	
+	await postPaymentToAccounting({
+  businessId:
+    payment.businessId,
+
+  paymentId:
+    payment.id,
+
+  reference:
+    payment.reference,
+
+  amount:
+    payment.amount.toNumber(),
+
+  currency:
+    payment.currency,
+
+  createdBy:
+    payment.createdBy,
+
+  type:
+    "SALE",
+});
 
     return payment;
   },

@@ -2,6 +2,7 @@ import {
   purchaseRepository,
   type CreatePurchaseInput,
 } from "./purchaseRepository";
+import { postPurchaseToAccounting } from "@/lib/accounting/posting/purchasePosting";
 
 export const purchaseService = {
   async createPurchase(
@@ -160,26 +161,64 @@ export const purchaseService = {
     );
   },
   async receivePurchase(
-    businessId: string,
-    purchaseId: string,
-  ) {
-    if (!businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
-    }
+  businessId: string,
+  purchaseId: string,
+) {
+  if (!businessId) {
+    throw new Error(
+      "Business context is required.",
+    );
+  }
 
-    if (!purchaseId) {
-      throw new Error(
-        "Purchase is required.",
-      );
-    }
+  if (!purchaseId) {
+    throw new Error(
+      "Purchase is required.",
+    );
+  }
 
-    return purchaseRepository.receivePurchase(
+  const purchase =
+    await purchaseRepository.findById(
       businessId,
       purchaseId,
     );
-  },
+
+  if (!purchase) {
+    throw new Error(
+      "Purchase not found.",
+    );
+  }
+
+  if (purchase.status !== "ORDERED") {
+    throw new Error(
+      "Only ordered purchases can be received.",
+    );
+  }
+
+  await postPurchaseToAccounting({
+    businessId:
+      purchase.businessId,
+
+    purchaseId:
+      purchase.id,
+
+    referenceNumber:
+      purchase.referenceNumber,
+
+    totalAmount:
+      purchase.totalAmount.toNumber(),
+
+    currency:
+      purchase.currency,
+
+    createdBy:
+      purchase.createdBy,
+  });
+
+  return purchaseRepository.receivePurchase(
+    businessId,
+    purchaseId,
+  );
+},
   
     async cancelPurchase(
     businessId: string,

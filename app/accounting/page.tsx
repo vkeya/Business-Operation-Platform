@@ -2,12 +2,24 @@ import {
   getAccountsAction,
   initializeAccountsAction,
 } from "@/lib/accounting/actions";
+import { getAccountingMetrics } from "@/lib/accounting/dashboard/accountingMetrics";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountingPage() {
+  const business =
+    await getCurrentBusiness();
+
   const accounts =
     await getAccountsAction();
+
+  const metrics =
+    await getAccountingMetrics(
+      business.id,
+    );
+	
+	
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -37,6 +49,62 @@ export default async function AccountingPage() {
           </button>
         </form>
       </div>
+
+<section className="mb-8 grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Revenue
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.revenue.toLocaleString()}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Expenses
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.expenses.toLocaleString()}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Profit
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.profit.toLocaleString()}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Cash
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.cashPosition.toLocaleString()}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Receivables
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.receivables.toLocaleString()}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <p className="text-sm text-slate-500">
+      Payables
+    </p>
+    <p className="mt-2 text-2xl font-semibold">
+      {metrics.payables.toLocaleString()}
+    </p>
+  </div>
+</section>
 
       <section className="rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-6 py-5">
