@@ -135,6 +135,19 @@ export default async function DashboardPage() {
   );
 
   const stockBalanceCount = balances.length;
+  
+  const criticalStockBalances =
+  balances.filter(
+    (balance) =>
+      balance.quantity <= 0,
+  );
+
+const lowStockBalanceCount =
+  balances.filter(
+    (balance) =>
+      balance.quantity > 0 &&
+      balance.quantity <= balance.reservedQuantity,
+  ).length;
 
   const recentSales = sales
     .filter((sale) => sale.status !== "CANCELLED")
@@ -267,6 +280,24 @@ export default async function DashboardPage() {
     metrics.lowStockItems === 0
       ? "Stock available"
       : "No available stock";
+	  
+  const businessAlertCount =
+  (metrics.lowStockItems > 0 ? 1 : 0) +
+  (metrics.pendingPurchases > 0 ? 1 : 0) +
+  (metrics.receivables > 0 ? 1 : 0) +
+  (metrics.payables > 0 ? 1 : 0) +
+  (metrics.intelligence.cash.status !== "HEALTHY"
+    ? 1
+    : 0);
+
+const businessAlertPriority =
+  metrics.intelligence.cash.status === "CRITICAL"
+    ? "Critical"
+    : businessAlertCount >= 3
+      ? "High attention"
+      : businessAlertCount > 0
+        ? "Review recommended"
+        : "All clear";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -371,26 +402,44 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Payables
-            </p>
+       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div className="flex items-center justify-between gap-3">
+    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+      Payables
+    </p>
 
-            <span className="text-slate-300">↗</span>
-          </div>
+    <span
+      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+        metrics.payables > 0
+          ? "bg-amber-50 text-amber-700"
+          : "bg-emerald-50 text-emerald-700"
+      }`}
+    >
+      {metrics.payables > 0
+        ? "REVIEW"
+        : "CLEAR"}
+    </span>
+  </div>
 
-          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-            {formatCurrency(
-              business.baseCurrency,
-              metrics.payables,
-            )}
-          </p>
+  <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+    {formatCurrency(
+      business.baseCurrency,
+      metrics.payables,
+    )}
+  </p>
 
-          <p className="mt-2 text-xs text-slate-500">
-            Outstanding supplier obligations
-          </p>
-        </div>
+  <p className="mt-2 text-sm font-medium text-slate-800">
+    {metrics.payables > 0
+      ? "Supplier obligations require attention"
+      : "No outstanding supplier obligations"}
+  </p>
+
+  <p className="mt-1 text-xs leading-5 text-slate-500">
+    {metrics.payables > 0
+      ? "Review upcoming supplier payments and protect your cash position."
+      : "Your recorded supplier obligations are currently clear."}
+  </p>
+</div>
 
         <Link
           href="/expenses"
@@ -420,57 +469,161 @@ export default async function DashboardPage() {
       {/* Business health expansion */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Cash Position
-          </p>
+  <div className="flex items-center justify-between gap-3">
+    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+      Cash Position
+    </p>
 
-          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-            {formatCurrency(
-              business.baseCurrency,
-              metrics.cashPosition,
-            )}
-          </p>
+    <span
+      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+        metrics.intelligence.cash.status === "HEALTHY"
+          ? "bg-emerald-50 text-emerald-700"
+          : metrics.intelligence.cash.status === "WATCH"
+            ? "bg-amber-50 text-amber-700"
+            : "bg-red-50 text-red-700"
+      }`}
+    >
+      {metrics.intelligence.cash.status}
+    </span>
+  </div>
 
-          <p className="mt-2 text-xs text-slate-500">
-            Available business cash position
-          </p>
-        </div>
+  <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+    {formatCurrency(
+      business.baseCurrency,
+      metrics.cashPosition,
+    )}
+  </p>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Receivables
-          </p>
+  <p className="mt-2 text-sm font-medium text-slate-800">
+    {metrics.intelligence.cash.title}
+  </p>
 
-          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-            {formatCurrency(
-              business.baseCurrency,
-              metrics.receivables,
-            )}
-          </p>
+  <p className="mt-1 text-xs leading-5 text-slate-500">
+    {metrics.intelligence.cash.message}
+  </p>
 
-          <p className="mt-2 text-xs text-slate-500">
-            Customer balances outstanding
-          </p>
-        </div>
+  <div className="mt-4 rounded-xl bg-slate-50 p-3">
+    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+      Recommendation
+    </p>
+
+    <p className="mt-1 text-xs leading-5 text-slate-600">
+      {metrics.intelligence.cash.recommendation}
+    </p>
+  </div>
+</div>
+
+<div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div className="flex items-center justify-between gap-3">
+    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+      Receivables
+    </p>
+
+    <span
+      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+        metrics.receivables > 0
+          ? "bg-amber-50 text-amber-700"
+          : "bg-emerald-50 text-emerald-700"
+      }`}
+    >
+      {metrics.receivables > 0
+        ? "REVIEW"
+        : "CLEAR"}
+    </span>
+  </div>
+
+  <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+    {formatCurrency(
+      business.baseCurrency,
+      metrics.receivables,
+    )}
+  </p>
+
+  <p className="mt-2 text-sm font-medium text-slate-800">
+    {metrics.receivables > 0
+      ? "Customer balances require attention"
+      : "No outstanding customer balances"}
+  </p>
+
+  <p className="mt-1 text-xs leading-5 text-slate-500">
+    {metrics.receivables > 0
+      ? "Follow up on outstanding customer payments to improve cash availability."
+      : "Your recorded customer balances are currently clear."}
+  </p>
+</div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-            Attention Required
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+  <div>
+    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
+      Attention Required
+    </p>
 
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-            Business alerts
-          </h2>
+    <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+      Business alerts
+    </h2>
+  </div>
+
+  <span
+    className={`w-fit rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+      businessAlertPriority === "Critical"
+        ? "bg-red-50 text-red-700"
+        : businessAlertPriority === "High attention"
+          ? "bg-amber-50 text-amber-700"
+          : businessAlertPriority === "Review recommended"
+            ? "bg-sky-50 text-sky-700"
+            : "bg-emerald-50 text-emerald-700"
+    }`}
+  >
+    {businessAlertPriority}
+  </span>
+</div>
+
+<p className="mt-2 text-sm text-slate-500">
+  {businessAlertCount === 0
+    ? "Nothing currently requires your attention."
+    : `${businessAlertCount} area${
+        businessAlertCount === 1 ? "" : "s"
+      } may need your attention.`}
+</p>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-            {metrics.lowStockItems > 0
-              ? `${metrics.lowStockItems} low stock item${metrics.lowStockItems === 1 ? "" : "s"} require attention`
-              : "No low stock issues"}
-          </div>
+          <div
+  className={`rounded-xl p-4 text-sm ${
+    criticalStockBalances.length > 0
+      ? "bg-red-50 text-red-700"
+      : lowStockBalanceCount > 0
+        ? "bg-amber-50 text-amber-700"
+        : "bg-emerald-50 text-emerald-700"
+  }`}
+>
+  <p className="font-semibold">
+    {criticalStockBalances.length > 0
+      ? "Stockout risk"
+      : lowStockBalanceCount > 0
+        ? "Low stock requires attention"
+        : "Inventory levels look healthy"}
+  </p>
+
+  <p className="mt-1 text-xs leading-5">
+    {criticalStockBalances.length > 0
+      ? `${criticalStockBalances.length} item${
+          criticalStockBalances.length === 1
+            ? ""
+            : "s"
+        } currently have no available stock.`
+      : lowStockBalanceCount > 0
+        ? `${lowStockBalanceCount} item${
+            lowStockBalanceCount === 1
+              ? ""
+              : "s"
+          } are at or below their reserved quantity.`
+        : "No immediate inventory shortage is detected."}
+  </p>
+</div>
 
           <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
             {metrics.pendingPurchases > 0
@@ -488,6 +641,24 @@ export default async function DashboardPage() {
             {metrics.payables > 0
               ? "Supplier obligations require review"
               : "No outstanding payables"}
+          </div>
+		  
+		            <div
+            className={`rounded-xl p-4 text-sm ${
+              metrics.intelligence.cash.status === "CRITICAL"
+                ? "bg-red-50 text-red-700"
+                : metrics.intelligence.cash.status === "WATCH"
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            <p className="font-semibold">
+              {metrics.intelligence.cash.title}
+            </p>
+
+            <p className="mt-1 text-xs leading-5">
+              {metrics.intelligence.cash.message}
+            </p>
           </div>
         </div>
       </section>

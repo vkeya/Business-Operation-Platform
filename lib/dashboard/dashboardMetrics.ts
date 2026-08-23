@@ -2,7 +2,7 @@ import { getAccountingMetrics } from "@/lib/accounting/dashboard/accountingMetri
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
-
+import { getCashPositionInsight } from "@/lib/intelligence/cashPositionEngine";
 
 export async function getDashboardMetrics(
   businessId: string,
@@ -54,6 +54,17 @@ export async function getDashboardMetrics(
         item.reservedQuantity,
     );
 
+const cashInsight =
+  getCashPositionInsight({
+    cashPosition:
+      accounting.cashPosition,
+
+    receivables:
+      accounting.receivables,
+
+    payables:
+      accounting.payables,
+  });
 
   return {
     ...accounting,
@@ -66,5 +77,9 @@ export async function getDashboardMetrics(
 
     lowStockItems:
       lowStockItems.length,
+	  
+	  intelligence: {
+    cash: cashInsight,
+	  },
   };
 }

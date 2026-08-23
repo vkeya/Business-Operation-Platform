@@ -23,7 +23,7 @@ const navigation = [
   {
     section: "Purchasing",
     items: [
-      { label: "Purchasing", href: "/purchasing" },
+      { label: "Purchasing", href: "/purchases" },
       { label: "Suppliers", href: "/suppliers" },
     ],
   },
