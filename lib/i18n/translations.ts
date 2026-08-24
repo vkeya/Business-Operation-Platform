@@ -195,6 +195,52 @@ export interface TranslationSet {
     emailPlaceholder: string;
     creditLimitPlaceholder: string;
   };
+  
+  sales: {
+  title: string;
+  description: string;
+  completed: string;
+  recordSale: string;
+
+  transactions: string;
+  salesOnRecord: string;
+  completedTransactions: string;
+  pending: string;
+  stillInProgress: string;
+  itemsSold: string;
+  lineItemsAcrossSales: string;
+
+  revenue: string;
+  salesValue: string;
+  salesValueDescription: string;
+  noRevenueRecorded: string;
+  completedSalesWillAppearHere: string;
+
+  activity: string;
+  salesHealth: string;
+
+  salesRegister: string;
+  recentSales: string;
+  reviewTransactions: string;
+  recordAnotherSale: string;
+
+  sale: string;
+  items: string;
+  item: string;
+  value: string;
+  status: string;
+  action: string;
+  saleTransaction: string;
+  viewSale: string;
+  cancelled: string;
+  noSalesYet: string;
+  recordFirstSaleDescription: string;
+  recordFirstSale: string;
+
+  salesInventoryConnection: string;
+  salesInventoryDescription: string;
+  openInventory: string;
+};
 
   setup: {
     title: string;
@@ -403,6 +449,60 @@ export const translations: Record<Locale, TranslationSet> = {
       creditLimitPlaceholder: "0.00",
     
 	},
+	
+	sales: {
+  title: "Sales",
+  description:
+    "Record transactions, monitor revenue and keep your sales activity organised.",
+  completed: "completed",
+  recordSale: "Record a sale",
+
+  transactions: "Transactions",
+  salesOnRecord: "Sales on record",
+  completedTransactions: "Completed transactions",
+  pending: "Pending",
+  stillInProgress: "Still in progress",
+  itemsSold: "Items sold",
+  lineItemsAcrossSales: "Line items across sales",
+  cancelled: "Cancelled",
+  revenue: "Revenue",
+  salesValue: "Sales value",
+  salesValueDescription:
+    "Sales value currently recorded, excluding cancelled transactions.",
+  noRevenueRecorded: "No revenue recorded yet",
+  completedSalesWillAppearHere:
+    "Completed sales will appear here.",
+
+  activity: "Activity",
+  salesHealth: "Sales health",
+
+  salesRegister: "Sales register",
+  recentSales: "Recent sales",
+  reviewTransactions:
+    "Review transactions and open individual sale records.",
+  recordAnotherSale: "Record another sale",
+
+  sale: "Sale",
+  items: "Items",
+  item: "item",
+  value: "Value",
+  status: "Status",
+  action: "Action",
+  saleTransaction: "Sale transaction",
+  viewSale: "View sale",
+
+  noSalesYet: "No sales yet",
+  recordFirstSaleDescription:
+    "Record your first sale to start tracking revenue and transactions.",
+  recordFirstSale: "Record your first sale",
+
+  salesInventoryConnection:
+    "Sales are part of your inventory workflow",
+  salesInventoryDescription:
+    "Product sales represent the outbound side of your stock operations.",
+  openInventory: "Open inventory",
+},
+
     setup: {
       title: "Set up your business",
       businessName: "Business name",
@@ -610,6 +710,60 @@ export const translations: Record<Locale, TranslationSet> = {
       
 	
 	},
+	
+	sales: {
+  title: "Ventes",
+  description:
+    "Enregistrez les transactions, suivez le chiffre d'affaires et gérez votre activité commerciale.",
+  completed: "terminées",
+  recordSale: "Enregistrer une vente",
+
+  transactions: "Transactions",
+  salesOnRecord: "Ventes enregistrées",
+  completedTransactions: "Transactions terminées",
+  pending: "En attente",
+  stillInProgress: "Toujours en cours",
+  itemsSold: "Articles vendus",
+  lineItemsAcrossSales: "Lignes d'articles dans les ventes",
+  cancelled: "Annulées",
+  revenue: "Chiffre d'affaires",
+  salesValue: "Valeur des ventes",
+  salesValueDescription:
+    "Valeur des ventes actuellement enregistrée, hors transactions annulées.",
+  noRevenueRecorded: "Aucun chiffre d'affaires enregistré",
+  completedSalesWillAppearHere:
+    "Les ventes terminées apparaîtront ici.",
+
+  activity: "Activité",
+  salesHealth: "État des ventes",
+
+  salesRegister: "Registre des ventes",
+  recentSales: "Ventes récentes",
+  reviewTransactions:
+    "Consultez les transactions et ouvrez les fiches de vente individuelles.",
+  recordAnotherSale: "Enregistrer une autre vente",
+
+  sale: "Vente",
+  items: "Articles",
+  item: "article",
+  value: "Valeur",
+  status: "Statut",
+  action: "Action",
+  saleTransaction: "Transaction de vente",
+  viewSale: "Voir la vente",
+
+  noSalesYet: "Aucune vente pour le moment",
+  recordFirstSaleDescription:
+    "Enregistrez votre première vente pour commencer à suivre le chiffre d'affaires et les transactions.",
+  recordFirstSale: "Enregistrer votre première vente",
+
+  salesInventoryConnection:
+    "Les ventes font partie de votre flux de gestion du stock",
+  salesInventoryDescription:
+    "Les ventes de produits représentent la sortie de votre stock.",
+  openInventory: "Ouvrir le stock",
+},
+
     setup: {
       title: "Configurez votre entreprise",
       businessName: "Nom de l'entreprise",
@@ -817,6 +971,60 @@ export const translations: Record<Locale, TranslationSet> = {
       
 	
 	},
+	
+	sales: {
+  title: "ሽያጭ",
+  description:
+    "ግብይቶችን ይመዝግቡ፣ ገቢን ይከታተሉ እና የሽያጭ እንቅስቃሴዎን ያደራጁ።",
+  completed: "የተጠናቀቁ",
+  recordSale: "ሽያጭ ይመዝግቡ",
+
+  transactions: "ግብይቶች",
+  salesOnRecord: "በመዝገብ ላይ ያሉ ሽያጮች",
+  completedTransactions: "የተጠናቀቁ ግብይቶች",
+  pending: "በመጠባበቅ ላይ",
+  stillInProgress: "አሁንም በሂደት ላይ",
+  itemsSold: "የተሸጡ እቃዎች",
+  lineItemsAcrossSales: "በሽያጮች ውስጥ ያሉ የእቃ መስመሮች",
+  cancelled: "የተሰረዙ",
+  revenue: "ገቢ",
+  salesValue: "የሽያጭ ዋጋ",
+  salesValueDescription:
+    "የተሰረዙ ግብይቶችን ሳይጨምር በአሁኑ ጊዜ የተመዘገበ የሽያጭ ዋጋ።",
+  noRevenueRecorded: "እስካሁን ገቢ አልተመዘገበም",
+  completedSalesWillAppearHere:
+    "የተጠናቀቁ ሽያጮች እዚህ ይታያሉ።",
+
+  activity: "እንቅስቃሴ",
+  salesHealth: "የሽያጭ ሁኔታ",
+
+  salesRegister: "የሽያጭ መዝገብ",
+  recentSales: "የቅርብ ጊዜ ሽያጮች",
+  reviewTransactions:
+    "ግብይቶችን ይመልከቱ እና የግል የሽያጭ መዝገቦችን ይክፈቱ።",
+  recordAnotherSale: "ሌላ ሽያጭ ይመዝግቡ",
+
+  sale: "ሽያጭ",
+  items: "እቃዎች",
+  item: "እቃ",
+  value: "ዋጋ",
+  status: "ሁኔታ",
+  action: "እርምጃ",
+  saleTransaction: "የሽያጭ ግብይት",
+  viewSale: "ሽያጩን ይመልከቱ",
+
+  noSalesYet: "እስካሁን ሽያጭ የለም",
+  recordFirstSaleDescription:
+    "ገቢን እና ግብይቶችን መከታተል ለመጀመር የመጀመሪያውን ሽያጭ ይመዝግቡ።",
+  recordFirstSale: "የመጀመሪያውን ሽያጭ ይመዝግቡ",
+
+  salesInventoryConnection:
+    "ሽያጭ የእቃ ክምችት አስተዳደርዎ አካል ነው",
+  salesInventoryDescription:
+    "የምርት ሽያጮች ከእቃ ክምችትዎ የሚወጣውን እቃ ያመለክታሉ።",
+  openInventory: "የእቃ ክምችትን ይክፈቱ",
+},
+
     setup: {
       title: "ንግድዎን ያዘጋጁ",
       businessName: "የንግድ ስም",

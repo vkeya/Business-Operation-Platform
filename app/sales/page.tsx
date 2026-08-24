@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { saleService } from "@/lib/sales/saleService";
+import { getTranslations } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function SalesPage() {
   const business = await getCurrentBusiness();
+
+  const t = await getTranslations();
 
   const sales = await saleService.list(
     business.id,
@@ -58,7 +61,7 @@ export default async function SalesPage() {
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
-                Sales
+                {t.sales.title}
               </span>
 
               <span
@@ -68,17 +71,17 @@ export default async function SalesPage() {
                     : "bg-white/10 text-slate-300"
                 }`}
               >
-                {completedSales.length} completed
+                {completedSales.length}{" "}
+                {t.sales.completed}
               </span>
             </div>
 
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Sales
+              {t.sales.title}
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-              Record transactions, monitor revenue and keep
-              your sales activity organised.
+              {t.sales.description}
             </p>
           </div>
 
@@ -89,7 +92,7 @@ export default async function SalesPage() {
             <span className="mr-2 text-emerald-600">
               +
             </span>
-            Record a sale
+            {t.sales.recordSale}
           </Link>
         </div>
 
@@ -102,7 +105,7 @@ export default async function SalesPage() {
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Transactions
+            {t.sales.transactions}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -110,13 +113,13 @@ export default async function SalesPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Sales on record
+            {t.sales.salesOnRecord}
           </p>
         </div>
 
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-            Completed
+            {t.sales.completed}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-emerald-900">
@@ -124,13 +127,13 @@ export default async function SalesPage() {
           </p>
 
           <p className="mt-2 text-xs text-emerald-700">
-            Completed transactions
+            {t.sales.completedTransactions}
           </p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-amber-600">
-            Pending
+            {t.sales.pending}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-amber-900">
@@ -138,13 +141,13 @@ export default async function SalesPage() {
           </p>
 
           <p className="mt-2 text-xs text-amber-700">
-            Still in progress
+            {t.sales.stillInProgress}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Items sold
+            {t.sales.itemsSold}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -152,37 +155,34 @@ export default async function SalesPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Line items across sales
+            {t.sales.lineItemsAcrossSales}
           </p>
         </div>
       </section>
 
       {/* Revenue */}
-      <section className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-              Revenue
-            </p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-600">
+            {t.sales.revenue}
+          </p>
 
-            <h2 className="mt-1 text-lg font-semibold text-slate-950">
-              Sales value
-            </h2>
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">
+            {t.sales.salesValue}
+          </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Sales value currently recorded, excluding
-              cancelled transactions.
-            </p>
-          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            {t.sales.salesValueDescription}
+          </p>
 
           {revenueEntries.length === 0 ? (
             <div className="mt-6 rounded-xl bg-slate-50 p-5">
               <p className="text-sm font-medium text-slate-700">
-                No revenue recorded yet
+                {t.sales.noRevenueRecorded}
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
-                Completed sales will appear here.
+                {t.sales.completedSalesWillAppearHere}
               </p>
             </div>
           ) : (
@@ -215,17 +215,17 @@ export default async function SalesPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Activity
+            {t.sales.activity}
           </p>
 
           <h2 className="mt-1 text-lg font-semibold text-slate-950">
-            Sales health
+            {t.sales.salesHealth}
           </h2>
 
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Completed
+                {t.sales.completed}
               </span>
 
               <span className="text-sm font-semibold text-emerald-700">
@@ -252,7 +252,7 @@ export default async function SalesPage() {
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Cancelled
+                {t.sales.cancelled}
               </span>
 
               <span className="text-sm font-semibold text-slate-700">
@@ -268,16 +268,15 @@ export default async function SalesPage() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-              Sales register
+              {t.sales.salesRegister}
             </p>
 
             <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-              Recent sales
+              {t.sales.recentSales}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Review transactions and open individual
-              sale records.
+              {t.sales.reviewTransactions}
             </p>
           </div>
 
@@ -286,7 +285,7 @@ export default async function SalesPage() {
               href="/sales/new"
               className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
             >
-              + Record another sale
+              + {t.sales.recordAnotherSale}
             </Link>
           )}
         </div>
@@ -299,19 +298,18 @@ export default async function SalesPage() {
               </div>
 
               <p className="mt-5 text-lg font-semibold text-slate-950">
-                No sales yet
+                {t.sales.noSalesYet}
               </p>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Record your first sale to start tracking
-                revenue and transactions.
+                {t.sales.recordFirstSaleDescription}
               </p>
 
               <Link
                 href="/sales/new"
                 className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Record your first sale
+                {t.sales.recordFirstSale}
               </Link>
             </div>
           </section>
@@ -322,23 +320,23 @@ export default async function SalesPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70 text-left">
                     <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Sale
+                      {t.sales.sale}
                     </th>
 
                     <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Items
+                      {t.sales.items}
                     </th>
 
                     <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Value
+                      {t.sales.value}
                     </th>
 
                     <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Status
+                      {t.sales.status}
                     </th>
 
                     <th className="px-6 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Action
+                      {t.sales.action}
                     </th>
                   </tr>
                 </thead>
@@ -365,7 +363,7 @@ export default async function SalesPage() {
                           </Link>
 
                           <p className="mt-1 text-xs text-slate-400">
-                            Sale transaction
+                            {t.sales.saleTransaction}
                           </p>
                         </td>
 
@@ -373,8 +371,8 @@ export default async function SalesPage() {
                           <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600">
                             {sale.items.length}{" "}
                             {sale.items.length === 1
-                              ? "item"
-                              : "items"}
+                              ? t.sales.item
+                              : t.sales.items}
                           </span>
                         </td>
 
@@ -420,7 +418,7 @@ export default async function SalesPage() {
                             href={`/sales/${sale.id}`}
                             className="text-xs font-semibold text-slate-600 transition hover:text-slate-950"
                           >
-                            View sale →
+                            {t.sales.viewSale} →
                           </Link>
                         </td>
                       </tr>
@@ -438,12 +436,11 @@ export default async function SalesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-800">
-              Sales are part of your inventory workflow
+              {t.sales.salesInventoryConnection}
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Product sales represent the outbound side of
-              your stock operations.
+              {t.sales.salesInventoryDescription}
             </p>
           </div>
 
@@ -451,7 +448,7 @@ export default async function SalesPage() {
             href="/inventory"
             className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
           >
-            Open inventory →
+            {t.sales.openInventory} →
           </Link>
         </div>
       </section>
