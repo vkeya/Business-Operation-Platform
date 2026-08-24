@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import {
   getCustomerAction,
 } from "@/lib/customers/actions";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,9 @@ export default async function CustomerDetailsPage({
   if (!customer) {
     notFound();
   }
+
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const completedSales =
     customer.sales.filter(
@@ -44,13 +49,13 @@ export default async function CustomerDetailsPage({
           href="/customers"
           className="text-sm font-medium text-slate-500 hover:text-slate-900"
         >
-          ← Customers
+          ← {t.navigation.customers}
         </Link>
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">
-              Customers / Details
+              {t.customers.customerDetails}
             </p>
 
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
@@ -66,8 +71,8 @@ export default async function CustomerDetailsPage({
                 }`}
               >
                 {customer.isActive
-                  ? "Active"
-                  : "Inactive"}
+                  ? t.customers.active
+                  : t.customers.inactive}
               </span>
 
               {customer.taxNumber && (
@@ -82,7 +87,7 @@ export default async function CustomerDetailsPage({
             href={`/customers/${customer.id}/edit`}
             className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            Edit customer
+            {t.common.edit} {t.customers.customer.toLowerCase()}
           </Link>
         </div>
       </div>
@@ -90,7 +95,7 @@ export default async function CustomerDetailsPage({
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-sm font-medium text-slate-500">
-            Sales
+            {t.navigation.sales}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
@@ -126,7 +131,7 @@ export default async function CustomerDetailsPage({
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-sm font-medium text-slate-500">
-            Credit limit
+            {t.customers.creditLimit}
           </p>
 
           <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
@@ -164,7 +169,7 @@ export default async function CustomerDetailsPage({
       <section className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="font-semibold text-slate-900">
-            Customer information
+            {t.customers.customerDetails}
           </h2>
 
           <dl className="mt-5 space-y-4">
@@ -213,7 +218,7 @@ export default async function CustomerDetailsPage({
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white lg:col-span-2">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="font-semibold text-slate-900">
-              Sales history
+              {t.navigation.sales} {t.customers.customer}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -245,7 +250,7 @@ export default async function CustomerDetailsPage({
                     </th>
 
                     <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Status
+                      {t.customers.status}
                     </th>
 
                     <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">

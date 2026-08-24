@@ -7,6 +7,7 @@ import {
   updateCustomerAction,
 } from "@/lib/customers/actions";
 import { currencies } from "@/lib/currency/currencies";
+import { translations } from "@/lib/i18n/translations";
 
 type Customer = {
   id: string;
@@ -23,11 +24,13 @@ type Customer = {
 interface CustomerFormProps {
   mode: "create" | "edit";
   customer?: Customer;
+  translations?: (typeof translations)["en"];
 }
 
 export default function CustomerForm({
   mode,
   customer,
+  translations: t = translations.en,
 }: CustomerFormProps) {
   const router = useRouter();
 
@@ -87,43 +90,32 @@ export default function CustomerForm({
         Number.isNaN(parsedCreditLimit)
       ) {
         throw new Error(
-          "Credit limit must be a valid number.",
+          t.customers.invalidCreditLimit,
         );
       }
 
-      const input = {
-  name,
-  phone: phone || undefined,
-  email: email || undefined,
-  address: address || undefined,
-  taxNumber: taxNumber || undefined,
-  creditLimit: parsedCreditLimit,
-  currency: currency || undefined,
-  isActive,
-};
-
-     if (isEdit && customer) {
-  await updateCustomerAction(customer.id, {
-    name,
-    phone: phone || undefined,
-    email: email || undefined,
-    address: address || undefined,
-    taxNumber: taxNumber || undefined,
-    creditLimit: parsedCreditLimit,
-    currency: currency || undefined,
-    isActive,
-  });
-} else {
-  await createCustomerAction({
-    name,
-    phone: phone || undefined,
-    email: email || undefined,
-    address: address || undefined,
-    taxNumber: taxNumber || undefined,
-    creditLimit: parsedCreditLimit,
-    currency: currency || undefined,
-  });
-}
+      if (isEdit && customer) {
+        await updateCustomerAction(customer.id, {
+          name,
+          phone: phone || undefined,
+          email: email || undefined,
+          address: address || undefined,
+          taxNumber: taxNumber || undefined,
+          creditLimit: parsedCreditLimit,
+          currency: currency || undefined,
+          isActive,
+        });
+      } else {
+        await createCustomerAction({
+          name,
+          phone: phone || undefined,
+          email: email || undefined,
+          address: address || undefined,
+          taxNumber: taxNumber || undefined,
+          creditLimit: parsedCreditLimit,
+          currency: currency || undefined,
+        });
+      }
 
       router.push("/customers");
       router.refresh();
@@ -131,7 +123,7 @@ export default function CustomerForm({
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong.",
+          : t.customers.unexpectedError,
       );
     } finally {
       setSaving(false);
@@ -152,11 +144,11 @@ export default function CustomerForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-slate-900">
-            Customer information
+            {t.customers.customerInformation}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Basic information for this customer.
+            {t.customers.basicInformation}
           </p>
         </div>
 
@@ -166,7 +158,7 @@ export default function CustomerForm({
               htmlFor="name"
               className="block text-sm font-medium text-slate-700"
             >
-              Customer name
+              {t.customers.customerName}
             </label>
 
             <input
@@ -178,7 +170,7 @@ export default function CustomerForm({
               }
               required
               className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              placeholder="Customer name"
+              placeholder={t.customers.customerName}
             />
           </div>
 
@@ -187,7 +179,7 @@ export default function CustomerForm({
               htmlFor="phone"
               className="block text-sm font-medium text-slate-700"
             >
-              Phone
+              {t.customers.phone}
             </label>
 
             <input
@@ -208,7 +200,7 @@ export default function CustomerForm({
               htmlFor="email"
               className="block text-sm font-medium text-slate-700"
             >
-              Email
+              {t.customers.email}
             </label>
 
             <input
@@ -220,7 +212,7 @@ export default function CustomerForm({
                 setEmail(event.target.value)
               }
               className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              placeholder="customer@example.com"
+              placeholder={t.customers.emailPlaceholder}
             />
           </div>
 
@@ -229,7 +221,7 @@ export default function CustomerForm({
               htmlFor="address"
               className="block text-sm font-medium text-slate-700"
             >
-              Address
+              {t.customers.address}
             </label>
 
             <textarea
@@ -241,7 +233,7 @@ export default function CustomerForm({
               }
               rows={3}
               className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              placeholder="Customer address"
+              placeholder={t.customers.customerAddress}
             />
           </div>
 
@@ -250,7 +242,7 @@ export default function CustomerForm({
               htmlFor="taxNumber"
               className="block text-sm font-medium text-slate-700"
             >
-              Tax number
+              {t.customers.taxNumber}
             </label>
 
             <input
@@ -261,7 +253,7 @@ export default function CustomerForm({
                 setTaxNumber(event.target.value)
               }
               className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              placeholder="Tax / PIN number"
+              placeholder={t.customers.taxNumberPlaceholder}
             />
           </div>
         </div>
@@ -270,12 +262,11 @@ export default function CustomerForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-slate-900">
-            Credit settings
+            {t.customers.creditSettings}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Optional credit information for customers who
-            purchase on account.
+            {t.customers.optionalCreditInformation}
           </p>
         </div>
 
@@ -285,7 +276,7 @@ export default function CustomerForm({
               htmlFor="creditLimit"
               className="block text-sm font-medium text-slate-700"
             >
-              Credit limit
+              {t.customers.creditLimit}
             </label>
 
             <input
@@ -299,7 +290,7 @@ export default function CustomerForm({
                 setCreditLimit(event.target.value)
               }
               className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              placeholder="0.00"
+              placeholder={t.customers.creditLimitPlaceholder}
             />
           </div>
 
@@ -308,7 +299,7 @@ export default function CustomerForm({
               htmlFor="currency"
               className="block text-sm font-medium text-slate-700"
             >
-              Currency
+              {t.customers.currency}
             </label>
 
             <select
@@ -321,7 +312,7 @@ export default function CustomerForm({
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
             >
               <option value="">
-                Select currency
+                {t.customers.selectCurrency}
               </option>
 
               {currencies.map((item) => (
@@ -342,12 +333,11 @@ export default function CustomerForm({
           <div className="flex items-center justify-between gap-6">
             <div>
               <h2 className="font-semibold text-slate-900">
-                Customer status
+                {t.customers.customerStatus}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Inactive customers remain in your records but
-                can be excluded from active operations.
+                {t.customers.inactiveCustomerDescription}
               </p>
             </div>
 
@@ -362,7 +352,7 @@ export default function CustomerForm({
               />
 
               <span className="text-sm font-medium text-slate-700">
-                Active
+                {t.customers.active}
               </span>
             </label>
           </div>
@@ -375,7 +365,7 @@ export default function CustomerForm({
           onClick={() => router.back()}
           className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
-          Cancel
+          {t.common.cancel}
         </button>
 
         <button
@@ -384,10 +374,10 @@ export default function CustomerForm({
           className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving
-            ? "Saving..."
+            ? t.common.loading
             : isEdit
-              ? "Save changes"
-              : "Create customer"}
+              ? t.common.save
+              : t.customers.createCustomer}
         </button>
       </div>
     </form>

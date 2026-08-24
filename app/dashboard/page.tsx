@@ -9,6 +9,8 @@ import HealthCard from "@/components/dashboard/HealthCard";
 import AttentionPanel from "@/components/dashboard/AttentionPanel";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import ActivityList from "@/components/dashboard/ActivityList";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +40,18 @@ function formatBusinessType(type: string) {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
-function getGreeting() {
+function getGreeting(t: ReturnType<typeof getTranslations>) {
   const hour = new Date().getHours();
 
   if (hour < 12) {
-    return "Good morning";
+    return t.dashboard.goodMorning;
   }
 
   if (hour < 18) {
-    return "Good afternoon";
+    return t.dashboard.goodAfternoon;
   }
 
-  return "Good evening";
+  return t.dashboard.goodEvening;
 }
 
 function formatActivityDate(date: Date) {
@@ -61,6 +63,9 @@ function formatActivityDate(date: Date) {
 
 export default async function DashboardPage() {
   const business = await getCurrentBusiness();
+  
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const metrics =
     await getDashboardMetrics(
@@ -154,9 +159,9 @@ const lowStockBalanceCount =
     .slice(0, 5)
     .map((sale) => ({
       id: `sale-${sale.id}`,
-      type: "Sale",
+      type: t.dashboard.sale,
       title: sale.referenceNumber,
-      description: "Sales transaction",
+      description: t.dashboard.salesTransaction,
       value: formatCurrency(
         sale.currency,
         sale.totalAmount,
@@ -168,10 +173,11 @@ const lowStockBalanceCount =
     .slice(0, 5)
     .map((purchase) => ({
       id: `purchase-${purchase.id}`,
-      type: "Purchase",
+      type: t.dashboard.purchase,
       title: purchase.referenceNumber,
       description:
-        purchase.supplier?.name ?? "Supplier purchase",
+  purchase.supplier?.name ??
+  t.dashboard.supplierPurchase,
       value: formatCurrency(
         purchase.currency,
         purchase.totalAmount,
@@ -183,10 +189,11 @@ const lowStockBalanceCount =
     .slice(0, 5)
     .map((movement) => ({
       id: `movement-${movement.id}`,
-      type: "Inventory",
+      type: t.dashboard.inventory,
       title: movement.type.replace(/_/g, " "),
       description:
-        movement.notes ?? "Inventory movement",
+        movement.notes ??
+  t.dashboard.inventoryMovement,
       value:
         movement.quantity > 0
           ? `+${movement.quantity}`
@@ -206,66 +213,58 @@ const lowStockBalanceCount =
     .slice(0, 6);
 
   const quickActions = isRestaurant
-    ? [
-        {
-          title: "Record a sale",
-          description:
-            "Capture today's customer orders and payments.",
-          href: "/sales/new",
-          label: "Sale",
-        },
-        {
-          title: "Manage menu",
-          description:
-            "Update dishes, drinks and menu pricing.",
-          href: "/restaurant/menu",
-          label: "Menu",
-        },
-        {
-          title: "Receive stock",
-          description:
-            "Bring ingredients and products into inventory.",
-          href: "/inventory/receive",
-          label: "Stock",
-        },
-        {
-          title: "Record expense",
-          description:
-            "Capture money spent running the restaurant.",
-          href: "/expenses/new",
-          label: "Expense",
-        },
-      ]
-    : [
-        {
-          title: "Record a sale",
-          description:
-            "Capture a new sale and payment.",
-          href: "/sales/new",
-          label: "Sale",
-        },
-        {
-          title: "Add stock",
-          description:
-            "Receive products into your inventory.",
-          href: "/inventory/receive",
-          label: "Stock",
-        },
-        {
-          title: "Record a purchase",
-          description:
-            "Capture a supplier purchase.",
-          href: "/purchases/new",
-          label: "Purchase",
-        },
-        {
-          title: "Record expense",
-          description:
-            "Record money spent by the business.",
-          href: "/expenses/new",
-          label: "Expense",
-        },
-      ];
+  ? [
+      {
+        title: t.dashboard.recordSale,
+        description: t.dashboard.recordSaleDescription,
+        href: "/sales/new",
+        label: t.dashboard.sale,
+      },
+      {
+        title: t.dashboard.manageMenu,
+        description: t.dashboard.manageMenuDescription,
+        href: "/restaurant/menu",
+        label: t.dashboard.menu,
+      },
+      {
+        title: t.dashboard.receiveStock,
+        description: t.dashboard.receiveStockDescription,
+        href: "/inventory/receive",
+        label: t.dashboard.stock,
+      },
+      {
+        title: t.dashboard.recordExpense,
+        description: t.dashboard.recordExpenseDescription,
+        href: "/expenses/new",
+        label: t.dashboard.expense,
+      },
+    ]
+  : [
+      {
+        title: t.dashboard.recordSale,
+        description: t.dashboard.recordSaleDescription,
+        href: "/sales/new",
+        label: t.dashboard.sale,
+      },
+      {
+        title: t.dashboard.receiveStock,
+        description: t.dashboard.receiveStockDescription,
+        href: "/inventory/receive",
+        label: t.dashboard.stock,
+      },
+      {
+        title: t.dashboard.recordPurchase,
+        description: t.dashboard.recordPurchaseDescription,
+        href: "/purchases/new",
+        label: t.dashboard.purchase,
+      },
+      {
+        title: t.dashboard.recordExpense,
+        description: t.dashboard.recordExpenseDescription,
+        href: "/expenses/new",
+        label: t.dashboard.expense,
+      },
+    ];
 
   const businessTypeLabel = formatBusinessType(
     business.type,
@@ -273,13 +272,13 @@ const lowStockBalanceCount =
 
   const salesStatusLabel =
     metrics.salesCount > 0
-      ? "Trading activity recorded"
-      : "No completed sales today";
+      ? t.dashboard.tradingActivityRecorded
+      : t.dashboard.noCompletedSalesToday;
 
   const inventoryStatusLabel =
     metrics.lowStockItems === 0
-      ? "Stock available"
-      : "No available stock";
+      ? t.dashboard.stockAvailable
+      : t.dashboard.noAvailableStock;
 	  
   const businessAlertCount =
   (metrics.lowStockItems > 0 ? 1 : 0) +
@@ -292,12 +291,12 @@ const lowStockBalanceCount =
 
 const businessAlertPriority =
   metrics.intelligence.cash.status === "CRITICAL"
-    ? "Critical"
+    ? t.dashboard.critical
     : businessAlertCount >= 3
-      ? "High attention"
+      ? t.dashboard.highAttention
       : businessAlertCount > 0
-        ? "Review recommended"
-        : "All clear";
+        ? t.dashboard.reviewRecommended
+        : t.dashboard.allClear;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -307,23 +306,25 @@ const businessAlertPriority =
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
-                {businessTypeLabel} workspace
+                {isRestaurant
+                  ? t.dashboard.restaurantWorkspace
+                  : t.dashboard.businessWorkspace}
               </span>
 
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Live operations
+                {t.dashboard.live} {t.dashboard.operations}
               </span>
             </div>
 
             <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[42px]">
-              {getGreeting()}, {business.name}.
+              {getGreeting(t)}, {business.name}.
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
               {isRestaurant
-                ? "Your restaurant at a glance. Monitor today's trading activity, stock and purchasing from one workspace."
-                : "Your business at a glance. Monitor daily activity, stock and purchasing from one workspace."}
+                ? t.dashboard.restaurantAtAGlance
+                : t.dashboard.businessAtAGlance}
             </p>
           </div>
 
@@ -332,7 +333,7 @@ const businessAlertPriority =
               href="/sales/new"
               className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
             >
-              Record a sale
+              {t.dashboard.recordSale}
               <span className="ml-2 text-emerald-600">
                 →
               </span>
@@ -342,7 +343,7 @@ const businessAlertPriority =
               href="/inventory"
               className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              Open inventory
+              {t.dashboard.openInventory}
             </Link>
           </div>
         </div>
@@ -353,13 +354,13 @@ const businessAlertPriority =
 
       {/* KPI row */}
       <section
-        aria-label="Business performance"
+        aria-label={t.dashboard.businessPerformance}
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
-              Sales today
+              {t.dashboard.salesToday}
             </p>
 
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -375,16 +376,16 @@ const businessAlertPriority =
           <p className="mt-2 text-xs text-emerald-700">
             {metrics.salesCount} completed{" "}
             {metrics.salesCount === 1
-              ? "sale"
-              : "sales"}{" "}
-            today
+              ? t.dashboard.sale
+              : t.dashboard.sales}{" "}
+            {t.dashboard.today}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Inventory Value
+              {t.dashboard.inventoryValue}
             </p>
 
             <span className="text-slate-300">◈</span>
@@ -398,14 +399,14 @@ const businessAlertPriority =
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Current stock value
+            {t.dashboard.currentStockValue}
           </p>
         </div>
 
        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
   <div className="flex items-center justify-between gap-3">
     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-      Payables
+      {t.dashboard.payables}
     </p>
 
     <span
@@ -416,8 +417,8 @@ const businessAlertPriority =
       }`}
     >
       {metrics.payables > 0
-        ? "REVIEW"
-        : "CLEAR"}
+        ? t.dashboard.reviewStatus
+        : t.dashboard.allClear}
     </span>
   </div>
 
@@ -430,14 +431,14 @@ const businessAlertPriority =
 
   <p className="mt-2 text-sm font-medium text-slate-800">
     {metrics.payables > 0
-      ? "Supplier obligations require attention"
-      : "No outstanding supplier obligations"}
+      ? t.dashboard.supplierObligationsRequireAttention
+      : t.dashboard.noOutstandingSupplierObligations}
   </p>
 
   <p className="mt-1 text-xs leading-5 text-slate-500">
     {metrics.payables > 0
-      ? "Review upcoming supplier payments and protect your cash position."
-      : "Your recorded supplier obligations are currently clear."}
+      ? t.dashboard.reviewUpcomingSupplierPayments
+      : t.dashboard.recordedSupplierObligationsClear}
   </p>
 </div>
 
@@ -447,7 +448,7 @@ const businessAlertPriority =
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Expenses
+              {t.dashboard.expenses}
             </p>
 
             <span className="text-slate-300 transition group-hover:text-slate-900">
@@ -456,11 +457,11 @@ const businessAlertPriority =
           </div>
 
           <p className="mt-4 text-lg font-semibold text-slate-900">
-            Review expenses
+            {t.dashboard.expenses}
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Review and manage business spending
+            {t.dashboard.reviewAndManageBusinessSpending}
           </p>
         </Link>
       </section>
@@ -471,7 +472,7 @@ const businessAlertPriority =
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
   <div className="flex items-center justify-between gap-3">
     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-      Cash Position
+      {t.dashboard.cashPosition}
     </p>
 
     <span
@@ -504,7 +505,7 @@ const businessAlertPriority =
 
   <div className="mt-4 rounded-xl bg-slate-50 p-3">
     <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-      Recommendation
+      {t.dashboard.recommendation}
     </p>
 
     <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -516,7 +517,7 @@ const businessAlertPriority =
 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
   <div className="flex items-center justify-between gap-3">
     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-      Receivables
+      {t.dashboard.receivables}
     </p>
 
     <span
@@ -527,8 +528,8 @@ const businessAlertPriority =
       }`}
     >
       {metrics.receivables > 0
-        ? "REVIEW"
-        : "CLEAR"}
+        ? t.dashboard.reviewStatus
+        : t.dashboard.allClear}
     </span>
   </div>
 
@@ -541,14 +542,14 @@ const businessAlertPriority =
 
   <p className="mt-2 text-sm font-medium text-slate-800">
     {metrics.receivables > 0
-      ? "Customer balances require attention"
-      : "No outstanding customer balances"}
+      ? t.dashboard.customerBalancesRequireReview
+      : t.dashboard.noOutstandingReceivables}
   </p>
 
   <p className="mt-1 text-xs leading-5 text-slate-500">
     {metrics.receivables > 0
-      ? "Follow up on outstanding customer payments to improve cash availability."
-      : "Your recorded customer balances are currently clear."}
+      ? t.dashboard.followUpOutstandingCustomerPayments
+      : t.dashboard.recordedCustomerBalancesClear}
   </p>
 </div>
       </section>
@@ -558,23 +559,23 @@ const businessAlertPriority =
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
   <div>
     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-      Attention Required
+      {t.dashboard.attentionRequired}
     </p>
 
     <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-      Business alerts
+      {t.dashboard.businessAlerts}
     </h2>
   </div>
 
   <span
     className={`w-fit rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-      businessAlertPriority === "Critical"
-        ? "bg-red-50 text-red-700"
-        : businessAlertPriority === "High attention"
-          ? "bg-amber-50 text-amber-700"
-          : businessAlertPriority === "Review recommended"
-            ? "bg-sky-50 text-sky-700"
-            : "bg-emerald-50 text-emerald-700"
+      businessAlertPriority === t.dashboard.critical
+  ? "bg-red-50 text-red-700"
+  : businessAlertPriority === t.dashboard.highAttention
+    ? "bg-amber-50 text-amber-700"
+    : businessAlertPriority === t.dashboard.reviewRecommended
+      ? "bg-sky-50 text-sky-700"
+      : "bg-emerald-50 text-emerald-700"
     }`}
   >
     {businessAlertPriority}
@@ -583,10 +584,10 @@ const businessAlertPriority =
 
 <p className="mt-2 text-sm text-slate-500">
   {businessAlertCount === 0
-    ? "Nothing currently requires your attention."
+    ? t.dashboard.nothingRequiresAttention
     : `${businessAlertCount} area${
         businessAlertCount === 1 ? "" : "s"
-      } may need your attention.`}
+      } ${t.dashboard.areasNeedAttention}`}
 </p>
         </div>
 
@@ -602,45 +603,37 @@ const businessAlertPriority =
 >
   <p className="font-semibold">
     {criticalStockBalances.length > 0
-      ? "Stockout risk"
+      ? t.dashboard.stockoutRisk
       : lowStockBalanceCount > 0
-        ? "Low stock requires attention"
-        : "Inventory levels look healthy"}
+        ? t.dashboard.lowStockRequiresAttention
+        : t.dashboard.inventoryLevelsHealthy}
   </p>
 
   <p className="mt-1 text-xs leading-5">
     {criticalStockBalances.length > 0
-      ? `${criticalStockBalances.length} item${
-          criticalStockBalances.length === 1
-            ? ""
-            : "s"
-        } currently have no available stock.`
+      ? `${criticalStockBalances.length} item${criticalStockBalances.length === 1 ? "" : "s"} ${t.dashboard.noAvailableStockItems}`
       : lowStockBalanceCount > 0
-        ? `${lowStockBalanceCount} item${
-            lowStockBalanceCount === 1
-              ? ""
-              : "s"
-          } are at or below their reserved quantity.`
-        : "No immediate inventory shortage is detected."}
+        ? `${lowStockBalanceCount} item${lowStockBalanceCount === 1 ? "" : "s"} ${t.dashboard.atOrBelowReserved}`
+        : t.dashboard.noImmediateInventoryShortage}
   </p>
 </div>
 
           <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
             {metrics.pendingPurchases > 0
-              ? `${metrics.pendingPurchases} purchase${metrics.pendingPurchases === 1 ? "" : "s"} awaiting action`
-              : "No pending purchases"}
+              ? `${metrics.pendingPurchases} purchase${metrics.pendingPurchases === 1 ? "" : "s"} ${t.dashboard.awaitingAction}`
+              : t.dashboard.pendingPurchases}
           </div>
 
           <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
             {metrics.receivables > 0
-              ? "Customer balances require review"
-              : "No outstanding receivables"}
+              ? t.dashboard.customerBalancesRequireReview
+              : t.dashboard.noOutstandingReceivables}
           </div>
 
           <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
             {metrics.payables > 0
-              ? "Supplier obligations require review"
-              : "No outstanding payables"}
+              ? t.dashboard.supplierObligationsRequireReview
+              : t.dashboard.noOutstandingPayables}
           </div>
 		  
 		            <div
@@ -665,21 +658,21 @@ const businessAlertPriority =
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">Revenue Health</p>
-          <p className="mt-3 text-lg font-semibold text-slate-900">Active</p>
+          <p className="text-xs font-semibold text-slate-500">{t.dashboard.revenueHealth}</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900">{t.dashboard.active}</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">Profit Health</p>
+          <p className="text-xs font-semibold text-slate-500">{t.dashboard.profitHealth}</p>
           <p className="mt-3 text-lg font-semibold text-slate-900">
-            {metrics.profit >= 0 ? "Healthy" : "Review"}
+            {metrics.profit >= 0 ? t.dashboard.healthy : t.dashboard.reviewStatus}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">Inventory Health</p>
+          <p className="text-xs font-semibold text-slate-500">{t.dashboard.inventoryHealth}</p>
           <p className="mt-3 text-lg font-semibold text-slate-900">
-            {metrics.lowStockItems === 0 ? "Stable" : "Attention"}
+            {metrics.lowStockItems === 0 ? t.dashboard.stable : t.dashboard.attention}
           </p>
         </div>
       </section>
@@ -688,7 +681,7 @@ const businessAlertPriority =
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Sales status
+            {t.dashboard.salesStatus}
           </p>
 
           <div className="mt-3 flex items-center gap-2">
@@ -708,7 +701,7 @@ const businessAlertPriority =
 
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Inventory status
+            {t.dashboard.inventoryStatus}
           </p>
 
           <div className="mt-3 flex items-center gap-2">
@@ -728,7 +721,7 @@ const businessAlertPriority =
 
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Purchasing
+            {t.dashboard.purchasing}
           </p>
 
           <div className="mt-3 flex items-center gap-2">
@@ -746,8 +739,8 @@ const businessAlertPriority =
                     metrics.pendingPurchases === 1
                       ? ""
                       : "s"
-                  } in progress`
-                : "No purchases awaiting action"}
+                  } ${t.dashboard.purchasesInProgress}`
+                : t.dashboard.noPurchasesAwaitingAction}
             </p>
           </div>
         </div>
@@ -757,15 +750,15 @@ const businessAlertPriority =
       <section>
         <div className="mb-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-            Shortcuts
+            {t.dashboard.shortcuts}
           </p>
 
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-            Run the business
+            {t.dashboard.runTheBusiness}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Get the most common operational tasks done quickly.
+            {t.dashboard.commonOperationalTasks}
           </p>
         </div>
 
@@ -787,20 +780,20 @@ const businessAlertPriority =
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-                Activity
+                {t.dashboard.activity}
               </p>
 
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-                Recent activity
+                {t.dashboard.recentActivity}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                The latest movement across your operation.
+                {t.dashboard.latestMovement}
               </p>
             </div>
 
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-              Live
+              {t.dashboard.live}
             </span>
           </div>
 
@@ -811,12 +804,12 @@ const businessAlertPriority =
               </div>
 
               <p className="mt-4 text-sm font-semibold text-slate-800">
-                Your activity feed is waiting
+                {t.dashboard.activityFeedWaiting}
               </p>
 
               <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                Sales, purchases and inventory movements will
-                appear here as you operate the business.
+                {t.dashboard.activityFeedDescription}
+
               </p>
             </div>
           ) : (
@@ -830,9 +823,9 @@ const businessAlertPriority =
                     <div className="flex items-center gap-2">
                       <span
                         className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                          activity.type === "Sale"
+                          activity.type === t.dashboard.sale
                             ? "bg-emerald-50 text-emerald-700"
-                            : activity.type === "Purchase"
+                            : activity.type === t.dashboard.purchase
                               ? "bg-amber-50 text-amber-700"
                               : "bg-slate-100 text-slate-500"
                         }`}
@@ -867,19 +860,19 @@ const businessAlertPriority =
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-            Operations
+            {t.dashboard.operations}
           </p>
 
           <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
             {isRestaurant
-              ? "Restaurant workspace"
-              : "Business workspace"}
+              ? t.dashboard.restaurantWorkspace
+              : t.dashboard.businessWorkspace}
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
             {isRestaurant
-              ? "Your core restaurant tools are connected and ready for daily operations."
-              : "Your core business tools are connected and ready for daily operations."}
+              ? t.dashboard.restaurantToolsReady
+              : t.dashboard.businessToolsReady}
           </p>
 
           <div className="mt-6 space-y-3">
@@ -889,11 +882,11 @@ const businessAlertPriority =
             >
               <div>
                 <span className="text-sm font-medium text-slate-700">
-                  Sales
+                  {t.dashboard.sale}
                 </span>
 
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  {completedSales.length} completed records
+                  {completedSales.length} {t.dashboard.completedRecords}
                 </p>
               </div>
 
@@ -908,11 +901,11 @@ const businessAlertPriority =
             >
               <div>
                 <span className="text-sm font-medium text-slate-700">
-                  Inventory
+                  {t.dashboard.inventory}
                 </span>
 
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  {balances.length} stock balances
+                  {balances.length} {t.dashboard.stockBalances}
                 </p>
               </div>
 
@@ -927,11 +920,11 @@ const businessAlertPriority =
             >
               <div>
                 <span className="text-sm font-medium text-slate-700">
-                  Purchasing
+                  {t.dashboard.purchasing}
                 </span>
 
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  {metrics.pendingPurchases} awaiting action
+                  {metrics.pendingPurchases} {t.dashboard.awaitingAction}
                 </p>
               </div>
 
@@ -947,11 +940,11 @@ const businessAlertPriority =
               >
                 <div>
                   <span className="text-sm font-medium text-slate-700">
-                    Menu
+                    {t.dashboard.menu}
                   </span>
 
                   <p className="mt-0.5 text-[11px] text-slate-400">
-                    Manage dishes and pricing
+                    {t.dashboard.manageDishesPricing}
                   </p>
                 </div>
 
@@ -973,13 +966,13 @@ const businessAlertPriority =
             </p>
 
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">
-              One workspace for the work that matters.
+              {t.dashboard.oneWorkspaceForWork}
             </h2>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
               {isRestaurant
-                ? "Sales, menu, inventory and purchasing are connected in one place so you can spend less time managing systems and more time running your restaurant."
-                : "Sales, inventory, purchasing and expenses are connected in one place so you can spend less time managing systems and more time running your business."}
+                ? t.dashboard.restaurantConnectedDescription
+                : t.dashboard.businessConnectedDescription}
             </p>
           </div>
 
@@ -987,7 +980,7 @@ const businessAlertPriority =
             href="/inventory"
             className="inline-flex w-fit shrink-0 items-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
           >
-            Open inventory
+            {t.dashboard.openInventory}
             <span
               className="ml-2 text-emerald-600"
               aria-hidden="true"

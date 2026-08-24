@@ -1,4 +1,3 @@
-
 export type NavigationModule =
   | "dashboard"
   | "sales"
@@ -15,8 +14,8 @@ export type NavigationModule =
 
 export interface NavigationItem {
   id: NavigationModule;
-  label: string;
-  description: string;
+  labelKey: NavigationModule;
+  descriptionKey: string;
   href: string;
 }
 
@@ -29,74 +28,74 @@ export interface NavigationSection {
 export const appNavigation: NavigationItem[] = [
   {
     id: "dashboard",
-    label: "Overview",
-    description: "See how your business is doing.",
+    labelKey: "dashboard",
+    descriptionKey: "navigationDescriptions.dashboard",
     href: "/dashboard",
   },
   {
     id: "menu",
-    label: "Menu",
-    description: "Manage your restaurant menu.",
+    labelKey: "menu",
+    descriptionKey: "navigationDescriptions.menu",
     href: "/restaurant/menu",
   },
   {
     id: "sales",
-    label: "Sales",
-    description: "Manage sales and payments.",
+    labelKey: "sales",
+    descriptionKey: "navigationDescriptions.sales",
     href: "/sales",
   },
   {
     id: "inventory",
-    label: "Inventory",
-    description: "Manage products and inventory.",
+    labelKey: "inventory",
+    descriptionKey: "navigationDescriptions.inventory",
     href: "/inventory",
   },
   {
     id: "purchases",
-    label: "Purchases",
-    description: "Manage suppliers and purchases.",
+    labelKey: "purchases",
+    descriptionKey: "navigationDescriptions.purchases",
     href: "/purchases",
   },
   {
     id: "customers",
-    label: "Customers",
-    description: "Manage your customers.",
+    labelKey: "customers",
+    descriptionKey: "navigationDescriptions.customers",
     href: "/customers",
   },
   {
     id: "suppliers",
-    label: "Suppliers",
-    description: "Manage your suppliers.",
+    labelKey: "suppliers",
+    descriptionKey: "navigationDescriptions.suppliers",
     href: "/suppliers",
   },
   {
     id: "expenses",
-    label: "Expenses",
-    description: "Track business expenses.",
+    labelKey: "expenses",
+    descriptionKey: "navigationDescriptions.expenses",
     href: "/expenses",
   },
   {
     id: "money",
-    label: "Money",
-    description: "Track payments and expenses.",
+    labelKey: "money",
+    descriptionKey: "navigationDescriptions.money",
     href: "/money",
   },
   {
     id: "accounting",
-    label: "Accounting",
-    description: "Manage accounts and financial records.",
+    labelKey: "accounting",
+    descriptionKey: "navigationDescriptions.accounting",
     href: "/accounting",
   },
   {
     id: "reports",
-    label: "Reports",
-    description: "Understand your business performance.",
+    labelKey: "reports",
+    descriptionKey: "navigationDescriptions.reports",
     href: "/reports",
   },
   {
     id: "settings",
-    label: "Settings",
-    description: "Configure your business.",
+    labelKey: "settings",
+    descriptionKey: "navigationDescriptions.settings",
     href: "/settings",
   },
 ];

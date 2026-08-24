@@ -3,64 +3,142 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import MobileNav from "@/components/layout/MobileNav";
+import LanguageSelector from "@/components/layout/LanguageSelector";
+import { translations } from "@/lib/i18n/translations";
+import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
+import type { NavigationItem } from "@/lib/navigation/appNavigation";
+import type { BusinessType } from "@/types";
 
-const navigation = [
-  {
-    section: "Workspace",
-    items: [{ label: "Overview", href: "/" }],
-  },
-  {
-    section: "Sales",
-    items: [
-      { label: "Sales", href: "/sales" },
-      { label: "Customers", href: "/customers" },
-    ],
-  },
-  {
-    section: "Inventory",
-    items: [{ label: "Inventory", href: "/inventory" }],
-  },
-  {
-    section: "Purchasing",
-    items: [
-      { label: "Purchasing", href: "/purchases" },
-      { label: "Suppliers", href: "/suppliers" },
-    ],
-  },
-  {
-    section: "Finance",
-    items: [
-      { label: "Expenses", href: "/expenses" },
-      { label: "Payments", href: "/payments" },
-    ],
-  },
-  {
-    section: "Insights",
-    items: [{ label: "Reports", href: "/reports" }],
-  },
-];
+type TranslationSet = (typeof translations)["en"];
 
 interface AppShellProps {
   children: React.ReactNode;
   businessName?: string;
   businessType?: string;
+  currentLocale?: "en" | "fr" | "am";
+  translations: TranslationSet;
+}
+
+function getNavigation(
+  t: TranslationSet,
+  businessType?: string,
+) {
+  const navigationItems =
+    businessType
+      ? getBusinessNavigation(
+          businessType as BusinessType,
+        )
+      : [];
+
+  const groups = [
+    {
+      section: t.navigation.workspace,
+      items: [] as NavigationItem[],
+    },
+    {
+      section: t.navigation.sales,
+      items: [] as NavigationItem[],
+    },
+    {
+      section: t.navigation.inventory,
+      items: [] as NavigationItem[],
+    },
+    {
+      section: t.navigation.purchasing,
+      items: [] as NavigationItem[],
+    },
+    {
+      section: t.navigation.finance,
+      items: [] as NavigationItem[],
+    },
+    {
+      section: t.navigation.insights,
+      items: [] as NavigationItem[],
+    },
+  ];
+
+  for (const item of navigationItems) {
+    switch (item.id) {
+      case "dashboard":
+      case "menu":
+        groups[0].items.push(item);
+        break;
+
+      case "sales":
+      case "customers":
+        groups[1].items.push(item);
+        break;
+
+      case "inventory":
+        groups[2].items.push(item);
+        break;
+
+      case "purchases":
+      case "suppliers":
+        groups[3].items.push(item);
+        break;
+
+      case "expenses":
+      case "money":
+      case "accounting":
+        groups[4].items.push(item);
+        break;
+
+      case "reports":
+        groups[5].items.push(item);
+        break;
+
+      case "settings":
+        break;
+    }
+  }
+
+  return groups.filter(
+    (group) => group.items.length > 0,
+  );
+}
+
+function getNavigationLabel(
+  t: TranslationSet,
+  item: NavigationItem,
+) {
+  return t.navigation[item.labelKey];
 }
 
 export default function AppShell({
   children,
   businessName,
   businessType,
+  currentLocale = "en",
+  translations: t,
 }: AppShellProps) {
   const pathname = usePathname();
 
+  const navigation = getNavigation(
+    t,
+    businessType,
+  );
+
+  /*
+   * Dashboard has its own business-aware shell.
+   * All other routes continue using the existing AppShell.
+   */
+  const isDashboardRoute =
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/");
+
+  if (isDashboardRoute) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <MobileNav />
+      <MobileNav translations={t} />
 
       <div className="flex min-h-[calc(100vh-4rem)]">
         <aside className="hidden w-72 shrink-0 flex-col bg-slate-950 text-white lg:flex">
           <div className="border-b border-white/10 px-6 py-6">
-            <Link href="/" className="group block">
+            <Link href="/dashboard" className="group block">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
                   B
@@ -75,7 +153,7 @@ export default function AppShell({
                     {businessType
                       ? businessType.charAt(0).toUpperCase() +
                         businessType.slice(1)
-                      : "Business operating system"}
+                      : t.common.businessOperatingSystem}
                   </p>
                 </div>
               </div>
@@ -84,7 +162,10 @@ export default function AppShell({
 
           <nav className="flex-1 overflow-y-auto px-5 py-6">
             {navigation.map((group) => (
-              <div key={group.section} className="mb-8">
+              <div
+                key={group.section}
+                className="mb-8"
+              >
                 <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {group.section}
                 </p>
@@ -92,8 +173,8 @@ export default function AppShell({
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const isActive =
-                      item.href === "/"
-                        ? pathname === "/"
+                      item.href === "/dashboard"
+                        ? pathname === "/dashboard"
                         : pathname.startsWith(item.href);
 
                     return (
@@ -114,7 +195,7 @@ export default function AppShell({
                           }`}
                         />
 
-                        {item.label}
+                        {getNavigationLabel(t, item)}
                       </Link>
                     );
                   })}
@@ -129,7 +210,8 @@ export default function AppShell({
               className="flex items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
             >
               <span className="mr-3 h-1.5 w-1.5 rounded-full bg-slate-700" />
-              Settings
+
+              {t.navigation.settings}
             </Link>
           </div>
         </aside>
@@ -138,22 +220,26 @@ export default function AppShell({
           <header className="hidden h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur lg:flex">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                {businessName ?? "Your Business"}
+                {businessName ?? t.common.yourBusiness}
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
-                Business operating system
+                {t.common.businessOperatingSystem}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
+              <LanguageSelector
+                currentLocale={currentLocale}
+              />
+
               <div className="text-right">
                 <p className="text-sm font-semibold text-slate-900">
-                  Admin User
+                  {t.common.adminUser}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  Administrator
+                  {t.common.administrator}
                 </p>
               </div>
 

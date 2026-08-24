@@ -2,30 +2,34 @@ import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
 import type { NavigationItem } from "@/lib/navigation/appNavigation";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
+import LanguageSelector from "@/components/layout/LanguageSelector";
 
 export const dynamic = "force-dynamic";
 
 function getNavigationSections(
   navigation: NavigationItem[],
+  t: ReturnType<typeof getTranslations>,
 ) {
   const sections = [
     {
       id: "workspace",
-      label: "Workspace",
+      label: t.navigation.workspace,
       items: navigation.filter(
         (item) => item.id === "dashboard",
       ),
     },
     {
       id: "restaurant",
-      label: "Restaurant",
+      label: t.navigation.menu,
       items: navigation.filter(
         (item) => item.id === "menu",
       ),
     },
     {
       id: "operations",
-      label: "Operations",
+      label: t.navigation.purchasing,
       items: navigation.filter((item) =>
         [
           "sales",
@@ -38,7 +42,7 @@ function getNavigationSections(
     },
     {
       id: "finance",
-      label: "Finance",
+      label: t.navigation.finance,
       items: navigation.filter((item) =>
         ["expenses", "money", "accounting"].includes(
           item.id,
@@ -47,14 +51,14 @@ function getNavigationSections(
     },
     {
       id: "insights",
-      label: "Insights",
-      items: navigation.filter((item) =>
-        ["reports"].includes(item.id),
+      label: t.navigation.insights,
+      items: navigation.filter(
+        (item) => item.id === "reports",
       ),
     },
     {
       id: "system",
-      label: "System",
+      label: t.navigation.settings,
       items: navigation.filter(
         (item) => item.id === "settings",
       ),
@@ -67,7 +71,9 @@ function getNavigationSections(
 }
 
 function getBusinessInitial(name: string) {
-  return name.trim().charAt(0).toUpperCase() || "T";
+  return (
+    name.trim().charAt(0).toUpperCase() || "T"
+  );
 }
 
 export default async function DashboardLayout({
@@ -77,6 +83,9 @@ export default async function DashboardLayout({
 }>) {
   const business = await getCurrentBusiness();
 
+  const locale = await getLocale();
+  const translations = getTranslations(locale);
+
   const navigation = getBusinessNavigation(
     business.type as Parameters<
       typeof getBusinessNavigation
@@ -85,11 +94,11 @@ export default async function DashboardLayout({
 
   const sections = getNavigationSections(
     navigation,
+    translations,
   );
 
-  const businessInitial = getBusinessInitial(
-    business.name,
-  );
+  const businessInitial =
+    getBusinessInitial(business.name);
 
   const businessTypeLabel =
     business.type.charAt(0).toUpperCase() +
@@ -134,11 +143,17 @@ export default async function DashboardLayout({
                         href={item.href}
                         className="group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-950"
                       >
-                        <span className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-xs font-semibold text-slate-500 transition group-hover:bg-white group-hover:text-slate-900">
-                          {item.label.charAt(0)}
+                        <span className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-xs font-semibold text-slate-500 transition group-hover:bg-white group-hover:text-slate-900">
+                          {translations.navigation[
+                            item.labelKey
+                          ].charAt(0)}
                         </span>
 
-                        <span>{item.label}</span>
+                        <span>
+                          {translations.navigation[
+                            item.labelKey
+                          ]}
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -168,19 +183,23 @@ export default async function DashboardLayout({
               </p>
 
               <p className="hidden text-xs text-slate-500 sm:block">
-                Your {businessTypeLabel.toLowerCase()} workspace
+                {translations.common.businessOperatingSystem}
               </p>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <LanguageSelector
+                currentLocale={locale}
+              />
+
               <button
                 type="button"
-                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                className="hidden rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 sm:block"
               >
                 Help
               </button>
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                 U
               </div>
             </div>
