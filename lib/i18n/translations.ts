@@ -236,7 +236,8 @@ export interface TranslationSet {
   noSalesYet: string;
   recordFirstSaleDescription: string;
   recordFirstSale: string;
-
+  newSaleBreadcrumb: string;
+  newSaleDescription: string;
   salesInventoryConnection: string;
   salesInventoryDescription: string;
   openInventory: string;
@@ -475,7 +476,8 @@ export const translations: Record<Locale, TranslationSet> = {
 
   activity: "Activity",
   salesHealth: "Sales health",
-
+  newSaleBreadcrumb: "Business / Sales",
+  newSaleDescription: "Add products and record a new sale.",
   salesRegister: "Sales register",
   recentSales: "Recent sales",
   reviewTransactions:
@@ -736,7 +738,8 @@ export const translations: Record<Locale, TranslationSet> = {
 
   activity: "Activité",
   salesHealth: "État des ventes",
-
+  newSaleBreadcrumb: "Entreprise / Ventes",
+  newSaleDescription: "Ajoutez des produits et enregistrez une nouvelle vente.",
   salesRegister: "Registre des ventes",
   recentSales: "Ventes récentes",
   reviewTransactions:
@@ -997,7 +1000,8 @@ export const translations: Record<Locale, TranslationSet> = {
 
   activity: "እንቅስቃሴ",
   salesHealth: "የሽያጭ ሁኔታ",
-
+  newSaleBreadcrumb: "ንግድ / ሽያጭ",
+  newSaleDescription: "ምርቶችን ያክሉ እና አዲስ ሽያጭ ይመዝግቡ።",
   salesRegister: "የሽያጭ መዝገብ",
   recentSales: "የቅርብ ጊዜ ሽያጮች",
   reviewTransactions:
