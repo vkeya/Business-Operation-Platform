@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSaleAction } from "@/lib/sales/actions";
+import { getTranslations } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -59,9 +60,10 @@ export default function SaleForm({
   currency: defaultCurrency,
 }: SaleFormProps) {
   const router = useRouter();
-  
+  const t = getTranslations();
+
   const [warehouseId, setWarehouseId] =
-  useState("");
+    useState("");
 
   const [referenceNumber, setReferenceNumber] =
     useState("");
@@ -75,11 +77,11 @@ export default function SaleForm({
   const [items, setItems] =
     useState<SaleItem[]>([
       {
-  id: crypto.randomUUID(),
-  productId: "",
-  menuItemId: "",
-  quantity: "",
-}
+        id: crypto.randomUUID(),
+        productId: "",
+        menuItemId: "",
+        quantity: "",
+      },
     ]);
 
   const [submitting, setSubmitting] =
@@ -98,48 +100,48 @@ export default function SaleForm({
     [products],
   );
 
-const subtotal = useMemo(
-  () =>
-    items.reduce(
-      (total, item) => {
-        const product =
-          inventoryProducts.find(
-            (product) =>
-              product.id === item.productId,
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (total, item) => {
+          const product =
+            inventoryProducts.find(
+              (product) =>
+                product.id === item.productId,
+            );
+
+          const menuItem =
+            restaurantMenuItems.find(
+              (menuItem) =>
+                menuItem.id === item.menuItemId,
+            );
+
+          const unitPrice =
+            menuItem?.sellingPrice ??
+            product?.sellingPrice ??
+            0;
+
+          return (
+            total +
+            Number(item.quantity || 0) *
+              unitPrice
           );
-
-        const menuItem =
-          restaurantMenuItems.find(
-            (menuItem) =>
-              menuItem.id === item.menuItemId,
-          );
-
-        const unitPrice =
-          menuItem?.sellingPrice ??
-          product?.sellingPrice ??
-          0;
-
-        return (
-          total +
-          Number(item.quantity || 0) *
-            unitPrice
-        );
-      },
-      0,
-    ),
-  [
-    items,
-    inventoryProducts,
-    restaurantMenuItems,
-  ],
-);
+        },
+        0,
+      ),
+    [
+      items,
+      inventoryProducts,
+      restaurantMenuItems,
+    ],
+  );
 
   function updateItem(
     id: string,
     field:
-  | "productId"
-  | "menuItemId"
-  | "quantity",
+      | "productId"
+      | "menuItemId"
+      | "quantity",
     value: string,
   ) {
     setItems((current) =>
@@ -158,11 +160,11 @@ const subtotal = useMemo(
     setItems((current) => [
       ...current,
       {
-  id: crypto.randomUUID(),
-  productId: "",
-  menuItemId: "",
-  quantity: "",
-}
+        id: crypto.randomUUID(),
+        productId: "",
+        menuItemId: "",
+        quantity: "",
+      },
     ]);
   }
 
@@ -185,85 +187,87 @@ const subtotal = useMemo(
 
     if (!referenceNumber.trim()) {
       setError(
-        "Please enter a sale reference.",
+        t.saleForm.referenceRequired,
       );
       return;
     }
 
     if (!currency) {
-      setError("Please select a currency.");
+      setError(
+        t.saleForm.currencyRequired,
+      );
       return;
     }
-	
-	if (!warehouseId) {
-  setError(
-    "Please select a warehouse.",
-  );
-  return;
-}
+
+    if (!warehouseId) {
+      setError(
+        t.saleForm.warehouseRequired,
+      );
+      return;
+    }
 
     if (items.length === 0) {
       setError(
-        "Add at least one sale item.",
+        t.saleForm.itemRequired,
       );
       return;
     }
 
     const saleItems = items.map(
-  (item) => {
-    const product =
-      inventoryProducts.find(
-        (product) =>
-          product.id === item.productId,
-      );
+      (item) => {
+        const product =
+          inventoryProducts.find(
+            (product) =>
+              product.id === item.productId,
+          );
 
-    const menuItem =
-      restaurantMenuItems.find(
-        (menuItem) =>
-          menuItem.id === item.menuItemId,
-      );
+        const menuItem =
+          restaurantMenuItems.find(
+            (menuItem) =>
+              menuItem.id === item.menuItemId,
+          );
 
-    if (!product) {
-      throw new Error(
-        "Please select a product for every line.",
-      );
-    }
+        if (!product) {
+          throw new Error(
+            t.saleForm.productRequired,
+          );
+        }
 
-    const quantity =
-      Number(item.quantity);
+        const quantity =
+          Number(item.quantity);
 
-    if (
-      !Number.isFinite(quantity) ||
-      quantity <= 0
-    ) {
-      throw new Error(
-        "Sale quantities must be greater than zero.",
-      );
-    }
+        if (
+          !Number.isFinite(quantity) ||
+          quantity <= 0
+        ) {
+          throw new Error(
+            t.saleForm.quantityRequired,
+          );
+        }
 
-    const unitPrice =
-      menuItem?.sellingPrice ??
-      product.sellingPrice;
+        const unitPrice =
+          menuItem?.sellingPrice ??
+          product.sellingPrice;
 
-    return {
-      productId:
-        product.id,
-      menuItemId:
-        menuItem?.id || undefined,
-      productName:
-        menuItem?.name ??
-        product.name,
-      sku:
-        product.sku || undefined,
-      quantity,
-      unitPrice,
-      discountAmount: 0,
-      taxAmount: 0,
-      totalAmount:
-        quantity * unitPrice,
-    };
-  },
-);
+        return {
+          productId:
+            product.id,
+          menuItemId:
+            menuItem?.id || undefined,
+          productName:
+            menuItem?.name ??
+            product.name,
+          sku:
+            product.sku || undefined,
+          quantity,
+          unitPrice,
+          discountAmount: 0,
+          taxAmount: 0,
+          totalAmount:
+            quantity * unitPrice,
+        };
+      },
+    );
 
     try {
       setSubmitting(true);
@@ -272,11 +276,10 @@ const subtotal = useMemo(
         await createSaleAction({
           referenceNumber:
             referenceNumber.trim(),
-		  warehouseId,	
+          warehouseId,
           currency,
           notes:
             notes.trim() || undefined,
-          
           items: saleItems,
           subtotal,
           discountAmount: 0,
@@ -287,12 +290,13 @@ const subtotal = useMemo(
       router.push(
         `/sales/${sale.id}`,
       );
+
       router.refresh();
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
           ? submissionError.message
-          : "Unable to create sale.",
+          : t.saleForm.createSaleError,
       );
     } finally {
       setSubmitting(false);
@@ -312,7 +316,7 @@ const subtotal = useMemo(
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">
-          Sale details
+          {t.saleForm.saleDetails}
         </h2>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -321,7 +325,7 @@ const subtotal = useMemo(
               htmlFor="referenceNumber"
               className="block text-sm font-medium text-slate-700"
             >
-              Reference number
+              {t.saleForm.referenceNumber}
             </label>
 
             <input
@@ -342,7 +346,7 @@ const subtotal = useMemo(
               htmlFor="currency"
               className="block text-sm font-medium text-slate-700"
             >
-              Currency
+              {t.saleForm.currency}
             </label>
 
             <input
@@ -357,44 +361,49 @@ const subtotal = useMemo(
             />
           </div>
         </div>
-		
-		<div className="mt-5">
-  <label
-    htmlFor="warehouseId"
-    className="block text-sm font-medium text-slate-700"
-  >
-    Warehouse
-  </label>
 
-  <select
-    id="warehouseId"
-    value={warehouseId}
-    onChange={(event) =>
-      setWarehouseId(event.target.value)
-    }
-    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
-  >
-    <option value="">
-      Select warehouse
-    </option>
+        <div className="mt-5">
+          <label
+            htmlFor="warehouseId"
+            className="block text-sm font-medium text-slate-700"
+          >
+            {t.saleForm.warehouse}
+          </label>
 
-    {warehouses.map((warehouse) => (
-      <option
-        key={warehouse.id}
-        value={warehouse.id}
-      >
-        {warehouse.name} ({warehouse.code})
-      </option>
-    ))}
-  </select>
-</div>
+          <select
+            id="warehouseId"
+            value={warehouseId}
+            onChange={(event) =>
+              setWarehouseId(
+                event.target.value,
+              )
+            }
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
+          >
+            <option value="">
+              {t.saleForm.selectWarehouse}
+            </option>
+
+            {warehouses.map(
+              (warehouse) => (
+                <option
+                  key={warehouse.id}
+                  value={warehouse.id}
+                >
+                  {warehouse.name} (
+                  {warehouse.code})
+                </option>
+              ),
+            )}
+          </select>
+        </div>
 
         <div className="mt-5">
           <label
             htmlFor="notes"
             className="block text-sm font-medium text-slate-700"
           >
-            Notes
+            {t.saleForm.notes}
           </label>
 
           <textarea
@@ -413,11 +422,11 @@ const subtotal = useMemo(
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
-              Sale items
+              {t.saleForm.saleItems}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select products and quantities.
+              {t.saleForm.selectProducts}
             </p>
           </div>
 
@@ -426,32 +435,32 @@ const subtotal = useMemo(
             onClick={addItem}
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            Add item
+            {t.saleForm.addItem}
           </button>
         </div>
 
         <div className="mt-6 space-y-4">
           {items.map((item) => {
             const product =
-  inventoryProducts.find(
-    (product) =>
-      product.id === item.productId,
-  );
+              inventoryProducts.find(
+                (product) =>
+                  product.id === item.productId,
+              );
 
-const menuItem =
-  restaurantMenuItems.find(
-    (menuItem) =>
-      menuItem.id === item.menuItemId,
-  );
+            const menuItem =
+              restaurantMenuItems.find(
+                (menuItem) =>
+                  menuItem.id === item.menuItemId,
+              );
 
-const unitPrice =
-  menuItem?.sellingPrice ??
-  product?.sellingPrice ??
-  0;
+            const unitPrice =
+              menuItem?.sellingPrice ??
+              product?.sellingPrice ??
+              0;
 
-const lineTotal =
-  Number(item.quantity || 0) *
-  unitPrice;
+            const lineTotal =
+              Number(item.quantity || 0) *
+              unitPrice;
 
             return (
               <div
@@ -459,123 +468,159 @@ const lineTotal =
                 className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-[1fr_140px_140px_auto]"
               >
                 <div>
-  <label className="block text-sm font-medium text-slate-700">
-    {restaurantMenuItems.length > 0
-      ? "Menu item / Product"
-      : "Product"}
-  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    {restaurantMenuItems.length >
+                    0
+                      ? t.saleForm.menuItemProduct
+                      : t.saleForm.product}
+                  </label>
 
-  <select
-    value={
-      item.menuItemId
-        ? `menu:${item.menuItemId}`
-        : item.productId
-          ? `product:${item.productId}`
-          : ""
-    }
-    onChange={(event) => {
-      const value = event.target.value;
+                  <select
+                    value={
+                      item.menuItemId
+                        ? `menu:${item.menuItemId}`
+                        : item.productId
+                          ? `product:${item.productId}`
+                          : ""
+                    }
+                    onChange={(event) => {
+                      const value =
+                        event.target.value;
 
-      if (!value) {
-        updateItem(
-          item.id,
-          "productId",
-          "",
-        );
+                      if (!value) {
+                        updateItem(
+                          item.id,
+                          "productId",
+                          "",
+                        );
 
-        updateItem(
-          item.id,
-          "menuItemId",
-          "",
-        );
+                        updateItem(
+                          item.id,
+                          "menuItemId",
+                          "",
+                        );
 
-        return;
-      }
+                        return;
+                      }
 
-      if (value.startsWith("menu:")) {
-        const menuItemId =
-          value.replace("menu:", "");
+                      if (
+                        value.startsWith(
+                          "menu:",
+                        )
+                      ) {
+                        const menuItemId =
+                          value.replace(
+                            "menu:",
+                            "",
+                          );
 
-        const menuItem =
-          restaurantMenuItems.find(
-            (menuItem) =>
-              menuItem.id === menuItemId,
-          );
+                        const menuItem =
+                          restaurantMenuItems.find(
+                            (menuItem) =>
+                              menuItem.id ===
+                              menuItemId,
+                          );
 
-        updateItem(
-          item.id,
-          "menuItemId",
-          menuItemId,
-        );
+                        updateItem(
+                          item.id,
+                          "menuItemId",
+                          menuItemId,
+                        );
 
-        updateItem(
-          item.id,
-          "productId",
-          menuItem?.product?.id ?? "",
-        );
+                        updateItem(
+                          item.id,
+                          "productId",
+                          menuItem?.product?.id ??
+                            "",
+                        );
 
-        return;
-      }
+                        return;
+                      }
 
-      const productId =
-        value.replace("product:", "");
+                      const productId =
+                        value.replace(
+                          "product:",
+                          "",
+                        );
 
-      updateItem(
-        item.id,
-        "menuItemId",
-        "",
-      );
+                      updateItem(
+                        item.id,
+                        "menuItemId",
+                        "",
+                      );
 
-      updateItem(
-        item.id,
-        "productId",
-        productId,
-      );
-    }}
-    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-  >
-    <option value="">
-      Select item
-    </option>
+                      updateItem(
+                        item.id,
+                        "productId",
+                        productId,
+                      );
+                    }}
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
+                    <option value="">
+                      {t.saleForm.selectItem}
+                    </option>
 
-    {restaurantMenuItems.length > 0 && (
-      <optgroup label="Restaurant menu">
-        {restaurantMenuItems.map(
-          (menuItem) => (
-            <option
-              key={`menu-${menuItem.id}`}
-              value={`menu:${menuItem.id}`}
-            >
-              {menuItem.menu.name} —{" "}
-              {menuItem.name} —{" "}
-              {menuItem.currency}{" "}
-              {menuItem.sellingPrice.toFixed(2)}
-            </option>
-          ),
-        )}
-      </optgroup>
-    )}
+                    {restaurantMenuItems.length >
+                      0 && (
+                      <optgroup
+                        label={
+                          t.saleForm.restaurantMenu
+                        }
+                      >
+                        {restaurantMenuItems.map(
+                          (menuItem) => (
+                            <option
+                              key={`menu-${menuItem.id}`}
+                              value={`menu:${menuItem.id}`}
+                            >
+                              {
+                                menuItem.menu
+                                  .name
+                              }{" "}
+                              —{" "}
+                              {
+                                menuItem.name
+                              }{" "}
+                              —{" "}
+                              {
+                                menuItem.currency
+                              }{" "}
+                              {menuItem.sellingPrice.toFixed(
+                                2,
+                              )}
+                            </option>
+                          ),
+                        )}
+                      </optgroup>
+                    )}
 
-    <optgroup label="Inventory products">
-      {inventoryProducts.map(
-        (product) => (
-          <option
-            key={`product-${product.id}`}
-            value={`product:${product.id}`}
-          >
-            {product.name} —{" "}
-            {product.currency}{" "}
-            {product.sellingPrice.toFixed(2)}
-          </option>
-        ),
-      )}
-    </optgroup>
-  </select>
-</div>
+                    <optgroup
+                      label={
+                        t.saleForm.inventoryProducts
+                      }
+                    >
+                      {inventoryProducts.map(
+                        (product) => (
+                          <option
+                            key={`product-${product.id}`}
+                            value={`product:${product.id}`}
+                          >
+                            {product.name} —{" "}
+                            {product.currency}{" "}
+                            {product.sellingPrice.toFixed(
+                              2,
+                            )}
+                          </option>
+                        ),
+                      )}
+                    </optgroup>
+                  </select>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Quantity
+                    {t.saleForm.quantity}
                   </label>
 
                   <input
@@ -596,7 +641,7 @@ const lineTotal =
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Total
+                    {t.saleForm.total}
                   </label>
 
                   <div className="mt-2 rounded-xl bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-900">
@@ -611,10 +656,12 @@ const lineTotal =
                     onClick={() =>
                       removeItem(item.id)
                     }
-                    disabled={items.length === 1}
+                    disabled={
+                      items.length === 1
+                    }
                     className="rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Remove
+                    {t.saleForm.remove}
                   </button>
                 </div>
               </div>
@@ -626,7 +673,7 @@ const lineTotal =
       <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-slate-500">
-            Sale total
+            {t.saleForm.saleTotal}
           </p>
 
           <p className="mt-1 text-2xl font-semibold text-slate-900">
@@ -641,8 +688,8 @@ const lineTotal =
           className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? "Saving..."
-            : "Record sale"}
+            ? t.saleForm.saving
+            : t.sales.recordSale}
         </button>
       </section>
     </form>

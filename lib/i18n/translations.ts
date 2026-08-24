@@ -243,6 +243,35 @@ export interface TranslationSet {
   openInventory: string;
 };
 
+saleForm: {
+  saleDetails: string;
+  referenceNumber: string;
+  currency: string;
+  warehouse: string;
+  selectWarehouse: string;
+  notes: string;
+  saleItems: string;
+  selectProducts: string;
+  addItem: string;
+  menuItemProduct: string;
+  product: string;
+  selectItem: string;
+  restaurantMenu: string;
+  inventoryProducts: string;
+  quantity: string;
+  total: string;
+  remove: string;
+  saleTotal: string;
+  saving: string;
+  referenceRequired: string;
+  currencyRequired: string;
+  warehouseRequired: string;
+  itemRequired: string;
+  productRequired: string;
+  quantityRequired: string;
+  createSaleError: string;
+};
+
   setup: {
     title: string;
     businessName: string;
@@ -503,6 +532,36 @@ export const translations: Record<Locale, TranslationSet> = {
   salesInventoryDescription:
     "Product sales represent the outbound side of your stock operations.",
   openInventory: "Open inventory",
+},
+
+saleForm: {
+  saleDetails: "Sale details",
+  referenceNumber: "Reference number",
+  currency: "Currency",
+  warehouse: "Warehouse",
+  selectWarehouse: "Select warehouse",
+  notes: "Notes",
+  saleItems: "Sale items",
+  selectProducts: "Select products and quantities.",
+  addItem: "Add item",
+  menuItemProduct: "Menu item / Product",
+  product: "Product",
+  selectItem: "Select item",
+  restaurantMenu: "Restaurant menu",
+  inventoryProducts: "Inventory products",
+  quantity: "Quantity",
+  total: "Total",
+  remove: "Remove",
+  saleTotal: "Sale total",
+  saving: "Saving...",
+  referenceRequired: "Please enter a sale reference.",
+  currencyRequired: "Please select a currency.",
+  warehouseRequired: "Please select a warehouse.",
+  itemRequired: "Add at least one sale item.",
+  productRequired: "Please select a product for every line.",
+  quantityRequired:
+    "Sale quantities must be greater than zero.",
+  createSaleError: "Unable to create sale.",
 },
 
     setup: {
@@ -767,6 +826,37 @@ export const translations: Record<Locale, TranslationSet> = {
   openInventory: "Ouvrir le stock",
 },
 
+saleForm: {
+  saleDetails: "Détails de la vente",
+  referenceNumber: "Numéro de référence",
+  currency: "Devise",
+  warehouse: "Entrepôt",
+  selectWarehouse: "Sélectionner un entrepôt",
+  notes: "Notes",
+  saleItems: "Articles de la vente",
+  selectProducts: "Sélectionnez les produits et les quantités.",
+  addItem: "Ajouter un article",
+  menuItemProduct: "Article du menu / Produit",
+  product: "Produit",
+  selectItem: "Sélectionner un article",
+  restaurantMenu: "Menu du restaurant",
+  inventoryProducts: "Produits en stock",
+  quantity: "Quantité",
+  total: "Total",
+  remove: "Supprimer",
+  saleTotal: "Total de la vente",
+  saving: "Enregistrement...",
+  referenceRequired: "Veuillez saisir une référence de vente.",
+  currencyRequired: "Veuillez sélectionner une devise.",
+  warehouseRequired: "Veuillez sélectionner un entrepôt.",
+  itemRequired: "Ajoutez au moins un article à la vente.",
+  productRequired:
+    "Veuillez sélectionner un produit pour chaque ligne.",
+  quantityRequired:
+    "Les quantités vendues doivent être supérieures à zéro.",
+  createSaleError: "Impossible de créer la vente.",
+},
+
     setup: {
       title: "Configurez votre entreprise",
       businessName: "Nom de l'entreprise",
@@ -1027,6 +1117,37 @@ export const translations: Record<Locale, TranslationSet> = {
   salesInventoryDescription:
     "የምርት ሽያጮች ከእቃ ክምችትዎ የሚወጣውን እቃ ያመለክታሉ።",
   openInventory: "የእቃ ክምችትን ይክፈቱ",
+},
+
+saleForm: {
+  saleDetails: "የሽያጭ ዝርዝሮች",
+  referenceNumber: "የማጣቀሻ ቁጥር",
+  currency: "ምንዛሬ",
+  warehouse: "መጋዘን",
+  selectWarehouse: "መጋዘን ይምረጡ",
+  notes: "ማስታወሻዎች",
+  saleItems: "የሽያጭ እቃዎች",
+  selectProducts: "ምርቶችን እና መጠኖችን ይምረጡ።",
+  addItem: "እቃ ያክሉ",
+  menuItemProduct: "የምናሌ እቃ / ምርት",
+  product: "ምርት",
+  selectItem: "እቃ ይምረጡ",
+  restaurantMenu: "የሬስቶራንት ምናሌ",
+  inventoryProducts: "የእቃ ክምችት ምርቶች",
+  quantity: "መጠን",
+  total: "ጠቅላላ",
+  remove: "አስወግድ",
+  saleTotal: "የሽያጭ ጠቅላላ",
+  saving: "በማስቀመጥ ላይ...",
+  referenceRequired: "እባክዎ የሽያጭ ማጣቀሻ ያስገቡ።",
+  currencyRequired: "እባክዎ ምንዛሬ ይምረጡ።",
+  warehouseRequired: "እባክዎ መጋዘን ይምረጡ።",
+  itemRequired: "ቢያንስ አንድ የሽያጭ እቃ ያክሉ።",
+  productRequired:
+    "እባክዎ ለእያንዳንዱ መስመር ምርት ይምረጡ።",
+  quantityRequired:
+    "የሽያጭ መጠኖች ከዜሮ በላይ መሆን አለባቸው።",
+  createSaleError: "ሽያጩን መፍጠር አልተቻለም።",
 },
 
     setup: {
