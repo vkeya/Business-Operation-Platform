@@ -272,6 +272,30 @@ saleForm: {
   createSaleError: string;
 };
 
+saleDetail: {
+  backToSales: string;
+  breadcrumb: string;
+  completeSale: string;
+  item: string;
+  items: string;
+  saleItems: string;
+  sku: string;
+  quantity: string;
+  each: string;
+  summary: string;
+  subtotal: string;
+  discount: string;
+  tax: string;
+  total: string;
+  payments: string;
+  paymentsReceived: string;
+  paid: string;
+  outstanding: string;
+  noPaymentsRecorded: string;
+  paymentsWillAppearHere: string;
+  notes: string;
+};
+
   setup: {
     title: string;
     businessName: string;
@@ -562,6 +586,31 @@ saleForm: {
   quantityRequired:
     "Sale quantities must be greater than zero.",
   createSaleError: "Unable to create sale.",
+},
+
+saleDetail: {
+  backToSales: "← Sales",
+  breadcrumb: "Business / Sale",
+  completeSale: "Complete sale",
+  item: "item",
+  items: "items",
+  saleItems: "Sale items",
+  sku: "SKU",
+  quantity: "Quantity",
+  each: "each",
+  summary: "Summary",
+  subtotal: "Subtotal",
+  discount: "Discount",
+  tax: "Tax",
+  total: "Total",
+  payments: "Payments",
+  paymentsReceived: "Payments received against this sale.",
+  paid: "Paid",
+  outstanding: "Outstanding",
+  noPaymentsRecorded: "No payments recorded",
+  paymentsWillAppearHere:
+    "Payments received for this sale will appear here.",
+  notes: "Notes",
 },
 
     setup: {
@@ -857,6 +906,31 @@ saleForm: {
   createSaleError: "Impossible de créer la vente.",
 },
 
+saleDetail: {
+  backToSales: "← Ventes",
+  breadcrumb: "Entreprise / Vente",
+  completeSale: "Terminer la vente",
+  item: "article",
+  items: "articles",
+  saleItems: "Articles de la vente",
+  sku: "SKU",
+  quantity: "Quantité",
+  each: "unité",
+  summary: "Résumé",
+  subtotal: "Sous-total",
+  discount: "Remise",
+  tax: "Taxe",
+  total: "Total",
+  payments: "Paiements",
+  paymentsReceived: "Paiements reçus pour cette vente.",
+  paid: "Payé",
+  outstanding: "Solde restant",
+  noPaymentsRecorded: "Aucun paiement enregistré",
+  paymentsWillAppearHere:
+    "Les paiements reçus pour cette vente apparaîtront ici.",
+  notes: "Notes",
+},
+
     setup: {
       title: "Configurez votre entreprise",
       businessName: "Nom de l'entreprise",
@@ -1148,6 +1222,31 @@ saleForm: {
   quantityRequired:
     "የሽያጭ መጠኖች ከዜሮ በላይ መሆን አለባቸው።",
   createSaleError: "ሽያጩን መፍጠር አልተቻለም።",
+},
+
+saleDetail: {
+  backToSales: "← ሽያጮች",
+  breadcrumb: "ንግድ / ሽያጭ",
+  completeSale: "ሽያጩን ያጠናቅቁ",
+  item: "እቃ",
+  items: "እቃዎች",
+  saleItems: "የሽያጭ እቃዎች",
+  sku: "SKU",
+  quantity: "መጠን",
+  each: "እያንዳንዱ",
+  summary: "ማጠቃለያ",
+  subtotal: "ንዑስ ድምር",
+  discount: "ቅናሽ",
+  tax: "ግብር",
+  total: "ጠቅላላ",
+  payments: "ክፍያዎች",
+  paymentsReceived: "ለዚህ ሽያጭ የተቀበሉ ክፍያዎች።",
+  paid: "የተከፈለ",
+  outstanding: "ያልተከፈለ ቀሪ",
+  noPaymentsRecorded: "ምንም ክፍያ አልተመዘገበም",
+  paymentsWillAppearHere:
+    "ለዚህ ሽያጭ የተቀበሉ ክፍያዎች እዚህ ይታያሉ።",
+  notes: "ማስታወሻዎች",
 },
 
     setup: {

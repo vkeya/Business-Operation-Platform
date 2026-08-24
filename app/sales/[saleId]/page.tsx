@@ -7,6 +7,7 @@ import {
   getSalePaymentsAction,
 } from "@/lib/sales/actions";
 import RecordPaymentForm from "./RecordPaymentForm";
+import { getTranslations } from "@/lib/i18n";
 
 interface SaleDetailPageProps {
   params: Promise<{
@@ -21,6 +22,8 @@ export default async function SaleDetailPage({
 
   const business =
     await getCurrentBusiness();
+
+  const t = await getTranslations();
 
   const sale =
     await saleService.findById(
@@ -57,13 +60,13 @@ export default async function SaleDetailPage({
           href="/sales"
           className="text-sm font-medium text-slate-500 hover:text-slate-900"
         >
-          ← Sales
+          {t.saleDetail.backToSales}
         </Link>
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">
-              Business / Sale
+              {t.saleDetail.breadcrumb}
             </p>
 
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
@@ -73,8 +76,8 @@ export default async function SaleDetailPage({
             <p className="mt-2 text-sm text-slate-500">
               {sale.items.length}{" "}
               {sale.items.length === 1
-                ? "item"
-                : "items"}
+                ? t.saleDetail.item
+                : t.saleDetail.items}
             </p>
           </div>
 
@@ -93,7 +96,7 @@ export default async function SaleDetailPage({
                   type="submit"
                   className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
                 >
-                  Complete sale
+                  {t.saleDetail.completeSale}
                 </button>
               </form>
             )}
@@ -121,7 +124,7 @@ export default async function SaleDetailPage({
       <div className="space-y-6">
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-900">
-            Sale items
+            {t.saleDetail.saleItems}
           </h2>
 
           <div className="mt-5 divide-y divide-slate-100">
@@ -137,12 +140,13 @@ export default async function SaleDetailPage({
 
                   {item.sku && (
                     <p className="mt-1 text-xs text-slate-500">
-                      SKU: {item.sku}
+                      {t.saleDetail.sku}:{" "}
+                      {item.sku}
                     </p>
                   )}
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Quantity:{" "}
+                    {t.saleDetail.quantity}:{" "}
                     {item.quantity.toString()}
                   </p>
                 </div>
@@ -150,7 +154,8 @@ export default async function SaleDetailPage({
                 <div className="text-right">
                   <p className="text-sm text-slate-500">
                     {sale.currency}{" "}
-                    {item.unitPrice.toFixed(2)} each
+                    {item.unitPrice.toFixed(2)}{" "}
+                    {t.saleDetail.each}
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-900">
@@ -165,13 +170,13 @@ export default async function SaleDetailPage({
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-900">
-            Summary
+            {t.saleDetail.summary}
           </h2>
 
           <div className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">
-                Subtotal
+                {t.saleDetail.subtotal}
               </span>
 
               <span className="font-medium text-slate-900">
@@ -182,7 +187,7 @@ export default async function SaleDetailPage({
 
             <div className="flex justify-between">
               <span className="text-slate-500">
-                Discount
+                {t.saleDetail.discount}
               </span>
 
               <span className="font-medium text-slate-900">
@@ -193,7 +198,7 @@ export default async function SaleDetailPage({
 
             <div className="flex justify-between">
               <span className="text-slate-500">
-                Tax
+                {t.saleDetail.tax}
               </span>
 
               <span className="font-medium text-slate-900">
@@ -205,7 +210,7 @@ export default async function SaleDetailPage({
             <div className="border-t border-slate-200 pt-4">
               <div className="flex justify-between">
                 <span className="font-semibold text-slate-900">
-                  Total
+                  {t.saleDetail.total}
                 </span>
 
                 <span className="text-xl font-semibold text-slate-900">
@@ -221,18 +226,18 @@ export default async function SaleDetailPage({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
-                Payments
+                {t.saleDetail.payments}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Payments received against this sale.
+                {t.saleDetail.paymentsReceived}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
               <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-medium text-slate-500">
-                  Paid
+                  {t.saleDetail.paid}
                 </p>
 
                 <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -243,7 +248,7 @@ export default async function SaleDetailPage({
 
               <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-medium text-slate-500">
-                  Outstanding
+                  {t.saleDetail.outstanding}
                 </p>
 
                 <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -257,11 +262,11 @@ export default async function SaleDetailPage({
           {payments.length === 0 ? (
             <div className="mt-6 rounded-xl bg-slate-50 p-5 text-center">
               <p className="text-sm font-medium text-slate-700">
-                No payments recorded
+                {t.saleDetail.noPaymentsRecorded}
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Payments received for this sale will appear here.
+                {t.saleDetail.paymentsWillAppearHere}
               </p>
             </div>
           ) : (
@@ -309,7 +314,7 @@ export default async function SaleDetailPage({
         {sale.notes && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">
-              Notes
+              {t.saleDetail.notes}
             </h2>
 
             <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
