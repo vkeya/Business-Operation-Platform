@@ -6,6 +6,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSalePaymentAction } from "@/lib/sales/actions";
+import { getTranslations } from "@/lib/i18n";
 
 interface RecordPaymentFormProps {
   saleId: string;
@@ -19,6 +20,7 @@ export default function RecordPaymentForm({
   outstandingAmount,
 }: RecordPaymentFormProps) {
   const router = useRouter();
+  const t = getTranslations();
 
   const [reference, setReference] =
     useState("");
@@ -47,14 +49,14 @@ export default function RecordPaymentForm({
 
     if (!reference.trim()) {
       setError(
-        "Payment reference is required.",
+        t.recordPayment.referenceRequired,
       );
       return;
     }
 
     if (!method.trim()) {
       setError(
-        "Payment method is required.",
+        t.recordPayment.methodRequired,
       );
       return;
     }
@@ -67,7 +69,7 @@ export default function RecordPaymentForm({
       parsedAmount <= 0
     ) {
       setError(
-        "Payment amount must be greater than zero.",
+        t.recordPayment.amountRequired,
       );
       return;
     }
@@ -77,7 +79,7 @@ export default function RecordPaymentForm({
       outstandingAmount
     ) {
       setError(
-        "Payment amount exceeds the outstanding balance.",
+        t.recordPayment.amountExceedsOutstanding,
       );
       return;
     }
@@ -104,7 +106,7 @@ export default function RecordPaymentForm({
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to record payment.",
+          : t.recordPayment.recordError,
       );
     } finally {
       setSubmitting(false);
@@ -118,11 +120,11 @@ export default function RecordPaymentForm({
     >
       <div>
         <h2 className="font-semibold text-slate-900">
-          Record payment
+          {t.recordPayment.title}
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Record a payment received against this sale.
+          {t.recordPayment.description}
         </p>
       </div>
 
@@ -138,7 +140,7 @@ export default function RecordPaymentForm({
             htmlFor="sale-payment-reference"
             className="block text-sm font-medium text-slate-700"
           >
-            Payment reference
+            {t.recordPayment.paymentReference}
           </label>
 
           <input
@@ -159,7 +161,7 @@ export default function RecordPaymentForm({
             htmlFor="sale-payment-method"
             className="block text-sm font-medium text-slate-700"
           >
-            Payment method
+            {t.recordPayment.paymentMethod}
           </label>
 
           <select
@@ -173,23 +175,23 @@ export default function RecordPaymentForm({
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
           >
             <option value="Cash">
-              Cash
+              {t.recordPayment.cash}
             </option>
 
             <option value="Bank Transfer">
-              Bank Transfer
+              {t.recordPayment.bankTransfer}
             </option>
 
             <option value="Card">
-              Card
+              {t.recordPayment.card}
             </option>
 
             <option value="Mobile Money">
-              Mobile Money
+              {t.recordPayment.mobileMoney}
             </option>
 
             <option value="Cheque">
-              Cheque
+              {t.recordPayment.cheque}
             </option>
           </select>
         </div>
@@ -199,7 +201,7 @@ export default function RecordPaymentForm({
             htmlFor="sale-payment-amount"
             className="block text-sm font-medium text-slate-700"
           >
-            Amount
+            {t.recordPayment.amount}
           </label>
 
           <div className="mt-2 flex">
@@ -223,7 +225,8 @@ export default function RecordPaymentForm({
           </div>
 
           <p className="mt-2 text-xs text-slate-500">
-            Outstanding: {currency}{" "}
+            {t.recordPayment.outstanding}:{" "}
+            {currency}{" "}
             {outstandingAmount.toLocaleString(
               undefined,
               {
@@ -239,7 +242,7 @@ export default function RecordPaymentForm({
             htmlFor="sale-payment-notes"
             className="block text-sm font-medium text-slate-700"
           >
-            Notes
+            {t.recordPayment.notes}
           </label>
 
           <input
@@ -250,7 +253,9 @@ export default function RecordPaymentForm({
                 event.target.value,
               )
             }
-            placeholder="Optional"
+            placeholder={
+              t.recordPayment.optional
+            }
             className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
           />
         </div>
@@ -266,8 +271,8 @@ export default function RecordPaymentForm({
           className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? "Recording..."
-            : "Record payment"}
+            ? t.recordPayment.recording
+            : t.recordPayment.record}
         </button>
       </div>
     </form>

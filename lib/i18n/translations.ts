@@ -296,6 +296,33 @@ saleDetail: {
   notes: string;
 };
 
+recordPayment: {
+  title: string;
+  description: string;
+  paymentReference: string;
+  paymentMethod: string;
+
+  cash: string;
+  bankTransfer: string;
+  card: string;
+  mobileMoney: string;
+  cheque: string;
+
+  amount: string;
+  outstanding: string;
+  notes: string;
+  optional: string;
+
+  referenceRequired: string;
+  methodRequired: string;
+  amountRequired: string;
+  amountExceedsOutstanding: string;
+  recordError: string;
+
+  recording: string;
+  record: string;
+};
+
   setup: {
     title: string;
     businessName: string;
@@ -611,6 +638,39 @@ saleDetail: {
   paymentsWillAppearHere:
     "Payments received for this sale will appear here.",
   notes: "Notes",
+},
+
+recordPayment: {
+  title: "Record payment",
+  description:
+    "Record a payment received against this sale.",
+  paymentReference: "Payment reference",
+  paymentMethod: "Payment method",
+
+  cash: "Cash",
+  bankTransfer: "Bank Transfer",
+  card: "Card",
+  mobileMoney: "Mobile Money",
+  cheque: "Cheque",
+
+  amount: "Amount",
+  outstanding: "Outstanding",
+  notes: "Notes",
+  optional: "Optional",
+
+  referenceRequired:
+    "Payment reference is required.",
+  methodRequired:
+    "Payment method is required.",
+  amountRequired:
+    "Payment amount must be greater than zero.",
+  amountExceedsOutstanding:
+    "Payment amount exceeds the outstanding balance.",
+  recordError:
+    "Failed to record payment.",
+
+  recording: "Recording...",
+  record: "Record payment",
 },
 
     setup: {
@@ -931,6 +991,39 @@ saleDetail: {
   notes: "Notes",
 },
 
+recordPayment: {
+  title: "Enregistrer un paiement",
+  description:
+    "Enregistrez un paiement reçu pour cette vente.",
+  paymentReference: "Référence du paiement",
+  paymentMethod: "Mode de paiement",
+
+  cash: "Espèces",
+  bankTransfer: "Virement bancaire",
+  card: "Carte",
+  mobileMoney: "Paiement mobile",
+  cheque: "Chèque",
+
+  amount: "Montant",
+  outstanding: "Solde restant",
+  notes: "Notes",
+  optional: "Facultatif",
+
+  referenceRequired:
+    "La référence du paiement est obligatoire.",
+  methodRequired:
+    "Le mode de paiement est obligatoire.",
+  amountRequired:
+    "Le montant du paiement doit être supérieur à zéro.",
+  amountExceedsOutstanding:
+    "Le montant du paiement dépasse le solde restant.",
+  recordError:
+    "Impossible d'enregistrer le paiement.",
+
+  recording: "Enregistrement...",
+  record: "Enregistrer le paiement",
+},
+
     setup: {
       title: "Configurez votre entreprise",
       businessName: "Nom de l'entreprise",
@@ -1247,6 +1340,39 @@ saleDetail: {
   paymentsWillAppearHere:
     "ለዚህ ሽያጭ የተቀበሉ ክፍያዎች እዚህ ይታያሉ።",
   notes: "ማስታወሻዎች",
+},
+
+recordPayment: {
+  title: "ክፍያ ይመዝግቡ",
+  description:
+    "ለዚህ ሽያጭ የተቀበሉትን ክፍያ ይመዝግቡ።",
+  paymentReference: "የክፍያ ማጣቀሻ",
+  paymentMethod: "የክፍያ ዘዴ",
+
+  cash: "ጥሬ ገንዘብ",
+  bankTransfer: "የባንክ ማስተላለፍ",
+  card: "ካርድ",
+  mobileMoney: "የሞባይል ገንዘብ",
+  cheque: "ቼክ",
+
+  amount: "መጠን",
+  outstanding: "ያልተከፈለ ቀሪ",
+  notes: "ማስታወሻዎች",
+  optional: "አማራጭ",
+
+  referenceRequired:
+    "የክፍያ ማጣቀሻ ያስፈልጋል።",
+  methodRequired:
+    "የክፍያ ዘዴ ያስፈልጋል።",
+  amountRequired:
+    "የክፍያ መጠን ከዜሮ በላይ መሆን አለበት።",
+  amountExceedsOutstanding:
+    "የክፍያ መጠኑ ከቀሪው ያልተከፈለ መጠን ይበልጣል።",
+  recordError:
+    "ክፍያውን መመዝገብ አልተቻለም።",
+
+  recording: "በመመዝገብ ላይ...",
+  record: "ክፍያ ይመዝግቡ",
 },
 
     setup: {
