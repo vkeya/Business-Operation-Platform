@@ -3,15 +3,19 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createExpenseAction } from "../action";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface ExpenseFormProps {
   currency: string;
+  translations: TranslationSet;
 }
 
 export default function ExpenseForm({
   currency,
+  translations,
 }: ExpenseFormProps) {
   const router = useRouter();
+  const t = translations;
 
   const [reference, setReference] = useState("");
   const [category, setCategory] = useState("");
@@ -57,7 +61,7 @@ export default function ExpenseForm({
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to record expense.",
+          : t.expenses.recordExpenseError,
       );
     } finally {
       setSaving(false);
@@ -84,7 +88,7 @@ export default function ExpenseForm({
             htmlFor="expense-reference"
             className="block text-sm font-semibold text-slate-900"
           >
-            Reference
+            {t.expenses.reference}
           </label>
 
           <input
@@ -93,7 +97,9 @@ export default function ExpenseForm({
             onChange={(event) =>
               setReference(event.target.value)
             }
-            placeholder="e.g. EXP-001"
+            placeholder={
+              t.expenses.referencePlaceholder
+            }
             required
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />
@@ -104,7 +110,7 @@ export default function ExpenseForm({
             htmlFor="expense-category"
             className="block text-sm font-semibold text-slate-900"
           >
-            Category
+            {t.expenses.category}
           </label>
 
           <input
@@ -113,7 +119,9 @@ export default function ExpenseForm({
             onChange={(event) =>
               setCategory(event.target.value)
             }
-            placeholder="e.g. Rent, Utilities, Transport"
+            placeholder={
+              t.expenses.categoryPlaceholder
+            }
             required
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />
@@ -125,7 +133,7 @@ export default function ExpenseForm({
           htmlFor="expense-description"
           className="block text-sm font-semibold text-slate-900"
         >
-          Description
+          {t.expenses.descriptionLabel}
         </label>
 
         <textarea
@@ -135,7 +143,9 @@ export default function ExpenseForm({
             setDescription(event.target.value)
           }
           rows={3}
-          placeholder="Describe what the business spent money on"
+          placeholder={
+            t.expenses.descriptionPlaceholder
+          }
           required
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
         />
@@ -147,7 +157,7 @@ export default function ExpenseForm({
             htmlFor="expense-amount"
             className="block text-sm font-semibold text-slate-900"
           >
-            Amount
+            {t.expenses.amount}
           </label>
 
           <div className="relative mt-2">
@@ -164,7 +174,9 @@ export default function ExpenseForm({
               onChange={(event) =>
                 setAmount(event.target.value)
               }
-              placeholder="0.00"
+              placeholder={
+                t.expenses.amountPlaceholder
+              }
               required
               className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-16 pr-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
@@ -176,7 +188,7 @@ export default function ExpenseForm({
             htmlFor="expense-date"
             className="block text-sm font-semibold text-slate-900"
           >
-            Expense date
+            {t.expenses.expenseDate}
           </label>
 
           <input
@@ -196,7 +208,7 @@ export default function ExpenseForm({
             htmlFor="expense-payment-status"
             className="block text-sm font-semibold text-slate-900"
           >
-            Payment status
+            {t.expenses.paymentStatus}
           </label>
 
           <select
@@ -213,15 +225,15 @@ export default function ExpenseForm({
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           >
             <option value="UNPAID">
-              Unpaid
+              {t.expenses.unpaidStatus}
             </option>
 
             <option value="PARTIAL">
-              Partially paid
+              {t.expenses.partiallyPaidStatus}
             </option>
 
             <option value="PAID">
-              Paid
+              {t.expenses.paidStatus}
             </option>
           </select>
         </div>
@@ -232,7 +244,7 @@ export default function ExpenseForm({
           htmlFor="expense-notes"
           className="block text-sm font-semibold text-slate-900"
         >
-          Notes
+          {t.expenses.notes}
         </label>
 
         <textarea
@@ -242,7 +254,9 @@ export default function ExpenseForm({
             setNotes(event.target.value)
           }
           rows={3}
-          placeholder="Optional notes"
+          placeholder={
+            t.expenses.notesPlaceholder
+          }
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
         />
       </div>
@@ -255,7 +269,7 @@ export default function ExpenseForm({
           }
           className="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
         >
-          Cancel
+          {t.expenses.cancel}
         </button>
 
         <button
@@ -264,8 +278,8 @@ export default function ExpenseForm({
           className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
-            ? "Saving..."
-            : "Record expense"}
+            ? t.expenses.saving
+            : t.expenses.recordExpense}
         </button>
       </div>
     </form>

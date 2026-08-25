@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { expenseService } from "@/lib/expenses/expenseService";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 import PaymentStatusControl from "./PaymentStatusControl";
 
 interface ExpenseDetailPageProps {
@@ -17,6 +19,9 @@ export default async function ExpenseDetailPage({
 
   const business =
     await getCurrentBusiness();
+
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const expense =
     await expenseService.findExpenseById(
@@ -42,13 +47,13 @@ export default async function ExpenseDetailPage({
           href="/expenses"
           className="text-sm font-semibold text-slate-500 transition-colors hover:text-emerald-600"
         >
-          ← Expenses
+          ← {t.expenses.expenses}
         </Link>
 
         <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-emerald-600">
-              Finance / Expense
+              {t.expenses.finance} / {t.expenses.expense}
             </p>
 
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
@@ -63,7 +68,11 @@ export default async function ExpenseDetailPage({
           <span
             className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${paymentStatusStyles}`}
           >
-            {expense.paymentStatus}
+            {expense.paymentStatus === "PAID"
+              ? t.expenses.paidStatus
+              : expense.paymentStatus === "PARTIAL"
+                ? t.expenses.partiallyPaidStatus
+                : t.expenses.unpaidStatus}
           </span>
         </div>
       </div>
@@ -73,7 +82,7 @@ export default async function ExpenseDetailPage({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-                Expense details
+                {t.expenses.expenseDetails}
               </p>
 
               <h2 className="mt-2 text-lg font-semibold text-slate-950">
@@ -83,7 +92,7 @@ export default async function ExpenseDetailPage({
 
             <div className="text-right">
               <p className="text-xs font-medium text-slate-400">
-                Amount
+                {t.expenses.amount}
               </p>
 
               <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
@@ -102,7 +111,7 @@ export default async function ExpenseDetailPage({
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Category
+                {t.expenses.category}
               </p>
 
               <p className="mt-2 text-sm font-medium text-slate-800">
@@ -112,7 +121,7 @@ export default async function ExpenseDetailPage({
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Expense date
+                {t.expenses.expenseDate}
               </p>
 
               <p className="mt-2 text-sm font-medium text-slate-800">
@@ -124,7 +133,7 @@ export default async function ExpenseDetailPage({
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Currency
+                {t.expenses.currency}
               </p>
 
               <p className="mt-2 text-sm font-medium text-slate-800">
@@ -134,7 +143,7 @@ export default async function ExpenseDetailPage({
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Created
+                {t.expenses.created}
               </p>
 
               <p className="mt-2 text-sm font-medium text-slate-800">
@@ -147,7 +156,7 @@ export default async function ExpenseDetailPage({
 
           <div className="mt-8 border-t border-slate-100 pt-6">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              Description
+              {t.expenses.descriptionLabel}
             </p>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -158,7 +167,7 @@ export default async function ExpenseDetailPage({
           {expense.notes && (
             <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/70 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Notes
+                {t.expenses.notes}
               </p>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -171,34 +180,35 @@ export default async function ExpenseDetailPage({
         <div className="space-y-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-              Payment
+              {t.expenses.payment}
             </p>
 
             <h2 className="mt-2 text-lg font-semibold text-slate-950">
-              Payment status
+              {t.expenses.paymentStatus}
             </h2>
 
             <div className="mt-5 rounded-xl bg-slate-50/70 p-5">
-  <PaymentStatusControl
-    expenseId={expense.id}
-    currentStatus={expense.paymentStatus}
-  />
+              <PaymentStatusControl
+  expenseId={expense.id}
+  currentStatus={expense.paymentStatus}
+  translations={t}
+/>
 
-  <p className="mt-4 text-sm leading-6 text-slate-500">
-    Update the payment status as the expense is paid.
-  </p>
-</div>
+              <p className="mt-4 text-sm leading-6 text-slate-500">
+                {t.expenses.updatePaymentStatusDescription}
+              </p>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              Record
+              {t.expenses.record}
             </p>
 
             <div className="mt-5 space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-slate-500">
-                  Reference
+                  {t.expenses.reference}
                 </span>
 
                 <span className="text-sm font-semibold text-slate-800">
@@ -208,7 +218,7 @@ export default async function ExpenseDetailPage({
 
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-slate-500">
-                  Currency
+                  {t.expenses.currency}
                 </span>
 
                 <span className="text-sm font-semibold text-slate-800">
@@ -218,7 +228,7 @@ export default async function ExpenseDetailPage({
 
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-slate-500">
-                  Created
+                  {t.expenses.created}
                 </span>
 
                 <span className="text-sm font-semibold text-slate-800">

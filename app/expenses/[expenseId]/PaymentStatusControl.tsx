@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateExpensePaymentStatusAction } from "../action";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface PaymentStatusControlProps {
   expenseId: string;
@@ -10,13 +11,16 @@ interface PaymentStatusControlProps {
     | "UNPAID"
     | "PARTIAL"
     | "PAID";
+  translations: TranslationSet;
 }
 
 export default function PaymentStatusControl({
   expenseId,
   currentStatus,
+  translations,
 }: PaymentStatusControlProps) {
   const router = useRouter();
+  const t = translations;
 
   const [status, setStatus] =
     useState(currentStatus);
@@ -50,7 +54,7 @@ export default function PaymentStatusControl({
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to update payment status.",
+          : t.expenses.unableToUpdatePaymentStatus,
       );
     } finally {
       setSaving(false);
@@ -63,7 +67,7 @@ export default function PaymentStatusControl({
         htmlFor="expense-payment-status"
         className="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400"
       >
-        Payment status
+        {t.expenses.paymentStatus}
       </label>
 
       <select
@@ -81,21 +85,21 @@ export default function PaymentStatusControl({
         className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <option value="UNPAID">
-          Unpaid
+          {t.expenses.unpaidStatus}
         </option>
 
         <option value="PARTIAL">
-          Partially paid
+          {t.expenses.partiallyPaidStatus}
         </option>
 
         <option value="PAID">
-          Paid
+          {t.expenses.paidStatus}
         </option>
       </select>
 
       {saving && (
         <p className="mt-2 text-xs text-slate-400">
-          Updating payment status...
+          {t.expenses.updatingPaymentStatus}
         </p>
       )}
 

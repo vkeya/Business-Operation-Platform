@@ -327,6 +327,89 @@ recordPayment: {
   record: string;
 };
 
+  expenses: {
+    title: string;
+    finance: string;
+    description: string;
+    recordExpense: string;
+
+    totalExpenses: string;
+    expense: string;
+    expenses: string;
+    onRecord: string;
+
+    paid: string;
+    fullyPaid: string;
+    partial: string;
+    partiallyPaid: string;
+    outstanding: string;
+    unpaid: string;
+
+    spendingOverview: string;
+    whereMoneyIsGoing: string;
+    largestExpenseCategories: string;
+    noSpendingCategories: string;
+    spendingCategoriesWillAppearHere: string;
+
+    paymentHealth: string;
+    expenseObligations: string;
+    seeHowExpensesAreSettling: string;
+
+    expenseRegister: string;
+    businessSpending: string;
+    reviewRecordedExpenses: string;
+    recordAnotherExpense: string;
+
+    category: string;
+    descriptionLabel: string;
+    date: string;
+    amount: string;
+    payment: string;
+    action: string;
+    created: string;
+    viewDetails: string;
+
+    noExpensesYet: string;
+    recordFirstExpenseDescription: string;
+    recordFirstExpense: string;
+
+    financeConnectionTitle: string;
+    financeConnectionDescription: string;
+    backToDashboard: string;
+
+    newExpense: string;
+    newExpenseDescription: string;
+    cancel: string;
+    saving: string;
+
+    reference: string;
+    referencePlaceholder: string;
+    categoryPlaceholder: string;
+    descriptionPlaceholder: string;
+    amountPlaceholder: string;
+    expenseDate: string;
+    paymentStatus: string;
+    notes: string;
+    notesPlaceholder: string;
+
+    unpaidStatus: string;
+    partiallyPaidStatus: string;
+    paidStatus: string;
+
+    recordExpenseError: string;
+
+    backToExpenses: string;
+    expenseDetails: string;
+    currency: string;
+    createdDate: string;
+    
+    updatePaymentStatus: string;
+    updatePaymentStatusDescription: string;
+    updatingPaymentStatus: string;
+    unableToUpdatePaymentStatus: string;
+    record: string;
+  };
+
   setup: {
     title: string;
     businessName: string;
@@ -680,6 +763,101 @@ recordPayment: {
   recording: "Recording...",
   record: "Record payment",
 },
+
+    expenses: {
+      title: "Expenses",
+      finance: "Finance",
+      description:
+        "Keep control of business spending, payment obligations and operating costs from one place.",
+      recordExpense: "Record expense",
+
+      totalExpenses: "Total expenses",
+      expense: "expense",
+      expenses: "expenses",
+      onRecord: "on record",
+
+      paid: "Paid",
+      fullyPaid: "fully paid",
+      partial: "Partial",
+      partiallyPaid: "partially paid",
+      outstanding: "Outstanding",
+      unpaid: "unpaid",
+
+      spendingOverview: "Spending overview",
+      whereMoneyIsGoing: "Where money is going",
+      largestExpenseCategories:
+        "Your largest expense categories based on recorded spending.",
+      noSpendingCategories: "No spending categories yet",
+      spendingCategoriesWillAppearHere:
+        "Expense categories will appear here as you record spending.",
+
+      paymentHealth: "Payment health",
+      expenseObligations: "Expense obligations",
+      seeHowExpensesAreSettling:
+        "See how your recorded expenses are settling.",
+
+      expenseRegister: "Expense register",
+      businessSpending: "Business spending",
+      reviewRecordedExpenses:
+        "Review recorded expenses and payment obligations.",
+      recordAnotherExpense: "Record another expense",
+
+      category: "Category",
+      descriptionLabel: "Description",
+      date: "Date",
+      amount: "Amount",
+      payment: "Payment",
+      action: "Action",
+      created: "Created",
+      viewDetails: "View details",
+
+      noExpensesYet: "No expenses yet",
+      recordFirstExpenseDescription:
+        "Record your first business expense to start tracking operating costs and payment obligations.",
+      recordFirstExpense: "Record your first expense",
+
+      financeConnectionTitle:
+        "Expenses are part of your financial picture",
+      financeConnectionDescription:
+        "Keep spending visible alongside sales, purchasing and the rest of your business operations.",
+      backToDashboard: "Back to dashboard →",
+
+      newExpense: "Record expense",
+      newExpenseDescription:
+        "Record a business expense and track its payment status.",
+      cancel: "Cancel",
+      saving: "Saving...",
+
+      reference: "Reference",
+      referencePlaceholder: "e.g. EXP-001",
+      categoryPlaceholder:
+        "e.g. Rent, Utilities, Transport",
+      descriptionPlaceholder:
+        "Describe what the business spent money on",
+      amountPlaceholder: "0.00",
+      expenseDate: "Expense date",
+      paymentStatus: "Payment status",
+      notes: "Notes",
+      notesPlaceholder: "Optional notes",
+
+      unpaidStatus: "Unpaid",
+      partiallyPaidStatus: "Partially paid",
+      paidStatus: "Paid",
+
+      recordExpenseError: "Unable to record expense.",
+
+      backToExpenses: "← Expenses",
+      expenseDetails: "Expense details",
+      currency: "Currency",
+      createdDate: "Created",
+      updatePaymentStatus: "Payment status",
+      updatePaymentStatusDescription:
+        "Update the payment status as the expense is paid.",
+      updatingPaymentStatus: "Updating payment status...",
+      unableToUpdatePaymentStatus:
+        "Unable to update payment status.",
+      record: "Record",
+    },
 
 
 
@@ -1038,6 +1216,102 @@ recordPayment: {
   record: "Enregistrer le paiement",
 },
 
+    expenses: {
+      title: "Dépenses",
+      finance: "Finance",
+      description:
+        "Gardez le contrôle des dépenses, des obligations de paiement et des coûts opérationnels de votre entreprise depuis un seul endroit.",
+      recordExpense: "Enregistrer une dépense",
+
+      totalExpenses: "Total des dépenses",
+      expense: "dépense",
+      expenses: "dépenses",
+      onRecord: "enregistrée(s)",
+
+      paid: "Payé",
+      fullyPaid: "entièrement payé",
+      partial: "Partiel",
+      partiallyPaid: "partiellement payé",
+      outstanding: "En attente",
+      unpaid: "impayé",
+
+      spendingOverview: "Aperçu des dépenses",
+      whereMoneyIsGoing: "Où va l'argent",
+      largestExpenseCategories:
+        "Vos principales catégories de dépenses selon les dépenses enregistrées.",
+      noSpendingCategories: "Aucune catégorie de dépenses",
+      spendingCategoriesWillAppearHere:
+        "Les catégories de dépenses apparaîtront ici au fur et à mesure que vous enregistrez vos dépenses.",
+
+      paymentHealth: "État des paiements",
+      expenseObligations: "Obligations de dépenses",
+      seeHowExpensesAreSettling:
+        "Consultez l'état de règlement de vos dépenses enregistrées.",
+
+      expenseRegister: "Registre des dépenses",
+      businessSpending: "Dépenses de l'entreprise",
+      reviewRecordedExpenses:
+        "Consultez les dépenses enregistrées et les obligations de paiement.",
+      recordAnotherExpense: "Enregistrer une autre dépense",
+
+      category: "Catégorie",
+      descriptionLabel: "Description",
+      date: "Date",
+      amount: "Montant",
+      payment: "Paiement",
+      action: "Action",
+      created: "Créé",
+      viewDetails: "Voir les détails",
+
+      noExpensesYet: "Aucune dépense pour le moment",
+      recordFirstExpenseDescription:
+        "Enregistrez votre première dépense pour commencer à suivre les coûts opérationnels et les obligations de paiement.",
+      recordFirstExpense: "Enregistrer votre première dépense",
+
+      financeConnectionTitle:
+        "Les dépenses font partie de votre situation financière",
+      financeConnectionDescription:
+        "Gardez une visibilité sur vos dépenses aux côtés des ventes, des achats et du reste de vos opérations.",
+      backToDashboard: "Retour au tableau de bord →",
+
+      newExpense: "Enregistrer une dépense",
+      newExpenseDescription:
+        "Enregistrez une dépense d'entreprise et suivez son état de paiement.",
+      cancel: "Annuler",
+      saving: "Enregistrement...",
+
+      reference: "Référence",
+      referencePlaceholder: "ex. DEP-001",
+      categoryPlaceholder:
+        "ex. Loyer, Services publics, Transport",
+      descriptionPlaceholder:
+        "Décrivez ce pour quoi l'entreprise a dépensé de l'argent",
+      amountPlaceholder: "0,00",
+      expenseDate: "Date de la dépense",
+      paymentStatus: "État du paiement",
+      notes: "Notes",
+      notesPlaceholder: "Notes facultatives",
+
+      unpaidStatus: "Impayé",
+      partiallyPaidStatus: "Partiellement payé",
+      paidStatus: "Payé",
+
+      recordExpenseError:
+        "Impossible d'enregistrer la dépense.",
+
+      backToExpenses: "← Dépenses",
+      expenseDetails: "Détails de la dépense",
+      currency: "Devise",
+      createdDate: "Créé",
+      updatePaymentStatus: "État du paiement",
+      updatePaymentStatusDescription:
+        "Mettez à jour l'état du paiement au fur et à mesure que la dépense est réglée.",
+      updatingPaymentStatus: "Mise à jour de l'état du paiement...",
+      unableToUpdatePaymentStatus:
+        "Impossible de mettre à jour l'état du paiement.",
+      record: "Enregistrement",
+    },
+
     setup: {
       title: "Configurez votre entreprise",
       businessName: "Nom de l'entreprise",
@@ -1392,6 +1666,101 @@ recordPayment: {
   recording: "በመመዝገብ ላይ...",
   record: "ክፍያ ይመዝግቡ",
 },
+
+    expenses: {
+      title: "ወጪዎች",
+      finance: "ፋይናንስ",
+      description:
+        "የንግድ ወጪዎችን፣ የክፍያ ግዴታዎችን እና የሥራ ማስኬጃ ወጪዎችን ከአንድ ቦታ ይቆጣጠሩ።",
+      recordExpense: "ወጪ ይመዝግቡ",
+
+      totalExpenses: "ጠቅላላ ወጪዎች",
+      expense: "ወጪ",
+      expenses: "ወጪዎች",
+      onRecord: "በመዝገብ ላይ",
+
+      paid: "ተከፍሏል",
+      fullyPaid: "ሙሉ በሙሉ ተከፍሏል",
+      partial: "ከፊል",
+      partiallyPaid: "በከፊል ተከፍሏል",
+      outstanding: "ያልተከፈለ",
+      unpaid: "ያልተከፈለ",
+
+      spendingOverview: "የወጪ አጠቃላይ እይታ",
+      whereMoneyIsGoing: "ገንዘብ ወዴት እየሄደ ነው",
+      largestExpenseCategories:
+        "በተመዘገቡ ወጪዎች መሠረት ትልቁ የወጪ ምድቦችዎ።",
+      noSpendingCategories: "እስካሁን የወጪ ምድቦች የሉም",
+      spendingCategoriesWillAppearHere:
+        "ወጪዎችን ሲመዘግቡ የወጪ ምድቦች እዚህ ይታያሉ።",
+
+      paymentHealth: "የክፍያ ሁኔታ",
+      expenseObligations: "የወጪ ክፍያ ግዴታዎች",
+      seeHowExpensesAreSettling:
+        "የተመዘገቡ ወጪዎችዎ የክፍያ ሁኔታን ይመልከቱ።",
+
+      expenseRegister: "የወጪ መዝገብ",
+      businessSpending: "የንግድ ወጪ",
+      reviewRecordedExpenses:
+        "የተመዘገቡ ወጪዎችን እና የክፍያ ግዴታዎችን ይመልከቱ።",
+      recordAnotherExpense: "ሌላ ወጪ ይመዝግቡ",
+
+      category: "ምድብ",
+      descriptionLabel: "መግለጫ",
+      date: "ቀን",
+      amount: "መጠን",
+      payment: "ክፍያ",
+      action: "እርምጃ",
+      created: "የተፈጠረ",
+      viewDetails: "ዝርዝሮችን ይመልከቱ",
+
+      noExpensesYet: "እስካሁን ወጪ የለም",
+      recordFirstExpenseDescription:
+        "የሥራ ማስኬጃ ወጪዎችን እና የክፍያ ግዴታዎችን ለመከታተል የመጀመሪያውን የንግድ ወጪዎን ይመዝግቡ።",
+      recordFirstExpense: "የመጀመሪያውን ወጪ ይመዝግቡ",
+
+      financeConnectionTitle:
+        "ወጪዎች የፋይናንስ ሁኔታዎ አካል ናቸው",
+      financeConnectionDescription:
+        "ወጪዎችን ከሽያጭ፣ ግዢ እና ከሌሎች የንግድ ሥራዎችዎ ጋር በአንድ ቦታ ይከታተሉ።",
+      backToDashboard: "ወደ ዳሽቦርድ ይመለሱ →",
+
+      newExpense: "ወጪ ይመዝግቡ",
+      newExpenseDescription:
+        "የንግድ ወጪን ይመዝግቡ እና የክፍያ ሁኔታውን ይከታተሉ።",
+      cancel: "ሰርዝ",
+      saving: "በማስቀመጥ ላይ...",
+
+      reference: "ማጣቀሻ",
+      referencePlaceholder: "ለምሳሌ EXP-001",
+      categoryPlaceholder:
+        "ለምሳሌ ኪራይ፣ መገልገያዎች፣ መጓጓዣ",
+      descriptionPlaceholder:
+        "ንግዱ ገንዘብ ያወጣበትን ነገር ይግለጹ",
+      amountPlaceholder: "0.00",
+      expenseDate: "የወጪ ቀን",
+      paymentStatus: "የክፍያ ሁኔታ",
+      notes: "ማስታወሻዎች",
+      notesPlaceholder: "አማራጭ ማስታወሻዎች",
+
+      unpaidStatus: "ያልተከፈለ",
+      partiallyPaidStatus: "በከፊል ተከፍሏል",
+      paidStatus: "ተከፍሏል",
+
+      recordExpenseError: "ወጪውን መመዝገብ አልተቻለም።",
+
+      backToExpenses: "← ወጪዎች",
+      expenseDetails: "የወጪ ዝርዝሮች",
+      currency: "ምንዛሬ",
+      createdDate: "የተፈጠረ",
+      updatePaymentStatus: "የክፍያ ሁኔታ",
+      updatePaymentStatusDescription:
+        "ወጪው ሲከፈል የክፍያ ሁኔታውን ያዘምኑ።",
+      updatingPaymentStatus: "የክፍያ ሁኔታን በማዘመን ላይ...",
+      unableToUpdatePaymentStatus:
+        "የክፍያ ሁኔታን ማዘመን አልተቻለም።",
+      record: "መዝግብ",
+    },
 
     setup: {
       title: "ንግድዎን ያዘጋጁ",
