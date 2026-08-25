@@ -6,21 +6,23 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSalePaymentAction } from "@/lib/sales/actions";
-import { getTranslations } from "@/lib/i18n";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface RecordPaymentFormProps {
   saleId: string;
   currency: string;
   outstandingAmount: number;
+  translations: TranslationSet;
 }
 
 export default function RecordPaymentForm({
   saleId,
   currency,
   outstandingAmount,
+  translations,
 }: RecordPaymentFormProps) {
   const router = useRouter();
-  const t = getTranslations();
+  const t = translations;
 
   const [reference, setReference] =
     useState("");

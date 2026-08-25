@@ -270,6 +270,10 @@ saleForm: {
   productRequired: string;
   quantityRequired: string;
   createSaleError: string;
+  breadcrumb: string;
+recordSaleTitle: string;
+recordSaleDescription:
+  string;
 };
 
 saleDetail: {
@@ -613,6 +617,10 @@ saleForm: {
   quantityRequired:
     "Sale quantities must be greater than zero.",
   createSaleError: "Unable to create sale.",
+  breadcrumb: "Business / Sales",
+recordSaleTitle: "Record a sale",
+recordSaleDescription:
+  "Add products and record a new sale.",
 },
 
 saleDetail: {
@@ -672,6 +680,8 @@ recordPayment: {
   recording: "Recording...",
   record: "Record payment",
 },
+
+
 
     setup: {
       title: "Set up your business",
@@ -964,6 +974,10 @@ saleForm: {
   quantityRequired:
     "Les quantités vendues doivent être supérieures à zéro.",
   createSaleError: "Impossible de créer la vente.",
+  breadcrumb: "Entreprise / Ventes",
+recordSaleTitle: "Enregistrer une vente",
+recordSaleDescription:
+  "Ajoutez des produits et enregistrez une nouvelle vente.",
 },
 
 saleDetail: {
@@ -1315,6 +1329,10 @@ saleForm: {
   quantityRequired:
     "የሽያጭ መጠኖች ከዜሮ በላይ መሆን አለባቸው።",
   createSaleError: "ሽያጩን መፍጠር አልተቻለም።",
+  breadcrumb: "ንግድ / ሽያጮች",
+recordSaleTitle: "ሽያጭ ይመዝግቡ",
+recordSaleDescription:
+  "ምርቶችን ያክሉ እና አዲስ ሽያጭ ይመዝግቡ።",
 },
 
 saleDetail: {

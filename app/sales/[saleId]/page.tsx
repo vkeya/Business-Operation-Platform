@@ -8,6 +8,8 @@ import {
 } from "@/lib/sales/actions";
 import RecordPaymentForm from "./RecordPaymentForm";
 import { getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
+
 
 interface SaleDetailPageProps {
   params: Promise<{
@@ -23,7 +25,8 @@ export default async function SaleDetailPage({
   const business =
     await getCurrentBusiness();
 
-  const t = await getTranslations();
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const sale =
     await saleService.findById(
@@ -302,12 +305,11 @@ export default async function SaleDetailPage({
           {outstandingAmount > 0 &&
             sale.status !== "CANCELLED" && (
               <RecordPaymentForm
-                saleId={sale.id}
-                currency={sale.currency}
-                outstandingAmount={
-                  outstandingAmount
-                }
-              />
+  saleId={sale.id}
+  currency={sale.currency}
+  outstandingAmount={outstandingAmount}
+  translations={t}
+/>
             )}
         </section>
 

@@ -2,13 +2,17 @@ import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { saleService } from "@/lib/sales/saleService";
 import { getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
+
 
 export const dynamic = "force-dynamic";
 
 export default async function SalesPage() {
-  const business = await getCurrentBusiness();
+	
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
-  const t = await getTranslations();
+  const business = await getCurrentBusiness();
 
   const sales = await saleService.list(
     business.id,

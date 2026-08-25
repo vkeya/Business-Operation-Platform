@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createSaleAction } from "@/lib/sales/actions";
 import { getTranslations } from "@/lib/i18n";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -44,7 +45,9 @@ interface SaleFormProps {
   warehouses: Warehouse[];
   restaurantMenuItems: RestaurantMenuItem[];
   currency: string;
-}
+  translations: TranslationSet;
+  }
+
 
 interface SaleItem {
   id: string;
@@ -58,9 +61,10 @@ export default function SaleForm({
   warehouses,
   restaurantMenuItems,
   currency: defaultCurrency,
+  translations,
 }: SaleFormProps) {
   const router = useRouter();
-  const t = getTranslations();
+  const t = translations;
 
   const [warehouseId, setWarehouseId] =
     useState("");
