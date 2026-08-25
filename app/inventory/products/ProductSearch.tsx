@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { searchProductsAction } from "./listActions";
+import { getTranslations } from "@/lib/i18n";
 
 interface ProductSearchProps {
   onResults: (
@@ -18,6 +19,8 @@ export default function ProductSearch({
 }: ProductSearchProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const t = getTranslations();
 
   useEffect(() => {
     const searchTerm = query.trim();
@@ -51,13 +54,13 @@ export default function ProductSearch({
         onChange={(event) =>
           setQuery(event.target.value)
         }
-        placeholder="Search products..."
+        placeholder={t.inventory.searchProducts}
         className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:w-64"
       />
 
       {loading && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-          Searching...
+          {t.inventory.searching}
         </span>
       )}
     </div>

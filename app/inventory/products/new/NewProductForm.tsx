@@ -1,78 +1,63 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createProductAction,
-  updateProductAction,
-} from "./actions";
+  getProductDefaultsAction,
+} from "../actions";
 import { currencies } from "@/lib/currency/currencies";
-import { getTranslations } from "@/lib/i18n";
+import type { TranslationSet } from "@/lib/i18n";
 
-type Product = {
-  id: string;
-  name: string;
-  sku: string;
-  barcode: string | null;
-  type: "PRODUCT" | "SERVICE";
-  description: string | null;
-  unit: string;
-  costPrice: number;
-  sellingPrice: number;
-  currency: string;
-  trackInventory: boolean;
-  minimumStock: number | null;
-  reorderLevel: number | null;
-};
-
-interface ProductFormProps {
-  mode: "create" | "edit";
-  product?: Product;
+interface NewProductFormProps {
+  translations: TranslationSet;
 }
 
-export default function ProductForm({
-  mode,
-  product,
-}: ProductFormProps) {
+export default function NewProductForm({
+  translations: t,
+}: NewProductFormProps) {
   const router = useRouter();
-  const t = getTranslations();
-
-  const isEdit = mode === "edit";
-
-  const [name, setName] = useState(product?.name ?? "");
-  const [sku, setSku] = useState(product?.sku ?? "");
-  const [barcode, setBarcode] = useState(
-    product?.barcode ?? "",
-  );
-  const [type, setType] = useState<
-    "PRODUCT" | "SERVICE"
-  >(product?.type ?? "PRODUCT");
-  const [description, setDescription] = useState(
-    product?.description ?? "",
-  );
-  const [unit, setUnit] = useState(
-    product?.unit ?? "pcs",
-  );
-  const [costPrice, setCostPrice] = useState(
-    product?.costPrice?.toString() ?? "",
-  );
-  const [sellingPrice, setSellingPrice] = useState(
-    product?.sellingPrice?.toString() ?? "",
-  );
-  const [currency, setCurrency] = useState(
-    product?.currency ?? "",
-  );
-  const [trackInventory, setTrackInventory] =
-    useState(product?.trackInventory ?? true);
-  const [minimumStock, setMinimumStock] = useState(
-    product?.minimumStock?.toString() ?? "",
-  );
-  const [reorderLevel, setReorderLevel] = useState(
-    product?.reorderLevel?.toString() ?? "",
-  );
+  
+  const [name, setName] = useState("");
+  const [sku, setSku] = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [type, setType] = useState<"PRODUCT" | "SERVICE">("PRODUCT");
+  const [description, setDescription] = useState("");
+  const [unit, setUnit] = useState("pcs");
+  const [costPrice, setCostPrice] = useState("");
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [trackInventory, setTrackInventory] = useState(true);
+  const [minimumStock, setMinimumStock] = useState("");
+  const [reorderLevel, setReorderLevel] = useState("");
 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+useEffect(() => {
+  let active = true;
+
+  async function loadDefaults() {
+    try {
+      const defaults = await getProductDefaultsAction();
+
+      if (active) {
+        setCurrency(defaults.currency);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load product defaults:",
+        error,
+      );
+    }
+  }
+
+  loadDefaults();
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -83,8 +68,8 @@ export default function ProductForm({
     setSaving(true);
 
     try {
-      const input = {
-        name,
+      await createProductAction({
+  name,
         sku,
         barcode: barcode || undefined,
         type,
@@ -102,32 +87,14 @@ export default function ProductForm({
           reorderLevel === ""
             ? undefined
             : Number(reorderLevel),
-      };
-
-      if (isEdit) {
-        if (!product?.id) {
-          throw new Error(
-            t.inventory.productIdRequired,
-          );
-        }
-
-        await updateProductAction(
-          product.id,
-          input,
-        );
-      } else {
-        await createProductAction(input);
-      }
+      });
 
       router.push("/inventory/products");
-      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : isEdit
-            ? "Unable to update the product."
-            : "Unable to save the product.",
+          : t.inventory.saveProductError,
       );
     } finally {
       setSaving(false);
@@ -138,17 +105,15 @@ export default function ProductForm({
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
         <p className="text-sm font-medium text-slate-500">
-          Stock / Products
+          {t.inventory.title} / {t.inventory.productCatalogue}
         </p>
 
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-          {isEdit ? t.inventory.editProduct : t.inventory.addProduct}
+          {t.inventory.addProduct}
         </h1>
 
         <p className="mt-2 text-sm text-slate-600">
-          {isEdit
-            ? "Update the product information, pricing and stock settings."
-            : "Add a product or service to your business."}
+          {t.inventory.addProductDescription}
         </p>
       </div>
 
@@ -167,7 +132,7 @@ export default function ProductForm({
 
         <section>
           <h2 className="text-lg font-semibold text-slate-900">
-            Basic information
+            {t.inventory.basicInformation}
           </h2>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -176,7 +141,7 @@ export default function ProductForm({
                 htmlFor="name"
                 className="block text-sm font-medium text-slate-900"
               >
-                Product name
+                {t.inventory.productName}
               </label>
 
               <input
@@ -203,9 +168,7 @@ export default function ProductForm({
                 id="sku"
                 value={sku}
                 onChange={(event) =>
-                  setSku(
-                    event.target.value.toUpperCase(),
-                  )
+                  setSku(event.target.value.toUpperCase())
                 }
                 placeholder="COKE-500"
                 required
@@ -218,7 +181,7 @@ export default function ProductForm({
                 htmlFor="barcode"
                 className="block text-sm font-medium text-slate-900"
               >
-                Barcode
+                {t.inventory.barcode}
               </label>
 
               <input
@@ -237,7 +200,7 @@ export default function ProductForm({
                 htmlFor="type"
                 className="block text-sm font-medium text-slate-900"
               >
-                Type
+                {t.inventory.type}
               </label>
 
               <select
@@ -252,12 +215,8 @@ export default function ProductForm({
                 }
                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               >
-                <option value="PRODUCT">
-                  {t.inventory.product}
-                </option>
-                <option value="SERVICE">
-                  {t.inventory.service}
-                </option>
+                <option value="PRODUCT">{t.inventory.product}</option>
+                <option value="SERVICE">{t.inventory.service}</option>
               </select>
             </div>
 
@@ -266,7 +225,7 @@ export default function ProductForm({
                 htmlFor="unit"
                 className="block text-sm font-medium text-slate-900"
               >
-                Unit
+                {t.inventory.unit}
               </label>
 
               <input
@@ -286,16 +245,14 @@ export default function ProductForm({
                 htmlFor="description"
                 className="block text-sm font-medium text-slate-900"
               >
-                Description
+                {t.inventory.description}
               </label>
 
               <textarea
                 id="description"
                 value={description}
                 onChange={(event) =>
-                  setDescription(
-                    event.target.value,
-                  )
+                  setDescription(event.target.value)
                 }
                 rows={3}
                 placeholder={t.inventory.optionalDescription}
@@ -307,7 +264,7 @@ export default function ProductForm({
 
         <section className="border-t border-slate-200 pt-8">
           <h2 className="text-lg font-semibold text-slate-900">
-            Pricing
+            {t.inventory.pricing}
           </h2>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-3">
@@ -316,7 +273,7 @@ export default function ProductForm({
                 htmlFor="costPrice"
                 className="block text-sm font-medium text-slate-900"
               >
-                Cost price
+                {t.inventory.costPrice}
               </label>
 
               <input
@@ -326,9 +283,7 @@ export default function ProductForm({
                 step="0.01"
                 value={costPrice}
                 onChange={(event) =>
-                  setCostPrice(
-                    event.target.value,
-                  )
+                  setCostPrice(event.target.value)
                 }
                 required
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
@@ -340,7 +295,7 @@ export default function ProductForm({
                 htmlFor="sellingPrice"
                 className="block text-sm font-medium text-slate-900"
               >
-                Selling price
+                {t.inventory.sellingPrice}
               </label>
 
               <input
@@ -350,9 +305,7 @@ export default function ProductForm({
                 step="0.01"
                 value={sellingPrice}
                 onChange={(event) =>
-                  setSellingPrice(
-                    event.target.value,
-                  )
+                  setSellingPrice(event.target.value)
                 }
                 required
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
@@ -360,46 +313,38 @@ export default function ProductForm({
             </div>
 
             <div>
-              <label
-                htmlFor="currency"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Currency
-              </label>
+  <label
+    htmlFor="currency"
+    className="block text-sm font-medium text-slate-900"
+  >
+    {t.inventory.currency}
+  </label>
 
-              <select
-                id="currency"
-                value={currency}
-                onChange={(event) =>
-                  setCurrency(
-                    event.target.value,
-                  )
-                }
-                required
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              >
-                {!currency && (
-                  <option value="">
-                    {t.inventory.selectCurrency}
-                  </option>
-                )}
-
-                {currencies.map((option) => (
-                  <option
-                    key={option.code}
-                    value={option.code}
-                  >
-                    {option.code} — {option.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+  <select
+    id="currency"
+    value={currency}
+    onChange={(event) =>
+      setCurrency(event.target.value)
+    }
+    required
+    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+  >
+    {currencies.map((option) => (
+      <option
+        key={option.code}
+        value={option.code}
+      >
+        {option.code} — {option.name}
+      </option>
+    ))}
+  </select>
+</div>
           </div>
         </section>
 
         <section className="border-t border-slate-200 pt-8">
           <h2 className="text-lg font-semibold text-slate-900">
-            Stock settings
+            {t.inventory.stockSettings}
           </h2>
 
           <label className="mt-5 flex items-start gap-3">
@@ -407,16 +352,14 @@ export default function ProductForm({
               type="checkbox"
               checked={trackInventory}
               onChange={(event) =>
-                setTrackInventory(
-                  event.target.checked,
-                )
+                setTrackInventory(event.target.checked)
               }
               className="mt-1 h-4 w-4 rounded border-slate-300"
             />
 
             <span>
               <span className="block text-sm font-medium text-slate-900">
-                Track stock for this item
+                {t.inventory.trackStock}
               </span>
 
               <span className="mt-1 block text-sm text-slate-500">
@@ -431,7 +374,7 @@ export default function ProductForm({
                 htmlFor="minimumStock"
                 className="block text-sm font-medium text-slate-900"
               >
-                Minimum stock
+                {t.inventory.minimumStock}
               </label>
 
               <input
@@ -441,11 +384,9 @@ export default function ProductForm({
                 step="0.01"
                 value={minimumStock}
                 onChange={(event) =>
-                  setMinimumStock(
-                    event.target.value,
-                  )
+                  setMinimumStock(event.target.value)
                 }
-                placeholder="Optional"
+                placeholder={t.inventory.optional}
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
@@ -455,7 +396,7 @@ export default function ProductForm({
                 htmlFor="reorderLevel"
                 className="block text-sm font-medium text-slate-900"
               >
-                Reorder level
+                {t.inventory.reorderLevel}
               </label>
 
               <input
@@ -465,41 +406,24 @@ export default function ProductForm({
                 step="0.01"
                 value={reorderLevel}
                 onChange={(event) =>
-                  setReorderLevel(
-                    event.target.value,
-                  )
+                  setReorderLevel(event.target.value)
                 }
-                placeholder="Optional"
+                placeholder={t.inventory.optional}
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
           </div>
         </section>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() =>
-              router.push("/inventory/products")
-            }
-            disabled={saving}
-            className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {t.common.cancel}
-          </button>
-
+        <div className="flex justify-end border-t border-slate-200 pt-6">
           <button
             type="submit"
             disabled={saving}
             className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving
-              ? isEdit
-                ? "Saving changes..."
-                : "Saving..."
-              : isEdit
-                ? "Save changes"
-                : "Save product"}
+  ? t.inventory.saving
+  : t.inventory.saveProduct}
           </button>
         </div>
       </form>

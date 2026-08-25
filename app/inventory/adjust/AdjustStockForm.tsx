@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -7,6 +6,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { adjustStockAction } from "../action";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -26,12 +26,16 @@ interface Warehouse {
 interface AdjustStockFormProps {
   products: Product[];
   warehouses: Warehouse[];
+  translations: TranslationSet;
 }
 
 export default function AdjustStockForm({
   products,
   warehouses,
+  translations,
 }: AdjustStockFormProps) {
+  const t = translations;
+
   const [productId, setProductId] =
     useState("");
 
@@ -43,136 +47,145 @@ export default function AdjustStockForm({
 
   const [notes, setNotes] =
     useState("");
-	
-	const [submitting, setSubmitting] =
-  useState(false);
 
-const [error, setError] =
-  useState("");
+  const [submitting, setSubmitting] =
+    useState(false);
 
-const [success, setSuccess] =
-  useState("");
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
 
   const selectedProduct =
     products.find(
-      (product) => product.id === productId,
+      (product) =>
+        product.id === productId,
     );
 
- async function handleSubmit(
-  event: FormEvent<HTMLFormElement>,
-) {
-  event.preventDefault();
-
-  setError("");
-  setSuccess("");
-
-  if (!productId) {
-    setError("Please select a product.");
-    return;
-  }
-
-  if (!warehouseId) {
-    setError("Please select a warehouse.");
-    return;
-  }
-
-  const parsedQuantity =
-    Number(quantity);
-
-  if (
-    !Number.isFinite(parsedQuantity) ||
-    parsedQuantity === 0
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
   ) {
-    setError(
-      "Adjustment quantity cannot be zero.",
-    );
-    return;
+    event.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    if (!productId) {
+      setError(
+        t.inventory.selectProductRequired,
+      );
+      return;
+    }
+
+    if (!warehouseId) {
+      setError(
+        t.inventory.selectWarehouseRequired,
+      );
+      return;
+    }
+
+    const parsedQuantity =
+      Number(quantity);
+
+    if (
+      !Number.isFinite(parsedQuantity) ||
+      parsedQuantity === 0
+    ) {
+      setError(
+        t.inventory.adjustmentQuantityZero,
+      );
+      return;
+    }
+
+    if (!selectedProduct) {
+      setError(
+        t.inventory.selectedProductNotFound,
+      );
+      return;
+    }
+
+    if (!notes.trim()) {
+      setError(
+        t.inventory.adjustmentReasonRequired,
+      );
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await adjustStockAction({
+        productId,
+        warehouseId,
+        quantity: parsedQuantity,
+        currency:
+          selectedProduct.currency,
+        notes: notes.trim(),
+      });
+
+      setSuccess(
+        `${t.inventory.stockAdjustedBy} ${parsedQuantity} ${t.inventory.forProduct} ${selectedProduct.name}.`,
+      );
+
+      setQuantity("");
+      setNotes("");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t.inventory.adjustStockError,
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
-
-  if (!selectedProduct) {
-    setError(
-      "Selected product was not found.",
-    );
-    return;
-  }
-
-  if (!notes.trim()) {
-    setError(
-      "Please provide a reason for the adjustment.",
-    );
-    return;
-  }
-
-  setSubmitting(true);
-
-  try {
-    await adjustStockAction({
-      productId,
-      warehouseId,
-      quantity: parsedQuantity,
-      currency: selectedProduct.currency,
-      notes: notes.trim(),
-    });
-
-    setSuccess(
-      `Stock adjusted by ${parsedQuantity} for ${selectedProduct.name}.`,
-    );
-
-    setQuantity("");
-    setNotes("");
-  } catch (err) {
-    setError(
-      err instanceof Error
-        ? err.message
-        : "Failed to adjust stock.",
-    );
-  } finally {
-    setSubmitting(false);
-  }
-}
 
   return (
     <form
       onSubmit={handleSubmit}
       className="mt-8 space-y-6 rounded-2xl border border-slate-200 bg-white p-6"
     >
-	
-	{error && (
-  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-    {error}
-  </div>
-)}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-{success && (
-  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-    {success}
-  </div>
-)}
+      {success && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
       <div>
         <label
           htmlFor="productId"
           className="block text-sm font-medium text-slate-700"
         >
-          Product
+          {t.inventory.product}
         </label>
 
         <select
           id="productId"
           value={productId}
           onChange={(event) =>
-            setProductId(event.target.value)
+            setProductId(
+              event.target.value,
+            )
           }
           required
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select a product
+            {t.inventory.selectProduct}
           </option>
 
           {products
             .filter(
               (product) =>
-                product.type === "PRODUCT" &&
+                product.type ===
+                  "PRODUCT" &&
                 product.trackInventory,
             )
             .map((product) => (
@@ -180,7 +193,8 @@ const [success, setSuccess] =
                 key={product.id}
                 value={product.id}
               >
-                {product.name} — {product.sku}
+                {product.name} —{" "}
+                {product.sku}
               </option>
             ))}
         </select>
@@ -191,30 +205,35 @@ const [success, setSuccess] =
           htmlFor="warehouseId"
           className="block text-sm font-medium text-slate-700"
         >
-          Warehouse
+          {t.inventory.warehouse}
         </label>
 
         <select
           id="warehouseId"
           value={warehouseId}
           onChange={(event) =>
-            setWarehouseId(event.target.value)
+            setWarehouseId(
+              event.target.value,
+            )
           }
           required
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select a warehouse
+            {t.inventory.selectWarehouse}
           </option>
 
-          {warehouses.map((warehouse) => (
-            <option
-              key={warehouse.id}
-              value={warehouse.id}
-            >
-              {warehouse.name} — {warehouse.code}
-            </option>
-          ))}
+          {warehouses.map(
+            (warehouse) => (
+              <option
+                key={warehouse.id}
+                value={warehouse.id}
+              >
+                {warehouse.name} —{" "}
+                {warehouse.code}
+              </option>
+            ),
+          )}
         </select>
       </div>
 
@@ -223,7 +242,7 @@ const [success, setSuccess] =
           htmlFor="quantity"
           className="block text-sm font-medium text-slate-700"
         >
-          Adjustment quantity
+          {t.inventory.adjustmentQuantity}
         </label>
 
         <input
@@ -232,22 +251,25 @@ const [success, setSuccess] =
           step="0.0001"
           value={quantity}
           onChange={(event) =>
-            setQuantity(event.target.value)
+            setQuantity(
+              event.target.value,
+            )
           }
           required
-          placeholder="e.g. -4 or +5"
+          placeholder={
+            t.inventory.adjustmentQuantityPlaceholder
+          }
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
         />
 
         <p className="mt-2 text-xs text-slate-500">
-          Use a negative number to reduce stock or a
-          positive number to increase stock.
+          {t.inventory.adjustmentQuantityHelp}
         </p>
       </div>
 
       {selectedProduct && (
         <p className="text-sm text-slate-500">
-          Currency:{" "}
+          {t.inventory.currency}:{" "}
           <span className="font-medium text-slate-700">
             {selectedProduct.currency}
           </span>
@@ -259,7 +281,7 @@ const [success, setSuccess] =
           htmlFor="notes"
           className="block text-sm font-medium text-slate-700"
         >
-          Reason / notes
+          {t.inventory.adjustmentReason}
         </label>
 
         <textarea
@@ -267,10 +289,14 @@ const [success, setSuccess] =
           rows={3}
           value={notes}
           onChange={(event) =>
-            setNotes(event.target.value)
+            setNotes(
+              event.target.value,
+            )
           }
           required
-          placeholder="Explain why the adjustment is being made"
+          placeholder={
+            t.inventory.adjustmentReasonPlaceholder
+          }
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
         />
       </div>
@@ -280,18 +306,18 @@ const [success, setSuccess] =
           href="/inventory"
           className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
-          Cancel
+          {t.common.cancel}
         </Link>
 
         <button
-  type="submit"
-  disabled={submitting}
-  className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {submitting
-    ? "Adjusting..."
-    : "Adjust stock"}
-</button>
+          type="submit"
+          disabled={submitting}
+          className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting
+            ? t.inventory.adjusting
+            : t.inventory.adjustStock}
+        </button>
       </div>
     </form>
   );

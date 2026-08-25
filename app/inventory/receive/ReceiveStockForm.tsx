@@ -6,6 +6,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { receiveStockAction } from "../action";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -25,11 +26,13 @@ interface Warehouse {
 interface ReceiveStockFormProps {
   products: Product[];
   warehouses: Warehouse[];
+  translations: TranslationSet;
 }
 
 export default function ReceiveStockForm({
   products,
   warehouses,
+  translations: t,
 }: ReceiveStockFormProps) {
   const [productId, setProductId] =
     useState("");
@@ -161,7 +164,7 @@ export default function ReceiveStockForm({
           htmlFor="productId"
           className="block text-sm font-medium text-slate-700"
         >
-          Product
+		{t.inventory.product}
         </label>
 
         <select
@@ -174,7 +177,7 @@ export default function ReceiveStockForm({
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select a product
+		  {t.inventory.selectProduct}
           </option>
 
           {products
@@ -199,7 +202,7 @@ export default function ReceiveStockForm({
           htmlFor="warehouseId"
           className="block text-sm font-medium text-slate-700"
         >
-          Warehouse
+		{t.inventory.warehouse}
         </label>
 
         <select
@@ -212,7 +215,7 @@ export default function ReceiveStockForm({
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select a warehouse
+		  {t.inventory.selectWarehouse}
           </option>
 
           {warehouses.map((warehouse) => (
@@ -232,7 +235,7 @@ export default function ReceiveStockForm({
             htmlFor="quantity"
             className="block text-sm font-medium text-slate-700"
           >
-            Quantity
+		  {t.inventory.quantity}
           </label>
 
           <input
@@ -254,7 +257,7 @@ export default function ReceiveStockForm({
             htmlFor="unitCost"
             className="block text-sm font-medium text-slate-700"
           >
-            Unit cost
+		  {t.inventory.unitCost}
           </label>
 
           <input
@@ -274,7 +277,7 @@ export default function ReceiveStockForm({
 
       {selectedProduct && (
         <p className="text-sm text-slate-500">
-          Currency:{" "}
+		{t.inventory.currency}:{" "}
           <span className="font-medium text-slate-700">
             {selectedProduct.currency}
           </span>
@@ -286,7 +289,7 @@ export default function ReceiveStockForm({
           htmlFor="notes"
           className="block text-sm font-medium text-slate-700"
         >
-          Notes
+		{t.inventory.notes}
         </label>
 
         <textarea
@@ -296,18 +299,18 @@ export default function ReceiveStockForm({
           onChange={(event) =>
             setNotes(event.target.value)
           }
-          placeholder="Optional receipt notes"
+          placeholder={t.inventory.optionalReceiptNotes}
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
         />
       </div>
 
       <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
         <Link
-          href="/inventory"
-          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Cancel
-        </Link>
+  href="/inventory"
+  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+>
+  {t.inventory.backToInventory}
+</Link>
 
         <button
           type="submit"
@@ -315,8 +318,8 @@ export default function ReceiveStockForm({
           className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? "Receiving..."
-            : "Receive stock"}
+            ? t.inventory.receiving
+            : t.inventory.receiveStock}
         </button>
       </div>
     </form>

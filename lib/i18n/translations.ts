@@ -194,6 +194,8 @@ export interface TranslationSet {
     unexpectedError: string;
     emailPlaceholder: string;
     creditLimitPlaceholder: string;
+  tax: string;
+  
   };
   
   sales: {
@@ -241,6 +243,176 @@ export interface TranslationSet {
   salesInventoryConnection: string;
   salesInventoryDescription: string;
   openInventory: string;
+};
+
+inventory: {
+	title: string;
+	selectSourceWarehouseRequired: string;
+selectDestinationWarehouseRequired: string;
+warehousesMustBeDifferent: string;
+transferQuantityPositive: string;
+stockTransferredSuccessfully: string;
+transferStockError: string;
+fromWarehouse: string;
+selectSourceWarehouse: string;
+toWarehouse: string;
+selectDestinationWarehouse: string;
+enterQuantity: string;
+optionalTransferNotes: string;
+transferring: string;
+	
+	stockLevelsHealthy: string;
+	products: string;
+	unitsInStock: string;
+	lowStock: string;
+	stockValue: string;
+	quickActions: string;
+	receiveStock: string;
+	receiveStockDescription: string;
+	adjustStock: string;
+	adjustStockDescription: string;
+	transferStock: string;
+	transferStockDescription: string;
+	currentStockLevels: string;
+	stockAlerts: string;
+	noStockRecordsYet: string;
+	outOfStock: string;
+	lowStockStatus: string;
+	manageProducts: string;
+	stockMovements: string;
+	warehouses: string;
+	viewInventory: string;
+	itemsActivelyTracked: string;
+    acrossActiveStockBalances: string;
+    belowConfiguredThreshold: string;
+    basedOnAverageStockCost: string;
+    operations: string;
+    commonTasks: string;
+    
+    inbound: string;
+    correction: string;
+    movement: string;
+    liveStock: string;
+    viewHistory: string;
+    latestStockBalances: string;
+    receiveFirstStock: string;
+    attention: string;
+    itemsNeedReplenishment: string;
+    stockLevelsLookHealthy: string;
+    noProductsBelowThreshold: string;
+    currentQuantity: string;
+    threshold: string;
+    viewAllProducts: string;
+    activity: string;
+    reviewStockMovements: string;
+    openCatalogue: string;
+    productsAndServices: string;
+    viewMovements: string;
+    activeInventoryLocations: string;
+	createProductOrService: string;
+    itemsNeedAttention: string;
+    heroDescription: string;
+	adjustStockPageDescription: string;
+	
+warehouse: string;
+selectProduct: string;
+selectWarehouse: string;
+adjustmentQuantity: string;
+adjustmentQuantityPlaceholder: string;
+adjustmentQuantityHelp: string;
+
+adjustmentReason: string;
+adjustmentReasonPlaceholder: string;
+selectProductRequired: string;
+selectWarehouseRequired: string;
+adjustmentQuantityZero: string;
+selectedProductNotFound: string;
+adjustmentReasonRequired: string;
+stockAdjustedBy: string;
+forProduct: string;
+adjustStockError: string;
+adjusting: string;
+movementHistory: string;
+movementHistoryDescription: string;
+all: string;
+allProducts: string;
+allWarehouses: string;
+from: string;
+to: string;
+applyDates: string;
+noInventoryMovements: string;
+inventoryMovementsEmptyDescription: string;
+date: string;
+
+quantity: string;
+unitCost: string;
+totalCost: string;
+notes: string;
+productCatalogue: string;
+productCatalogueDescription: string;
+catalogue: string;
+productCatalogueLabel: string;
+manageProductsAndServices: string;
+addProduct: string;
+productSummary: string;
+active: string;
+currentlyAvailable: string;
+stockTracked: string;
+productsConnectedToInventory: string;
+inactive: string;
+notCurrentlyAvailable: string;
+yourProducts: string;
+searchReviewEditProducts: string;
+addAnotherProduct: string;
+productCatalogueEmpty: string;
+addFirstProductDescription: string;
+addYourFirstProduct: string;
+keepCatalogueAccurate: string;
+catalogueOperationsDescription: string;
+openInventory: string;
+productIdRequired: string;
+editProduct: string;
+optionalReceiptNotes: string;
+receiving: string;
+
+
+selectCurrency: string;
+
+noProductsFound: string;
+productSearchEmptyDescription: string;
+
+stock: string;
+status: string;
+action: string;
+tracked: string;
+notTracked: string;
+edit: string;
+searchProducts: string;
+searching: string;
+addProductDescription: string;
+basicInformation: string;
+productName: string;
+barcode: string;
+optional: string;
+type: string;
+product: string;
+service: string;
+unit: string;
+description: string;
+optionalDescription: string;
+pricing: string;
+costPrice: string;
+sellingPrice: string;
+currency: string;
+stockSettings: string;
+trackStock: string;
+trackStockDescription: string;
+minimumStock: string;
+reorderLevel: string;
+saving: string;
+saveProduct: string;
+saveProductError: string;
+backToInventory: string;
 };
 
 saleForm: {
@@ -408,7 +580,72 @@ recordPayment: {
     updatingPaymentStatus: string;
     unableToUpdatePaymentStatus: string;
     record: string;
+	
   };
+  
+  suppliers: {
+  title: string;
+  breadcrumb: string;
+  description: string;
+  addSupplier: string;
+  activeSupplier: string;
+  activeSuppliers: string;
+  supplier: string;
+  suppliersOnRecord: string;
+  availableForPurchasing: string;
+  contactable: string;
+  suppliersWithEmail: string;
+  paymentTerms: string;
+  suppliersWithCreditTerms: string;
+  supplierManagement: string;
+  yourSupplierNetwork: string;
+  supplierNetworkDescription: string;
+  activeSuppliersTitle: string;
+  readyForPurchasing: string;
+  activeSuppliersDescription: string;
+  paymentTermsTitle: string;
+  supplierCreditInformation: string;
+  paymentTermsDescription: string;
+  contactDetails: string;
+  keepSupplierInformationCurrent: string;
+  contactDetailsDescription: string;
+  supplierRegister: string;
+  supplierDirectory: string;
+  supplierDirectoryDescription: string;
+  addAnotherSupplier: string;
+  noSuppliersYet: string;
+  addFirstSupplierDescription: string;
+  addFirstSupplier: string;
+  tax: string;
+  contact: string;
+  currency: string;
+  creditTerms: string;
+  immediate: string;
+  days: string;
+  status: string;
+  action: string;
+  active: string;
+  inactive: string;
+  purchasingConnection: string;
+  purchasingConnectionDescription: string;
+  openPurchases: string;
+  noPhone: string;
+  noEmail: string;
+  addSupplierDescription: string;
+supplierInformation: string;
+supplierName: string;
+supplierNamePlaceholder: string;
+phone: string;
+email: string;
+optional: string;
+address: string;
+optionalSupplierAddress: string;
+taxNumber: string;
+selectCurrency: string;
+saving: string;
+saveSupplier: string;
+unableToSaveSupplier: string;
+};
 
   setup: {
     title: string;
@@ -418,6 +655,48 @@ recordPayment: {
     city: string;
     currency: string;
     continue: string;
+	businessInformation: string;
+businessInformationDescription: string;
+businessNamePlaceholder: string;
+businessTypeDescription: string;
+regionalSettings: string;
+regionalSettingsDescription: string;
+baseCurrency: string;
+firstLocation: string;
+firstLocationDescription: string;
+branchName: string;
+mainBranchPlaceholder: string;
+branchCode: string;
+inventoryLocation: string;
+mainWarehousePlaceholder: string;
+locationCode: string;
+setupSummary: string;
+business: string;
+type: string;
+
+branch: string;
+notProvided: string;
+setupReady: string;
+checkInformation: string;
+unableToSaveSetup: string;
+restaurant: string;
+restaurantDescription: string;
+bar: string;
+barDescription: string;
+hotel: string;
+hotelDescription: string;
+hospitalClinic: string;
+hospitalClinicDescription: string;
+supermarket: string;
+supermarketDescription: string;
+shop: string;
+shopDescription: string;
+otherBusiness: string;
+otherBusinessDescription: string;
+heading: string;
+description: string;
+language: string;
+timezone: string;
   };
 }
 
@@ -615,8 +894,9 @@ export const translations: Record<Locale, TranslationSet> = {
       unexpectedError: "Something went wrong. Please try again.",
       emailPlaceholder: "customer@example.com",
       creditLimitPlaceholder: "0.00",
-    
-	},
+      tax: "Tax",
+ 
+},
 	
 	sales: {
   title: "Sales",
@@ -672,38 +952,241 @@ export const translations: Record<Locale, TranslationSet> = {
   openInventory: "Open inventory",
 },
 
-saleForm: {
-  saleDetails: "Sale details",
-  referenceNumber: "Reference number",
-  currency: "Currency",
+    inventory: {
+      title: "Inventory",
+      description: "Manage products, monitor stock levels and keep your inventory under control.",
+      selectSourceWarehouseRequired:
+  "Please select a source warehouse.",
+selectDestinationWarehouseRequired:
+  "Please select a destination warehouse.",
+warehousesMustBeDifferent:
+  "Source and destination warehouses must be different.",
+transferQuantityPositive:
+  "Transfer quantity must be greater than zero.",
+stockTransferredSuccessfully:
+  "Successfully transferred",
+transferStockError:
+  "Failed to transfer stock.",
+fromWarehouse:
+  "From warehouse",
+selectSourceWarehouse:
+  "Select source warehouse",
+toWarehouse:
+  "To warehouse",
+selectDestinationWarehouse:
+  "Select destination warehouse",
+enterQuantity:
+  "Enter quantity",
+optionalTransferNotes:
+  "Optional transfer notes",
+transferring:
+  "Transferring...",
+      stockLevelsHealthy: "Stock levels healthy",
+      products: "Products",
+      unitsInStock: "Units in stock",
+      lowStock: "Low stock",
+      stockValue: "Stock value",
+      quickActions: "Quick actions",
+      receiveStock: "Receive stock",
+      receiveStockDescription: "Receive stock and update available quantities.",
+      adjustStock: "Adjust stock",
+      adjustStockDescription: "Correct stock quantities when needed.",
+      transferStock: "Transfer stock",
+      transferStockDescription: "Move stock between warehouses.",
+      currentStockLevels: "Current stock levels",
+      stockAlerts: "Stock alerts",
+      noStockRecordsYet: "No stock records yet",
+      outOfStock: "Out of stock",
+      lowStockStatus: "Low stock",
+      manageProducts: "Manage products",
+      stockMovements: "Stock movements",
+      warehouses: "Warehouses",
+      viewInventory: "View inventory",
+	  itemsActivelyTracked: "Items actively tracked",
+      acrossActiveStockBalances: "Across active stock balances",
+      belowConfiguredThreshold: "Below configured threshold",
+      basedOnAverageStockCost: "Based on average stock cost",
+      operations: "Operations",
+      commonTasks: "Common tasks for keeping your inventory accurate.",
+      
+      inbound: "Inbound",
+      correction: "Correction",
+      movement: "Movement",
+      liveStock: "Live stock",
+      viewHistory: "View history",
+      latestStockBalances: "Your latest stock balances by warehouse.",
+      receiveFirstStock: "Receive your first stock movement to start building inventory.",
+      attention: "Attention",
+      itemsNeedReplenishment: "Items that may need replenishment.",
+      stockLevelsLookHealthy: "Stock levels look healthy",
+      noProductsBelowThreshold: "No products are currently below their configured threshold.",
+      currentQuantity: "Current quantity",
+      threshold: "Threshold",
+      viewAllProducts: "View all products",
+      activity: "Activity",
+      reviewStockMovements: "Review receipts, transfers and adjustments.",
+      openCatalogue: "Open catalogue",
+      productsAndServices: "products and services",
+      viewMovements: "View movements",
+      activeInventoryLocations: "Active inventory locations",
+      createProductOrService:
+        "Create a product or service.",
+      itemsNeedAttention:
+        "Items that may need attention.",
+      heroDescription:
+        "Manage products, monitor stock levels and keep your inventory under control.",
+	  adjustStockPageDescription:
+  "Correct inventory quantities after a physical stock count or other inventory reconciliation.",
+	product: "Product",
   warehouse: "Warehouse",
-  selectWarehouse: "Select warehouse",
-  notes: "Notes",
-  saleItems: "Sale items",
-  selectProducts: "Select products and quantities.",
-  addItem: "Add item",
-  menuItemProduct: "Menu item / Product",
-  product: "Product",
-  selectItem: "Select item",
-  restaurantMenu: "Restaurant menu",
-  inventoryProducts: "Inventory products",
-  quantity: "Quantity",
-  total: "Total",
-  remove: "Remove",
-  saleTotal: "Sale total",
-  saving: "Saving...",
-  referenceRequired: "Please enter a sale reference.",
-  currencyRequired: "Please select a currency.",
-  warehouseRequired: "Please select a warehouse.",
-  itemRequired: "Add at least one sale item.",
-  productRequired: "Please select a product for every line.",
-  quantityRequired:
-    "Sale quantities must be greater than zero.",
-  createSaleError: "Unable to create sale.",
-  breadcrumb: "Business / Sales",
-recordSaleTitle: "Record a sale",
-recordSaleDescription:
-  "Add products and record a new sale.",
+  selectProduct: "Select a product",
+  selectWarehouse: "Select a warehouse",
+  adjustmentQuantity: "Adjustment quantity",
+  adjustmentQuantityPlaceholder: "e.g. -4 or +5",
+  adjustmentQuantityHelp:
+    "Use a negative number to reduce stock or a positive number to increase stock.",
+  currency: "Currency",
+  adjustmentReason: "Reason / notes",
+  adjustmentReasonPlaceholder:
+    "Explain why the adjustment is being made",
+  selectProductRequired:
+    "Please select a product.",
+  selectWarehouseRequired:
+    "Please select a warehouse.",
+  adjustmentQuantityZero:
+    "Adjustment quantity cannot be zero.",
+  selectedProductNotFound:
+    "Selected product was not found.",
+  adjustmentReasonRequired:
+    "Please provide a reason for the adjustment.",
+  stockAdjustedBy: "Stock adjusted by",
+  forProduct: "for",
+  adjustStockError:
+    "Failed to adjust stock.",
+  adjusting: "Adjusting",
+  movementHistory: "Movement History",
+movementHistoryDescription:
+  "Review receipts, adjustments, and other inventory movements.",
+all: "All",
+allProducts: "All products",
+allWarehouses: "All warehouses",
+from: "From",
+to: "To",
+applyDates: "Apply dates",
+noInventoryMovements: "No inventory movements yet",
+inventoryMovementsEmptyDescription:
+  "Stock receipts and adjustments will appear here.",
+date: "Date",
+type: "Type",
+quantity: "Quantity",
+unitCost: "Unit cost",
+totalCost: "Total cost",
+notes: "Notes",
+productCatalogue: "Products",
+productCatalogueDescription:
+  "Manage the products and services your business sells, including pricing and inventory tracking.",
+catalogue: "Catalogue",
+productCatalogueLabel: "Product catalogue",
+manageProductsAndServices:
+  "Manage the products and services your business sells, including pricing and inventory tracking.",
+addProduct: "Add product",
+productSummary: "Product summary",
+active: "Active",
+currentlyAvailable: "Currently available",
+stockTracked: "Stock tracked",
+productsConnectedToInventory:
+  "Products connected to inventory",
+inactive: "Inactive",
+notCurrentlyAvailable: "Not currently available",
+yourProducts: "Your products",
+searchReviewEditProducts:
+  "Search, review and edit the items your business sells.",
+addAnotherProduct: "Add another product",
+productCatalogueEmpty:
+  "Your product catalogue is empty",
+addFirstProductDescription:
+  "Add your first product or service to start managing pricing, sales and inventory from Teketeke.",
+addYourFirstProduct:
+  "Add your first product",
+keepCatalogueAccurate:
+  "Keep your catalogue accurate",
+catalogueOperationsDescription:
+  "Product pricing and inventory settings flow into your wider business operations.",
+openInventory: "Open inventory",
+productIdRequired: "Product ID is required for editing.",
+editProduct: "Edit product",
+optional: "Optional",
+service: "Service",
+optionalDescription: "Optional description",
+selectCurrency: "Select currency",
+noProductsFound: "No products found",
+productSearchEmptyDescription:
+  "Try a different product name, SKU or barcode.",
+sellingPrice: "Selling price",
+stock: "Stock",
+status: "Status",
+action: "Action",
+tracked: "Tracked",
+notTracked: "Not tracked",
+edit: "Edit",
+searchProducts: "Search products...",
+searching: "Searching...",
+addProductDescription: "Add a product or service to your business.",
+basicInformation: "Basic information",
+productName: "Product name",
+barcode: "Barcode",
+unit: "Unit",
+optionalReceiptNotes:
+  "Optional receipt notes",
+receiving:
+  "Receiving...",
+
+pricing: "Pricing",
+costPrice: "Cost price",
+stockSettings: "Stock settings",
+trackStock: "Track stock for this item",
+trackStockDescription:
+  "Turn this off for services or items that do not need inventory tracking.",
+minimumStock: "Minimum stock",
+reorderLevel: "Reorder level",
+saving: "Saving...",
+saveProduct: "Save product",
+saveProductError: "Unable to save the product.",
+backToInventory: "Back to inventory",
+},    
+
+saleForm: {
+      saleDetails: "Sale details",
+      referenceNumber: "Reference number",
+      currency: "Currency",
+      warehouse: "Warehouse",
+      selectWarehouse: "Select warehouse",
+      notes: "Notes",
+      saleItems: "Sale items",
+      selectProducts: "Select products and quantities.",
+      addItem: "Add item",
+      menuItemProduct: "Menu item / Product",
+      product: "Product",
+      selectItem: "Select item",
+      restaurantMenu: "Restaurant menu",
+      inventoryProducts: "Inventory products",
+      quantity: "Quantity",
+      total: "Total",
+      remove: "Remove",
+      saleTotal: "Sale total",
+      saving: "Saving...",
+      referenceRequired: "Please enter a sale reference.",
+      currencyRequired: "Please select a currency.",
+      warehouseRequired: "Please select a warehouse.",
+      itemRequired: "Add at least one sale item.",
+      productRequired: "Please select a product for every line.",
+      quantityRequired:
+        "Sale quantities must be greater than zero.",
+      createSaleError: "Unable to create sale.",
+      breadcrumb: "Business / Sales",
+      recordSaleTitle: "Record a sale",
+      recordSaleDescription:
+        "Add products and record a new sale.",
 },
 
 saleDetail: {
@@ -857,7 +1340,82 @@ recordPayment: {
       unableToUpdatePaymentStatus:
         "Unable to update payment status.",
       record: "Record",
+	  
     },
+	
+	suppliers: {
+  title: "Suppliers",
+  breadcrumb: "Purchasing / Suppliers",
+  description:
+    "Keep your supplier relationships, purchasing terms and contact information organised in one place.",
+  addSupplier: "Add supplier",
+  activeSupplier: "active supplier",
+  activeSuppliers: "Active suppliers",
+  supplier: "Supplier",
+  suppliersOnRecord: "Suppliers on record",
+  availableForPurchasing: "Available for purchasing",
+  contactable: "Contactable",
+  suppliersWithEmail: "Suppliers with email",
+  paymentTerms: "Payment terms",
+  suppliersWithCreditTerms: "Suppliers with credit terms",
+  supplierManagement: "Supplier management",
+  yourSupplierNetwork: "Your supplier network",
+  supplierNetworkDescription:
+    "Keep purchasing relationships organised and ready for your next order.",
+  activeSuppliersTitle: "Active suppliers",
+  readyForPurchasing: "Ready for purchasing",
+  activeSuppliersDescription:
+    "Active suppliers can be used when creating and managing purchases.",
+  paymentTermsTitle: "Payment terms",
+  supplierCreditInformation: "Supplier credit information",
+  paymentTermsDescription:
+    "Keep track of suppliers that offer payment terms beyond immediate settlement.",
+  contactDetails: "Contact details",
+  keepSupplierInformationCurrent:
+    "Keep supplier information current",
+  contactDetailsDescription:
+    "Store supplier phone numbers, email addresses and tax information for easy reference.",
+  supplierRegister: "Supplier register",
+  supplierDirectory: "Supplier directory",
+  supplierDirectoryDescription:
+    "Review the businesses you purchase from.",
+  addAnotherSupplier: "Add another supplier",
+  noSuppliersYet: "No suppliers yet",
+  addFirstSupplierDescription:
+    "Add your first supplier to start managing purchasing relationships.",
+  addFirstSupplier: "Add your first supplier",
+  tax: "Tax",
+  contact: "Contact",
+  currency: "Currency",
+  creditTerms: "Credit terms",
+  immediate: "Immediate",
+  days: "days",
+  status: "Status",
+  action: "Action",
+  active: "Active",
+  inactive: "Inactive",
+  purchasingConnection:
+    "Suppliers connect directly to purchasing",
+  purchasingConnectionDescription:
+    "Use your supplier directory when creating purchases and managing incoming stock.",
+  openPurchases: "Open purchases",
+  noPhone: "No phone",
+  noEmail: "No email",
+  addSupplierDescription: "Add a supplier your business purchases from.",
+supplierInformation: "Supplier information",
+supplierName: "Supplier name",
+supplierNamePlaceholder: "e.g. ABC Distributors",
+phone: "Phone",
+email: "Email",
+optional: "Optional",
+address: "Address",
+optionalSupplierAddress: "Optional supplier address",
+taxNumber: "Tax number",
+selectCurrency: "Select currency",
+saving: "Saving...",
+saveSupplier: "Save supplier",
+unableToSaveSupplier: "Unable to save the supplier.",
+},
 
 
 
@@ -869,9 +1427,64 @@ recordPayment: {
       city: "City",
       currency: "Currency",
       continue: "Continue",
-    },
-  },
+	  businessInformation: "Business information",
+businessInformationDescription: "Start with the basics about your business.",
+businessNamePlaceholder: "e.g. Keya Restaurant",
+businessTypeDescription: "This helps us prepare the right tools for your business.",
+regionalSettings: "Regional settings",
+regionalSettingsDescription: "We'll use your country as a starting point, but you can customize these settings.",
+baseCurrency: "Base currency",
+firstLocation: "First location",
+firstLocationDescription: "Start with one branch and one inventory location. You can add more later.",
+branchName: "Branch name",
+mainBranchPlaceholder: "Main Branch",
+branchCode: "Branch code",
+inventoryLocation: "Inventory location",
+mainWarehousePlaceholder: "Main Warehouse",
+locationCode: "Location code",
+setupSummary: "Setup summary",
+business: "Business",
+type: "Type",
 
+branch: "Branch",
+notProvided: "Not provided",
+setupReady: "Your business setup is valid and ready to be saved.",
+checkInformation: "Please check the highlighted information.",
+unableToSaveSetup: "Unable to save your business setup.",
+ restaurant: "Restaurant",
+restaurantDescription:
+  "Manage food, drinks, sales, inventory and purchasing.",
+
+bar: "Bar",
+barDescription:
+  "Manage drinks, stock, sales, purchasing and cash.",
+
+hotel: "Hotel",
+hotelDescription:
+  "Manage hotel operations, sales, inventory and services.",
+
+hospitalClinic: "Hospital / Clinic",
+hospitalClinicDescription:
+  "Manage supplies, medicines, sales, purchasing and operational activity.",
+
+supermarket: "Supermarket",
+supermarketDescription:
+  "Manage products, barcode sales, inventory, suppliers and customers.",
+
+shop: "Shop",
+shopDescription:
+  "Manage products, sales, inventory, purchasing and customers.",
+
+otherBusiness: "Other Business",
+otherBusinessDescription:
+  "Start with the core business tools and configure more later.",
+heading: "Set up your business",
+description:
+  "Tell us about your business so we can configure the right tools for you.",
+language: "Language",
+timezone: "Timezone", 
+ },
+},
   fr: {
     navigation: {
       workspace: "Espace de travail",
@@ -1065,9 +1678,9 @@ recordPayment: {
       unexpectedError: "Une erreur s'est produite. Veuillez réessayer.",
       emailPlaceholder: "client@exemple.com",
       creditLimitPlaceholder: "0,00",
-      
-	
-	},
+  tax: "Taxe",
+  
+},
 	
 	sales: {
   title: "Ventes",
@@ -1121,6 +1734,229 @@ recordPayment: {
   salesInventoryDescription:
     "Les ventes de produits représentent la sortie de votre stock.",
   openInventory: "Ouvrir le stock",
+},
+
+ inventory: {
+  title: "Stock",
+  description:
+    "Gérez vos produits, surveillez les niveaux de stock et gardez votre inventaire sous contrôle.",
+  selectSourceWarehouseRequired:
+  "Veuillez sélectionner un entrepôt source.",
+selectDestinationWarehouseRequired:
+  "Veuillez sélectionner un entrepôt de destination.",
+warehousesMustBeDifferent:
+  "Les entrepôts source et de destination doivent être différents.",
+transferQuantityPositive:
+  "La quantité transférée doit être supérieure à zéro.",
+stockTransferredSuccessfully:
+  "Transfert réussi de",
+transferStockError:
+  "Échec du transfert du stock.",
+fromWarehouse:
+  "Entrepôt source",
+selectSourceWarehouse:
+  "Sélectionner l’entrepôt source",
+toWarehouse:
+  "Entrepôt de destination",
+selectDestinationWarehouse:
+  "Sélectionner l’entrepôt de destination",
+enterQuantity:
+  "Saisir la quantité",
+optionalTransferNotes:
+  "Notes de transfert facultatives",
+transferring:
+  "Transfert en cours...",
+  stockLevelsHealthy: "Niveaux de stock sains",
+  products: "Produits",
+  unitsInStock: "Unités en stock",
+  lowStock: "Stock faible",
+  stockValue: "Valeur du stock",
+  quickActions: "Actions rapides",
+  receiveStock: "Réceptionner le stock",
+  receiveStockDescription:
+    "Réceptionnez le stock et mettez à jour les quantités disponibles.",
+  adjustStock: "Ajuster le stock",
+  adjustStockDescription:
+    "Corrigez les quantités en stock lorsque nécessaire.",
+  transferStock: "Transférer le stock",
+  transferStockDescription:
+    "Déplacez le stock entre les entrepôts.",
+  currentStockLevels: "Niveaux de stock actuels",
+  stockAlerts: "Alertes de stock",
+  noStockRecordsYet:
+    "Aucun enregistrement de stock pour le moment",
+  outOfStock: "Rupture de stock",
+  lowStockStatus: "Stock faible",
+  manageProducts: "Gérer les produits",
+  stockMovements: "Mouvements de stock",
+  warehouses: "Entrepôts",
+  viewInventory: "Voir le stock",
+
+  itemsActivelyTracked: "Articles suivis activement",
+  acrossActiveStockBalances:
+    "Sur l’ensemble des stocks actifs",
+  belowConfiguredThreshold:
+    "En dessous du seuil configuré",
+  basedOnAverageStockCost:
+    "Selon le coût moyen du stock",
+  operations: "Opérations",
+  commonTasks:
+    "Tâches courantes pour maintenir votre inventaire à jour.",
+  
+  inbound: "Entrée",
+  correction: "Correction",
+  movement: "Mouvement",
+  liveStock: "Stock actuel",
+  viewHistory: "Voir l’historique",
+  latestStockBalances:
+    "Vos derniers soldes de stock par entrepôt.",
+  receiveFirstStock:
+    "Réceptionnez votre premier mouvement de stock pour commencer à constituer votre inventaire.",
+  attention: "Attention",
+  itemsNeedReplenishment:
+    "Articles pouvant nécessiter un réapprovisionnement.",
+  stockLevelsLookHealthy:
+    "Les niveaux de stock sont satisfaisants",
+  noProductsBelowThreshold:
+    "Aucun produit n’est actuellement en dessous de son seuil configuré.",
+  currentQuantity: "Quantité actuelle",
+  threshold: "Seuil",
+  viewAllProducts: "Voir tous les produits",
+  activity: "Activité",
+  reviewStockMovements:
+    "Consultez les réceptions, transferts et ajustements.",
+  openCatalogue: "Ouvrir le catalogue",
+  productsAndServices: "produits et services",
+  viewMovements: "Voir les mouvements",
+  activeInventoryLocations:
+    "Emplacements de stock actifs",
+	createProductOrService:
+  "Créez un produit ou un service.",
+itemsNeedAttention:
+  "Articles pouvant nécessiter une attention particulière.",
+heroDescription:
+  "Gérez vos produits, surveillez les niveaux de stock et gardez votre inventaire sous contrôle.",
+adjustStockPageDescription:
+  "Corrigez les quantités d’inventaire après un comptage physique du stock ou une autre opération de rapprochement.",  
+ product: "Produit",
+  warehouse: "Entrepôt",
+  selectProduct: "Sélectionnez un produit",
+  selectWarehouse: "Sélectionnez un entrepôt",
+  adjustmentQuantity: "Quantité d'ajustement",
+  adjustmentQuantityPlaceholder: "ex. -4 ou +5",
+  adjustmentQuantityHelp:
+    "Utilisez un nombre négatif pour réduire le stock ou un nombre positif pour augmenter le stock.",
+  currency: "Devise",
+  adjustmentReason: "Motif / notes",
+  adjustmentReasonPlaceholder:
+    "Expliquez pourquoi l'ajustement est effectué",
+  selectProductRequired:
+    "Veuillez sélectionner un produit.",
+  selectWarehouseRequired:
+    "Veuillez sélectionner un entrepôt.",
+  adjustmentQuantityZero:
+    "La quantité d'ajustement ne peut pas être zéro.",
+  selectedProductNotFound:
+    "Le produit sélectionné est introuvable.",
+  adjustmentReasonRequired:
+    "Veuillez fournir un motif pour l'ajustement.",
+  stockAdjustedBy: "Stock ajusté de",
+  forProduct: "pour",
+  adjustStockError:
+    "Échec de l'ajustement du stock.",
+  adjusting: "Ajustement",
+  movementHistory: "Historique des mouvements",
+movementHistoryDescription:
+  "Consultez les réceptions, ajustements et autres mouvements de stock.",
+all: "Tous",
+allProducts: "Tous les produits",
+allWarehouses: "Tous les entrepôts",
+from: "De",
+to: "À",
+applyDates: "Appliquer les dates",
+noInventoryMovements:
+  "Aucun mouvement de stock pour le moment",
+inventoryMovementsEmptyDescription:
+  "Les réceptions et ajustements de stock apparaîtront ici.",
+date: "Date",
+type: "Type",
+quantity: "Quantité",
+unitCost: "Coût unitaire",
+totalCost: "Coût total",
+notes: "Notes",
+ productCatalogue: "Produits",
+productCatalogueDescription:
+  "Gérez les produits et services vendus par votre entreprise, notamment les prix et le suivi des stocks.",
+catalogue: "Catalogue",
+productCatalogueLabel: "Catalogue de produits",
+manageProductsAndServices:
+  "Gérez les produits et services vendus par votre entreprise, notamment les prix et le suivi des stocks.",
+addProduct: "Ajouter un produit",
+productSummary: "Résumé des produits",
+active: "Actifs",
+currentlyAvailable: "Actuellement disponibles",
+stockTracked: "Stock suivi",
+productsConnectedToInventory:
+  "Produits connectés à l'inventaire",
+inactive: "Inactifs",
+notCurrentlyAvailable: "Actuellement indisponibles",
+yourProducts: "Vos produits",
+searchReviewEditProducts:
+  "Recherchez, consultez et modifiez les articles vendus par votre entreprise.",
+addAnotherProduct: "Ajouter un autre produit",
+productCatalogueEmpty:
+  "Votre catalogue de produits est vide",
+addFirstProductDescription:
+  "Ajoutez votre premier produit ou service pour commencer à gérer les prix, les ventes et les stocks dans Teketeke.",
+addYourFirstProduct:
+  "Ajouter votre premier produit",
+keepCatalogueAccurate:
+  "Gardez votre catalogue à jour",
+catalogueOperationsDescription:
+  "Les paramètres de prix et de stock des produits alimentent vos opérations commerciales.",
+openInventory: "Ouvrir l'inventaire", 
+productIdRequired:
+  "L'identifiant du produit est requis pour la modification.",
+editProduct: "Modifier le produit",
+optional: "Facultatif",
+service: "Service",
+optionalDescription: "Description facultative",
+selectCurrency: "Sélectionner la devise",
+trackStockDescription:
+  "Désactivez cette option pour les services ou les articles qui ne nécessitent pas de suivi des stocks.",
+noProductsFound: "Aucun produit trouvé",
+productSearchEmptyDescription:
+  "Essayez un autre nom de produit, SKU ou code-barres.",
+sellingPrice: "Prix de vente",
+stock: "Stock",
+status: "Statut",
+action: "Action",
+tracked: "Suivi",
+notTracked: "Non suivi",
+edit: "Modifier",
+searchProducts: "Rechercher des produits...",
+searching: "Recherche en cours...",
+addProductDescription:
+  "Ajoutez un produit ou un service à votre entreprise.",
+basicInformation: "Informations de base",
+productName: "Nom du produit",
+barcode: "Code-barres",
+unit: "Unité",
+pricing: "Tarification",
+costPrice: "Prix de revient",
+stockSettings: "Paramètres de stock",
+trackStock: "Suivre le stock de cet article",
+minimumStock: "Stock minimum",
+reorderLevel: "Seuil de réapprovisionnement",
+saving: "Enregistrement...",
+saveProduct: "Enregistrer le produit",
+saveProductError:
+  "Impossible d'enregistrer le produit.",
+  optionalReceiptNotes:
+  "Notes de réception facultatives",
+receiving:
+  "Réception en cours...",
+  backToInventory: "Retour à l’inventaire",
 },
 
 saleForm: {
@@ -1311,6 +2147,82 @@ recordPayment: {
         "Impossible de mettre à jour l'état du paiement.",
       record: "Enregistrement",
     },
+	
+	suppliers: {
+  title: "Fournisseurs",
+  breadcrumb: "Achats / Fournisseurs",
+  description:
+    "Gérez vos relations avec les fournisseurs, vos conditions d'achat et leurs coordonnées au même endroit.",
+  addSupplier: "Ajouter un fournisseur",
+  activeSupplier: "fournisseur actif",
+  activeSuppliers: "Fournisseurs actifs",
+  supplier: "Fournisseur",
+  suppliersOnRecord: "Fournisseurs enregistrés",
+  availableForPurchasing: "Disponibles pour les achats",
+  contactable: "Joignables",
+  suppliersWithEmail: "Fournisseurs avec adresse e-mail",
+  paymentTerms: "Conditions de paiement",
+  suppliersWithCreditTerms:
+    "Fournisseurs avec conditions de crédit",
+  supplierManagement: "Gestion des fournisseurs",
+  yourSupplierNetwork: "Votre réseau de fournisseurs",
+  supplierNetworkDescription:
+    "Organisez vos relations d'achat et préparez-les pour votre prochaine commande.",
+  activeSuppliersTitle: "Fournisseurs actifs",
+  readyForPurchasing: "Prêts pour les achats",
+  activeSuppliersDescription:
+    "Les fournisseurs actifs peuvent être utilisés lors de la création et de la gestion des achats.",
+  paymentTermsTitle: "Conditions de paiement",
+  supplierCreditInformation:
+    "Informations sur le crédit fournisseur",
+  paymentTermsDescription:
+    "Suivez les fournisseurs qui proposent des conditions de paiement au-delà d'un règlement immédiat.",
+  contactDetails: "Coordonnées",
+  keepSupplierInformationCurrent:
+    "Gardez les informations des fournisseurs à jour",
+  contactDetailsDescription:
+    "Conservez les numéros de téléphone, adresses e-mail et informations fiscales des fournisseurs pour les consulter facilement.",
+  supplierRegister: "Registre des fournisseurs",
+  supplierDirectory: "Répertoire des fournisseurs",
+  supplierDirectoryDescription:
+    "Consultez les entreprises auprès desquelles vous achetez.",
+  addAnotherSupplier: "Ajouter un autre fournisseur",
+  noSuppliersYet: "Aucun fournisseur pour le moment",
+  addFirstSupplierDescription:
+    "Ajoutez votre premier fournisseur pour commencer à gérer vos relations d'achat.",
+  addFirstSupplier: "Ajouter votre premier fournisseur",
+  tax: "Taxe",
+  contact: "Contact",
+  currency: "Devise",
+  creditTerms: "Conditions de crédit",
+  immediate: "Immédiat",
+  days: "jours",
+  status: "Statut",
+  action: "Action",
+  active: "Actif",
+  inactive: "Inactif",
+  purchasingConnection:
+    "Les fournisseurs sont directement liés aux achats",
+  purchasingConnectionDescription:
+    "Utilisez votre répertoire de fournisseurs lors de la création des achats et de la gestion des stocks entrants.",
+  openPurchases: "Ouvrir les achats",
+  noPhone: "Aucun téléphone",
+  noEmail: "Aucune adresse e-mail",
+  addSupplierDescription: "Ajoutez un fournisseur auprès duquel votre entreprise effectue des achats.",
+supplierInformation: "Informations sur le fournisseur",
+supplierName: "Nom du fournisseur",
+supplierNamePlaceholder: "ex. ABC Distributors",
+phone: "Téléphone",
+email: "E-mail",
+optional: "Facultatif",
+address: "Adresse",
+optionalSupplierAddress: "Adresse facultative du fournisseur",
+taxNumber: "Numéro fiscal",
+selectCurrency: "Sélectionner une devise",
+saving: "Enregistrement...",
+saveSupplier: "Enregistrer le fournisseur",
+unableToSaveSupplier: "Impossible d'enregistrer le fournisseur.",
+},
 
     setup: {
       title: "Configurez votre entreprise",
@@ -1320,9 +2232,64 @@ recordPayment: {
       city: "Ville",
       currency: "Devise",
       continue: "Continuer",
-    },
-  },
+	  businessInformation: "Informations sur l’entreprise",
+businessInformationDescription: "Commencez par les informations essentielles de votre entreprise.",
+businessNamePlaceholder: "ex. Restaurant Keya",
+businessTypeDescription: "Cela nous aide à préparer les outils adaptés à votre entreprise.",
+regionalSettings: "Paramètres régionaux",
+regionalSettingsDescription: "Nous utiliserons votre pays comme point de départ, mais vous pouvez personnaliser ces paramètres.",
+baseCurrency: "Devise de base",
+firstLocation: "Premier emplacement",
+firstLocationDescription: "Commencez avec une succursale et un emplacement de stock. Vous pourrez en ajouter d’autres plus tard.",
+branchName: "Nom de la succursale",
+mainBranchPlaceholder: "Succursale principale",
+branchCode: "Code de la succursale",
+inventoryLocation: "Emplacement de stock",
+mainWarehousePlaceholder: "Entrepôt principal",
+locationCode: "Code de l’emplacement",
+setupSummary: "Résumé de la configuration",
+business: "Entreprise",
+type: "Type",
 
+branch: "Succursale",
+notProvided: "Non renseigné",
+setupReady: "La configuration de votre entreprise est valide et prête à être enregistrée.",
+checkInformation: "Veuillez vérifier les informations indiquées.",
+unableToSaveSetup: "Impossible d’enregistrer la configuration de votre entreprise.",
+restaurant: "Restaurant",
+restaurantDescription:
+  "Gérez les aliments, les boissons, les ventes, les stocks et les achats.",
+
+bar: "Bar",
+barDescription:
+  "Gérez les boissons, les stocks, les ventes, les achats et la trésorerie.",
+
+hotel: "Hôtel",
+hotelDescription:
+  "Gérez les opérations de l’hôtel, les ventes, les stocks et les services.",
+
+hospitalClinic: "Hôpital / Clinique",
+hospitalClinicDescription:
+  "Gérez les fournitures, les médicaments, les ventes, les achats et les activités opérationnelles.",
+
+supermarket: "Supermarché",
+supermarketDescription:
+  "Gérez les produits, les ventes par code-barres, les stocks, les fournisseurs et les clients.",
+
+shop: "Boutique",
+shopDescription:
+  "Gérez les produits, les ventes, les stocks, les achats et les clients.",
+
+otherBusiness: "Autre entreprise",
+otherBusinessDescription:
+  "Commencez avec les outils essentiels et configurez davantage votre entreprise plus tard.",
+heading: "Configurez votre entreprise",
+description:
+  "Parlez-nous de votre entreprise afin que nous puissions configurer les outils adaptés.",
+language: "Langue",
+timezone: "Fuseau horaire", 
+ },
+  },
   am: {
     navigation: {
       workspace: "የስራ ቦታ",
@@ -1516,10 +2483,10 @@ recordPayment: {
       unexpectedError: "አንድ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።",
       emailPlaceholder: "customer@example.com",
       creditLimitPlaceholder: "0.00",
-      
-	
-	},
-	
+  tax: "ግብር",
+ 
+},
+      	
 	sales: {
   title: "ሽያጭ",
   description:
@@ -1574,6 +2541,231 @@ recordPayment: {
   openInventory: "የእቃ ክምችትን ይክፈቱ",
 },
 
+inventory: {
+  title: "የእቃ ክምችት",
+  description:
+    "ምርቶችን ያስተዳድሩ፣ የእቃ ክምችት ደረጃዎችን ይከታተሉ እና ክምችትዎን በቁጥጥር ስር ያድርጉ።",
+  selectSourceWarehouseRequired:
+  "እባክዎ የመነሻ መጋዘን ይምረጡ።",
+selectDestinationWarehouseRequired:
+  "እባክዎ የመድረሻ መጋዘን ይምረጡ።",
+warehousesMustBeDifferent:
+  "የመነሻና የመድረሻ መጋዘኖች የተለያዩ መሆን አለባቸው።",
+transferQuantityPositive:
+  "የሚተላለፈው መጠን ከዜሮ በላይ መሆን አለበት።",
+stockTransferredSuccessfully:
+  "በተሳካ ሁኔታ ተላልፏል።",
+transferStockError:
+  "ዕቃ ማስተላለፍ አልተሳካም።",
+fromWarehouse:
+  "ከመጋዘን",
+selectSourceWarehouse:
+  "የመነሻ መጋዘን ይምረጡ",
+toWarehouse:
+  "ወደ መጋዘን",
+selectDestinationWarehouse:
+  "የመድረሻ መጋዘን ይምረጡ",
+enterQuantity:
+  "መጠን ያስገቡ",
+optionalTransferNotes:
+  "አማራጭ የማስተላለፊያ ማስታወሻዎች",
+transferring:
+  "በማስተላለፍ ላይ...",
+  stockLevelsHealthy:
+    "የእቃ ክምችት ደረጃዎች ጥሩ ናቸው",
+  products: "ምርቶች",
+  unitsInStock: "በክምችት ያሉ ክፍሎች",
+  lowStock: "ዝቅተኛ ክምችት",
+  stockValue: "የክምችት ዋጋ",
+  quickActions: "ፈጣን እርምጃዎች",
+  receiveStock: "እቃ ይቀበሉ",
+  receiveStockDescription:
+    "እቃ ይቀበሉ እና የሚገኙ መጠኖችን ያዘምኑ።",
+  adjustStock: "ክምችት ያስተካክሉ",
+  adjustStockDescription:
+    "አስፈላጊ ሲሆን የክምችት መጠኖችን ያስተካክሉ።",
+  transferStock: "ክምችት ያስተላልፉ",
+  transferStockDescription:
+    "እቃን በመጋዘኖች መካከል ያንቀሳቅሱ።",
+  currentStockLevels: "የአሁኑ የክምችት ደረጃዎች",
+  stockAlerts: "የክምችት ማስጠንቀቂያዎች",
+  noStockRecordsYet:
+    "እስካሁን የክምችት መዝገብ የለም",
+  outOfStock: "እቃ ከክምችት ውጭ ነው",
+  lowStockStatus: "ዝቅተኛ ክምችት",
+  manageProducts: "ምርቶችን ያስተዳድሩ",
+  stockMovements: "የክምችት እንቅስቃሴዎች",
+  warehouses: "መጋዘኖች",
+  viewInventory: "ክምችትን ይመልከቱ",
+
+  itemsActivelyTracked: "በንቃት የሚከታተሉ እቃዎች",
+  acrossActiveStockBalances:
+    "በንቃት በሚተዳደሩ የክምችት መዝገቦች ላይ",
+  belowConfiguredThreshold:
+    "ከተወሰነው ገደብ በታች",
+  basedOnAverageStockCost:
+    "በአማካይ የክምችት ዋጋ ላይ የተመሰረተ",
+  operations: "ስራዎች",
+  commonTasks:
+    "የእቃ ክምችትዎን ትክክለኛ ለማድረግ የሚያስፈልጉ የተለመዱ ስራዎች።",
+  
+  inbound: "ገቢ እቃ",
+  correction: "ማስተካከያ",
+  movement: "እንቅስቃሴ",
+  liveStock: "የአሁኑ ክምችት",
+  viewHistory: "ታሪክ ይመልከቱ",
+  latestStockBalances:
+    "በመጋዘን የተደራጁ የቅርብ ጊዜ የክምችት መጠኖች።",
+  receiveFirstStock:
+    "ክምችትዎን ለመጀመር የመጀመሪያውን የእቃ እንቅስቃሴ ይመዝግቡ።",
+  attention: "ትኩረት",
+  itemsNeedReplenishment:
+    "እንደገና መሙላት ሊያስፈልጋቸው የሚችሉ እቃዎች።",
+  stockLevelsLookHealthy:
+    "የክምችት ደረጃዎች ጥሩ ይመስላሉ",
+  noProductsBelowThreshold:
+    "በአሁኑ ጊዜ ከተወሰነው ገደብ በታች ያሉ ምርቶች የሉም።",
+  currentQuantity: "የአሁኑ መጠን",
+  threshold: "ገደብ",
+  viewAllProducts: "ሁሉንም ምርቶች ይመልከቱ",
+  activity: "እንቅስቃሴ",
+  reviewStockMovements:
+    "የእቃ መቀበያዎችን፣ ማስተላለፎችን እና ማስተካከያዎችን ይገምግሙ።",
+  openCatalogue: "ካታሎጉን ይክፈቱ",
+  productsAndServices: "ምርቶች እና አገልግሎቶች",
+  viewMovements: "እንቅስቃሴዎችን ይመልከቱ",
+  activeInventoryLocations:
+    "ንቁ የእቃ ክምችት ቦታዎች",
+	createProductOrService:
+  "ምርት ወይም አገልግሎት ይፍጠሩ።",
+itemsNeedAttention:
+  "ትኩረት ሊያስፈልጋቸው የሚችሉ እቃዎች።",
+heroDescription:
+  "ምርቶችን ያስተዳድሩ፣ የክምችት ደረጃዎችን ይከታተሉ እና ክምችትዎን በቁጥጥር ስር ያድርጉ።",
+adjustStockPageDescription:
+  "ከአካላዊ የእቃ ቆጠራ ወይም ከሌላ የክምችት ማስተካከያ በኋላ የእቃ መጠኖችን ያስተካክሉ።",
+product: "ምርት",
+  warehouse: "መጋዘን",
+  selectProduct: "ምርት ይምረጡ",
+  selectWarehouse: "መጋዘን ይምረጡ",
+  adjustmentQuantity: "የማስተካከያ መጠን",
+  adjustmentQuantityPlaceholder:
+    "ለምሳሌ -4 ወይም +5",
+  adjustmentQuantityHelp:
+    "ክምችትን ለመቀነስ አሉታዊ ቁጥር፣ ክምችትን ለመጨመር አዎንታዊ ቁጥር ይጠቀሙ።",
+  currency: "ምንዛሬ",
+  adjustmentReason: "ምክንያት / ማስታወሻዎች",
+  adjustmentReasonPlaceholder:
+    "ማስተካከያው ለምን እንደሚደረግ ያብራሩ",
+  selectProductRequired:
+    "እባክዎ ምርት ይምረጡ።",
+  selectWarehouseRequired:
+    "እባክዎ መጋዘን ይምረጡ።",
+  adjustmentQuantityZero:
+    "የማስተካከያ መጠን ዜሮ ሊሆን አይችልም።",
+  selectedProductNotFound:
+    "የተመረጠው ምርት አልተገኘም።",
+  adjustmentReasonRequired:
+    "እባክዎ ለማስተካከያው ምክንያት ያቅርቡ።",
+  stockAdjustedBy: "ክምችት በ",
+  forProduct: "ለ",
+  adjustStockError:
+    "ክምችትን ማስተካከል አልተሳካም።",
+  adjusting: "በማስተካከል ላይ",
+  movementHistory: "የክምችት እንቅስቃሴ ታሪክ",
+movementHistoryDescription:
+  "የእቃ መቀበያዎችን፣ ማስተካከያዎችን እና ሌሎች የክምችት እንቅስቃሴዎችን ይመልከቱ።",
+all: "ሁሉም",
+allProducts: "ሁሉም ምርቶች",
+allWarehouses: "ሁሉም መጋዘኖች",
+from: "ከ",
+to: "እስከ",
+applyDates: "ቀኖችን ተግብር",
+noInventoryMovements:
+  "እስካሁን የክምችት እንቅስቃሴ የለም",
+inventoryMovementsEmptyDescription:
+  "የእቃ መቀበያዎች እና ማስተካከያዎች እዚህ ይታያሉ።",
+date: "ቀን",
+type: "ዓይነት",
+quantity: "መጠን",
+unitCost: "የአንድ ክፍል ዋጋ",
+totalCost: "ጠቅላላ ዋጋ",
+notes: "ማስታወሻዎች",
+productCatalogue: "ምርቶች",
+productCatalogueDescription:
+  "የንግድዎ የሚሸጣቸውን ምርቶችና አገልግሎቶች፣ ዋጋቸውን እና የክምችት ክትትላቸውን ያስተዳድሩ።",
+catalogue: "ካታሎግ",
+productCatalogueLabel: "የምርት ካታሎግ",
+manageProductsAndServices:
+  "የንግድዎ የሚሸጣቸውን ምርቶችና አገልግሎቶች፣ ዋጋቸውን እና የክምችት ክትትላቸውን ያስተዳድሩ።",
+addProduct: "ምርት ያክሉ",
+productSummary: "የምርት ማጠቃለያ",
+active: "ንቁ",
+currentlyAvailable: "በአሁኑ ጊዜ ይገኛሉ",
+stockTracked: "ክምችት የሚከታተል",
+productsConnectedToInventory:
+  "ከክምችት ጋር የተገናኙ ምርቶች",
+inactive: "ንቁ ያልሆኑ",
+notCurrentlyAvailable: "በአሁኑ ጊዜ አይገኙም",
+yourProducts: "ምርቶችዎ",
+searchReviewEditProducts:
+  "የንግድዎ የሚሸጣቸውን እቃዎች ይፈልጉ፣ ይመልከቱ እና ያርትዑ።",
+addAnotherProduct: "ሌላ ምርት ያክሉ",
+productCatalogueEmpty:
+  "የምርት ካታሎግዎ ባዶ ነው",
+addFirstProductDescription:
+  "የመጀመሪያዎን ምርት ወይም አገልግሎት በመጨመር ዋጋ፣ ሽያጭ እና ክምችትን በTeketeke ማስተዳደር ይጀምሩ።",
+addYourFirstProduct:
+  "የመጀመሪያዎን ምርት ያክሉ",
+keepCatalogueAccurate:
+  "ካታሎግዎን ትክክለኛ ያድርጉ",
+catalogueOperationsDescription:
+  "የምርት ዋጋ እና የክምችት ቅንብሮች ወደ አጠቃላይ የንግድ ሥራዎ ይገባሉ።",
+openInventory: "ክምችት ይክፈቱ",
+productIdRequired:
+  "ለማስተካከል የምርት መለያ ያስፈልጋል።",
+editProduct: "ምርት ያርትዑ",
+optional: "አማራጭ",
+service: "አገልግሎት",
+optionalDescription: "አማራጭ መግለጫ",
+selectCurrency: "ምንዛሬ ይምረጡ",
+noProductsFound: "ምንም ምርት አልተገኘም",
+productSearchEmptyDescription:
+  "የተለየ የምርት ስም፣ SKU ወይም ባርኮድ ይሞክሩ።",
+sellingPrice: "የሽያጭ ዋጋ",
+stock: "ክምችት",
+status: "ሁኔታ",
+action: "እርምጃ",
+tracked: "የሚከታተል",
+notTracked: "የማይከታተል",
+edit: "አርትዕ",
+searchProducts: "ምርቶችን ይፈልጉ...",
+searching: "በመፈለግ ላይ...",
+addProductDescription:
+  "ምርት ወይም አገልግሎት ወደ ንግድዎ ያክሉ።",
+basicInformation: "መሰረታዊ መረጃ",
+productName: "የምርት ስም",
+barcode: "ባርኮድ",
+unit: "ክፍል",
+pricing: "ዋጋ",
+costPrice: "የግዢ ዋጋ",
+stockSettings: "የክምችት ቅንብሮች",
+trackStock: "የዚህን እቃ ክምችት ይከታተሉ",
+trackStockDescription:
+  "ለአገልግሎቶች ወይም የክምችት ክትትል ለማያስፈልጋቸው እቃዎች ይህንን ያጥፉ።",
+minimumStock: "ዝቅተኛ ክምችት",
+reorderLevel: "የድጋሚ ማዘዣ ደረጃ",
+saving: "በማስቀመጥ ላይ...",
+saveProduct: "ምርት አስቀምጥ",
+saveProductError:
+  "ምርቱን ማስቀመጥ አልተቻለም።",
+  optionalReceiptNotes:
+  "አማራጭ የመቀበያ ማስታወሻዎች",
+receiving:
+  "በመቀበል ላይ...",
+  backToInventory: "ወደ ኢንቬንተሪ ተመለስ",
+},
+
 saleForm: {
   saleDetails: "የሽያጭ ዝርዝሮች",
   referenceNumber: "የማጣቀሻ ቁጥር",
@@ -1607,6 +2799,7 @@ saleForm: {
 recordSaleTitle: "ሽያጭ ይመዝግቡ",
 recordSaleDescription:
   "ምርቶችን ያክሉ እና አዲስ ሽያጭ ይመዝግቡ።",
+  
 },
 
 saleDetail: {
@@ -1761,6 +2954,82 @@ recordPayment: {
         "የክፍያ ሁኔታን ማዘመን አልተቻለም።",
       record: "መዝግብ",
     },
+	
+	suppliers: {
+  title: "አቅራቢዎች",
+  breadcrumb: "ግዢ / አቅራቢዎች",
+  description:
+    "የአቅራቢዎች ግንኙነቶችን፣ የግዢ ውሎችን እና የመገኛ መረጃዎችን በአንድ ቦታ ያስተዳድሩ።",
+  addSupplier: "አቅራቢ ያክሉ",
+  activeSupplier: "ንቁ አቅራቢ",
+  activeSuppliers: "ንቁ አቅራቢዎች",
+  supplier: "አቅራቢ",
+  suppliersOnRecord: "በመዝገብ ላይ ያሉ አቅራቢዎች",
+  availableForPurchasing: "ለግዢ ዝግጁ",
+  contactable: "ሊገናኙ የሚችሉ",
+  suppliersWithEmail: "ኢሜይል ያላቸው አቅራቢዎች",
+  paymentTerms: "የክፍያ ውሎች",
+  suppliersWithCreditTerms:
+    "የክሬዲት ውሎች ያላቸው አቅራቢዎች",
+  supplierManagement: "የአቅራቢ አስተዳደር",
+  yourSupplierNetwork: "የአቅራቢዎ አውታረ መረብ",
+  supplierNetworkDescription:
+    "የግዢ ግንኙነቶችዎን ያደራጁ እና ለሚቀጥለው ትዕዛዝዎ ዝግጁ ያድርጉ።",
+  activeSuppliersTitle: "ንቁ አቅራቢዎች",
+  readyForPurchasing: "ለግዢ ዝግጁ",
+  activeSuppliersDescription:
+    "ንቁ አቅራቢዎች ግዢዎችን ሲፈጥሩ እና ሲያስተዳድሩ መጠቀም ይችላሉ።",
+  paymentTermsTitle: "የክፍያ ውሎች",
+  supplierCreditInformation:
+    "የአቅራቢ ክሬዲት መረጃ",
+  paymentTermsDescription:
+    "ከወዲያውኑ ክፍያ በላይ የክፍያ ውሎችን የሚሰጡ አቅራቢዎችን ይከታተሉ።",
+  contactDetails: "የመገኛ መረጃ",
+  keepSupplierInformationCurrent:
+    "የአቅራቢ መረጃን ወቅታዊ ያድርጉ",
+  contactDetailsDescription:
+    "የአቅራቢዎችን ስልክ ቁጥሮች፣ የኢሜይል አድራሻዎች እና የግብር መረጃዎችን ለቀላል ማጣቀሻ ያስቀምጡ።",
+  supplierRegister: "የአቅራቢዎች መዝገብ",
+  supplierDirectory: "የአቅራቢዎች ማውጫ",
+  supplierDirectoryDescription:
+    "ከእነሱ ጋር ግዢ የሚያደርጉባቸውን ንግዶች ይመልከቱ።",
+  addAnotherSupplier: "ሌላ አቅራቢ ያክሉ",
+  noSuppliersYet: "እስካሁን ምንም አቅራቢዎች የሉም",
+  addFirstSupplierDescription:
+    "የግዢ ግንኙነቶችን ማስተዳደር ለመጀመር የመጀመሪያዎን አቅራቢ ያክሉ።",
+  addFirstSupplier: "የመጀመሪያዎን አቅራቢ ያክሉ",
+  tax: "ግብር",
+  contact: "የመገኛ መረጃ",
+  currency: "ምንዛሬ",
+  creditTerms: "የክሬዲት ውሎች",
+  immediate: "ወዲያውኑ",
+  days: "ቀናት",
+  status: "ሁኔታ",
+  action: "እርምጃ",
+  active: "ንቁ",
+  inactive: "ንቁ ያልሆነ",
+  purchasingConnection:
+    "አቅራቢዎች በቀጥታ ከግዢ ጋር ይገናኛሉ",
+  purchasingConnectionDescription:
+    "ግዢዎችን ሲፈጥሩ እና የሚገቡ እቃዎችን ሲያስተዳድሩ የአቅራቢዎች ማውጫዎን ይጠቀሙ።",
+  openPurchases: "ግዢዎችን ክፈት",
+  noPhone: "ስልክ የለም",
+  noEmail: "ኢሜይል የለም",
+  addSupplierDescription: "የእርስዎ ንግድ ግዢ የሚያደርግበትን አቅራቢ ያክሉ።",
+supplierInformation: "የአቅራቢ መረጃ",
+supplierName: "የአቅራቢ ስም",
+supplierNamePlaceholder: "ለምሳሌ ABC Distributors",
+phone: "ስልክ",
+email: "ኢሜይል",
+optional: "አማራጭ",
+address: "አድራሻ",
+optionalSupplierAddress: "አማራጭ የአቅራቢ አድራሻ",
+taxNumber: "የግብር ቁጥር",
+selectCurrency: "ምንዛሬ ይምረጡ",
+saving: "በማስቀመጥ ላይ...",
+saveSupplier: "አቅራቢን አስቀምጥ",
+unableToSaveSupplier: "አቅራቢውን ማስቀመጥ አልተቻለም።",
+},
 
     setup: {
       title: "ንግድዎን ያዘጋጁ",
@@ -1770,6 +3039,63 @@ recordPayment: {
       city: "ከተማ",
       currency: "ምንዛሬ",
       continue: "ቀጥል",
-    },
+	  businessInformation: "የንግድ መረጃ",
+      businessInformationDescription: "በመጀመሪያ የንግድዎን መሠረታዊ መረጃ ያስገቡ።",
+      businessNamePlaceholder: "ለምሳሌ ኬያ ሬስቶራንት",
+      businessTypeDescription: "ይህ ለንግድዎ ተስማሚ መሣሪያዎችን ለማዘጋጀት ይረዳናል።",
+      regionalSettings: "የክልል ቅንብሮች",
+      regionalSettingsDescription: "አገርዎን እንደ መነሻ እንጠቀማለን፣ ነገር ግን እነዚህን ቅንብሮች ማበጀት ይችላሉ።",
+      baseCurrency: "መሠረታዊ ምንዛሬ",
+      firstLocation: "የመጀመሪያ አካባቢ",
+      firstLocationDescription: "በአንድ ቅርንጫፍ እና አንድ የእቃ ማከማቻ አካባቢ ይጀምሩ። በኋላ ተጨማሪ ማከል ይችላሉ።",
+      branchName: "የቅርንጫፍ ስም",
+      mainBranchPlaceholder: "ዋና ቅርንጫፍ",
+      branchCode: "የቅርንጫፍ ኮድ",
+      inventoryLocation: "የእቃ ማከማቻ አካባቢ",
+      mainWarehousePlaceholder: "ዋና መጋዘን",
+      locationCode: "የአካባቢ ኮድ",
+      setupSummary: "የቅንብር ማጠቃለያ",
+      business: "ንግድ",
+      type: "ዓይነት",
+      
+      branch: "ቅርንጫፍ",
+      notProvided: "አልተሰጠም",
+      setupReady: "የንግድዎ ቅንብር ትክክል ነው እና ለመቀመጥ ዝግጁ ነው።",
+      checkInformation: "እባክዎ የተጠቆሙትን መረጃዎች ይመልከቱ።",
+      unableToSaveSetup: "የንግድዎን ቅንብር ማስቀመጥ አልተቻለም።",
+      restaurant: "ሬስቶራንት",
+      restaurantDescription:
+        "ምግብ፣ መጠጦች፣ ሽያጭ፣ እቃ ክምችት እና ግዢዎችን ያስተዳድሩ።",
+      
+      bar: "ባር",
+      barDescription:
+        "መጠጦችን፣ ክምችትን፣ ሽያጭን፣ ግዢን እና ገንዘብን ያስተዳድሩ።",
+      
+      hotel: "ሆቴል",
+      hotelDescription:
+        "የሆቴል ስራዎችን፣ ሽያጭን፣ እቃ ክምችትን እና አገልግሎቶችን ያስተዳድሩ።",
+      
+      hospitalClinic: "ሆስፒታል / ክሊኒክ",
+      hospitalClinicDescription:
+        "አቅርቦቶችን፣ መድኃኒቶችን፣ ሽያጭን፣ ግዢን እና የስራ እንቅስቃሴዎችን ያስተዳድሩ።",
+      
+      supermarket: "ሱፐርማርኬት",
+      supermarketDescription:
+        "ምርቶችን፣ በባርኮድ ሽያጭን፣ ክምችትን፣ አቅራቢዎችን እና ደንበኞችን ያስተዳድሩ።",
+      
+      shop: "ሱቅ",
+      shopDescription:
+        "ምርቶችን፣ ሽያጭን፣ ክምችትን፣ ግዢን እና ደንበኞችን ያስተዳድሩ።",
+      
+            otherBusiness: "ሌላ ንግድ",
+      otherBusinessDescription:
+        "በመሠረታዊ የንግድ መሣሪያዎች ይጀምሩ እና በኋላ ተጨማሪ ያዘጋጁ።",
+      heading: "ንግድዎን ያዘጋጁ",
+description:
+  "ለንግድዎ ተስማሚ መሣሪያዎችን ለማዘጋጀት ስለ ንግድዎ መረጃ ያስገቡ።",
+language: "ቋንቋ",
+timezone: "የሰዓት ክልል",   
+
+   },
   },
 };

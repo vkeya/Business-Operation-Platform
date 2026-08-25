@@ -8,6 +8,7 @@ import {
 } from "react";
 import ProductSearch from "./ProductSearch";
 import { getAllInventoryBalancesAction } from "./listActions";
+import { getTranslations } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -28,6 +29,8 @@ interface ProductListProps {
 export default function ProductList({
   products: initialProducts,
 }: ProductListProps) {
+  const t = getTranslations();
+
   const [products, setProducts] =
     useState(initialProducts);
 
@@ -75,7 +78,7 @@ export default function ProductList({
         <div>
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-slate-950">
-              Product catalogue
+              {t.inventory.productCatalogue}
             </h2>
 
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
@@ -84,8 +87,7 @@ export default function ProductList({
           </div>
 
           <p className="mt-1 text-sm text-slate-500">
-            Search, review and update the products your
-            business sells.
+            {t.inventory.searchReviewEditProducts}
           </p>
         </div>
 
@@ -107,11 +109,11 @@ export default function ProductList({
           </div>
 
           <p className="mt-4 text-base font-semibold text-slate-900">
-            No products found
+            {t.inventory.noProductsFound}
           </p>
 
           <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
-            Try a different product name, SKU or barcode.
+            {t.inventory.productSearchEmptyDescription}
           </p>
         </div>
       ) : (
@@ -120,7 +122,7 @@ export default function ProductList({
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-left">
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Product
+                  {t.inventory.product}
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
@@ -128,23 +130,23 @@ export default function ProductList({
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Type
+                  {t.inventory.type}
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Selling price
+                  {t.inventory.sellingPrice}
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Stock
+                  {t.inventory.stock}
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Status
+                  {t.inventory.status}
                 </th>
 
                 <th className="px-6 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Action
+                  {t.inventory.action}
                 </th>
               </tr>
             </thead>
@@ -240,13 +242,13 @@ export default function ProductList({
                             </p>
 
                             <p className="text-[11px] text-slate-400">
-                              Tracked
+                              {t.inventory.tracked}
                             </p>
                           </div>
                         </div>
                       ) : (
                         <span className="text-xs font-medium text-slate-400">
-                          Not tracked
+                          {t.inventory.notTracked}
                         </span>
                       )}
                     </td>
@@ -278,7 +280,7 @@ export default function ProductList({
                         href={`/inventory/products/${product.id}`}
                         className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-80 shadow-sm transition hover:border-slate-300 hover:bg-slate-950 hover:text-white hover:opacity-100"
                       >
-                        Edit
+                        {t.inventory.edit}
                       </Link>
                     </td>
                   </tr>

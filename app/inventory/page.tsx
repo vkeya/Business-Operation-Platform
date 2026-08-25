@@ -3,38 +3,43 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
-const stockActions = [
-  {
-    title: "Add product",
-    description: "Create a product or service.",
-    href: "/inventory/products/new",
-    label: "Catalogue",
-  },
-  {
-    title: "Receive stock",
-    description: "Record products coming into your business.",
-    href: "/inventory/receive",
-    label: "Inbound",
-  },
-  {
-    title: "Adjust stock",
-    description: "Correct a stock quantity when needed.",
-    href: "/inventory/adjust",
-    label: "Correction",
-  },
-  {
-    title: "Transfer stock",
-    description: "Move stock between warehouses.",
-    href: "/inventory/transfer",
-    label: "Movement",
-  },
-];
-
 export default async function InventoryPage() {
   const business = await getCurrentBusiness();
+
+  const locale = await getLocale();
+  const t = getTranslations(locale);
+
+  const stockActions = [
+    {
+      title: t.inventory.addProduct,
+      description: t.inventory.createProductOrService,
+      href: "/inventory/products/new",
+      label: t.inventory.catalogue,
+    },
+    {
+      title: t.inventory.receiveStock,
+      description: t.inventory.receiveStockDescription,
+      href: "/inventory/receive",
+      label: t.inventory.inbound,
+    },
+    {
+      title: t.inventory.adjustStock,
+      description: t.inventory.adjustStockDescription,
+      href: "/inventory/adjust",
+      label: t.inventory.correction,
+    },
+    {
+      title: t.inventory.transferStock,
+      description: t.inventory.transferStockDescription,
+      href: "/inventory/transfer",
+      label: t.inventory.movement,
+    },
+  ];
 
   const balances = await inventoryService.listBalances(
     business.id,
@@ -203,7 +208,7 @@ export default async function InventoryPage() {
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
-                Inventory
+                {t.inventory.title}
               </span>
 
               <span
@@ -214,22 +219,17 @@ export default async function InventoryPage() {
                 }`}
               >
                 {lowStockCount > 0
-                  ? `${lowStockCount} item${
-                      lowStockCount === 1
-                        ? ""
-                        : "s"
-                    } need attention`
-                  : "Stock levels healthy"}
+                  ? t.inventory.itemsNeedAttention.replace("{count}", String(lowStockCount))
+                  : t.inventory.stockLevelsHealthy}
               </span>
             </div>
 
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Inventory
+              {t.inventory.title}
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-              Stay on top of stock, replenishment and
-              inventory movements across your business.
+              {t.inventory.heroDescription}
             </p>
           </div>
 
@@ -240,7 +240,7 @@ export default async function InventoryPage() {
             <span className="mr-2 text-emerald-600">
               +
             </span>
-            Add product
+            {t.inventory.addProduct}
           </Link>
         </div>
 
@@ -253,7 +253,7 @@ export default async function InventoryPage() {
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Products
+            {t.inventory.products}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -261,13 +261,13 @@ export default async function InventoryPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Items actively tracked
+            {t.inventory.itemsActivelyTracked}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Units in stock
+            {t.inventory.unitsInStock}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -275,14 +275,14 @@ export default async function InventoryPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Across active stock balances
+            {t.inventory.acrossActiveStockBalances}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Low stock
+              {t.inventory.lowStock}
             </p>
 
             <span
@@ -299,13 +299,13 @@ export default async function InventoryPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Below configured threshold
+            {t.inventory.belowConfiguredThreshold}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Stock value
+            {t.inventory.stockValue}
           </p>
 
           <div className="mt-3 space-y-1">
@@ -335,7 +335,7 @@ export default async function InventoryPage() {
           </div>
 
           <p className="mt-2 text-xs text-slate-500">
-            Based on average stock cost
+            {t.inventory.basedOnAverageStockCost}
           </p>
         </div>
       </section>
@@ -344,16 +344,15 @@ export default async function InventoryPage() {
       <section>
         <div className="mb-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-            Operations
+            {t.inventory.operations}
           </p>
 
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-            Quick actions
+            {t.inventory.quickActions}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Common tasks for keeping your inventory
-            accurate.
+            {t.inventory.commonTasks}
           </p>
         </div>
 
@@ -396,15 +395,15 @@ export default async function InventoryPage() {
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-                Live stock
+                {t.inventory.liveStock}
               </p>
 
               <h2 className="mt-1 text-lg font-semibold text-slate-950">
-                Current stock levels
+                {t.inventory.currentStockLevels}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Your latest stock balances by warehouse.
+                {t.inventory.latestStockBalances}
               </p>
             </div>
 
@@ -412,7 +411,7 @@ export default async function InventoryPage() {
               href="/inventory/history"
               className="text-xs font-semibold text-slate-600 transition hover:text-slate-950"
             >
-              View history →
+              {t.inventory.viewHistory} →
             </Link>
           </div>
 
@@ -423,19 +422,18 @@ export default async function InventoryPage() {
               </div>
 
               <p className="mt-4 text-sm font-semibold text-slate-900">
-                No stock records yet
+                {t.inventory.noStockRecordsYet}
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Receive your first stock movement to
-                start building inventory.
+                {t.inventory.receiveFirstStock}
               </p>
 
               <Link
                 href="/inventory/receive"
                 className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800"
               >
-                Receive stock
+                {t.inventory.receiveStock}
               </Link>
             </div>
           ) : (
@@ -482,15 +480,15 @@ export default async function InventoryPage() {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-6 py-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-amber-600">
-              Attention
+              {t.inventory.attention}
             </p>
 
             <h2 className="mt-1 text-lg font-semibold text-slate-950">
-              Stock alerts
+              {t.inventory.stockAlerts}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Items that may need replenishment.
+              {t.inventory.itemsNeedReplenishment}
             </p>
           </div>
 
@@ -502,12 +500,11 @@ export default async function InventoryPage() {
                 </div>
 
                 <p className="mt-4 text-sm font-semibold text-emerald-900">
-                  Stock levels look healthy
+                  {t.inventory.stockLevelsLookHealthy}
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-emerald-700">
-                  No products are currently below
-                  their configured threshold.
+                  {t.inventory.noProductsBelowThreshold}
                 </p>
               </div>
             ) : (
@@ -541,8 +538,8 @@ export default async function InventoryPage() {
                         >
                           {alert.status ===
                           "OUT_OF_STOCK"
-                            ? "Out of stock"
-                            : "Low stock"}
+                            ? t.inventory.outOfStock
+                            : t.inventory.lowStock}
                         </span>
                       </div>
 
@@ -553,12 +550,12 @@ export default async function InventoryPage() {
                           </p>
 
                           <p className="text-[11px] text-slate-400">
-                            Current quantity
+                            {t.inventory.currentQuantity}
                           </p>
                         </div>
 
                         <p className="text-xs text-slate-500">
-                          Threshold{" "}
+                          t.inventory.threshold{" "}
                           <span className="font-semibold text-slate-700">
                             {alert.threshold}
                           </span>
@@ -576,7 +573,7 @@ export default async function InventoryPage() {
                 href="/inventory/products"
                 className="text-xs font-semibold text-slate-600 hover:text-slate-950"
               >
-                View all products →
+                {t.inventory.viewAllProducts} →
               </Link>
             </div>
           )}
@@ -590,19 +587,19 @@ export default async function InventoryPage() {
           className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Catalogue
+            {t.inventory.catalogue}
           </p>
 
           <p className="mt-2 font-semibold text-slate-900">
-            Manage products
+            {t.inventory.manageProducts}
           </p>
 
           <p className="mt-1 text-sm text-slate-500">
-            {products.length} products and services
+            {products.length} {t.inventory.productsAndServices}
           </p>
 
           <p className="mt-4 text-xs font-semibold text-slate-600 group-hover:text-slate-950">
-            Open catalogue →
+            {t.inventory.openCatalogue} →
           </p>
         </Link>
 
@@ -611,25 +608,25 @@ export default async function InventoryPage() {
           className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Activity
+            {t.inventory.activity}
           </p>
 
           <p className="mt-2 font-semibold text-slate-900">
-            Stock movements
+            {t.inventory.stockMovements}
           </p>
 
           <p className="mt-1 text-sm text-slate-500">
-            Review receipts, transfers and adjustments.
+            {t.inventory.reviewStockMovements}
           </p>
 
           <p className="mt-4 text-xs font-semibold text-slate-600 group-hover:text-slate-950">
-            View movements →
+            {t.inventory.viewMovements} →
           </p>
         </Link>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Warehouses
+            {t.inventory.warehouses}
           </p>
 
           <p className="mt-2 font-semibold text-slate-900">
@@ -637,7 +634,7 @@ export default async function InventoryPage() {
           </p>
 
           <p className="mt-1 text-sm text-slate-500">
-            Active inventory locations
+            {t.inventory.activeInventoryLocations}
           </p>
         </div>
       </section>

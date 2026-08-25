@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { getSuppliersAction } from "./action";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuppliersPage() {
   const suppliers = await getSuppliersAction();
+  
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const activeSuppliers = suppliers.filter(
     (supplier) => supplier.isActive,
@@ -25,14 +30,14 @@ export default async function SuppliersPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 lg:px-10">
+   <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 lg:px-10">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-7 shadow-[0_18px_45px_rgba(15,23,42,0.10)] sm:px-8 sm:py-8">
         <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
-                Purchasing
+                {t.suppliers.breadcrumb}
               </span>
 
               <span
@@ -42,21 +47,19 @@ export default async function SuppliersPage() {
                     : "bg-white/10 text-slate-300"
                 }`}
               >
-                {activeSuppliers.length} active supplier
+                {activeSuppliers.length}{" "}
                 {activeSuppliers.length === 1
-                  ? ""
-                  : "s"}
+                  ? t.suppliers.activeSupplier
+                  : t.suppliers.activeSuppliers}
               </span>
             </div>
 
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Suppliers
+              {t.suppliers.title}
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-              Keep your supplier relationships, purchasing
-              terms and contact information organised in one
-              place.
+              {t.suppliers.description}
             </p>
           </div>
 
@@ -67,7 +70,7 @@ export default async function SuppliersPage() {
             <span className="mr-2 text-emerald-600">
               +
             </span>
-            Add supplier
+            {t.suppliers.addSupplier}
           </Link>
         </div>
 
@@ -88,13 +91,13 @@ export default async function SuppliersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Suppliers on record
+            {t.suppliers.suppliersOnRecord}
           </p>
         </div>
 
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-            Active
+            {t.suppliers.active}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-emerald-900">
@@ -102,13 +105,13 @@ export default async function SuppliersPage() {
           </p>
 
           <p className="mt-2 text-xs text-emerald-700">
-            Available for purchasing
+            {t.suppliers.availableForPurchasing}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Contactable
+            {t.suppliers.contactable}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -116,13 +119,13 @@ export default async function SuppliersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Suppliers with email
+            {t.suppliers.suppliersWithEmail}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-            Payment terms
+            {t.suppliers.paymentTerms}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
@@ -130,7 +133,7 @@ export default async function SuppliersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Suppliers with credit terms
+            {t.suppliers.suppliersWithCreditTerms}
           </p>
         </div>
       </section>
@@ -139,16 +142,15 @@ export default async function SuppliersPage() {
       <section>
         <div className="mb-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-            Supplier management
+            {t.suppliers.supplierManagement}
           </p>
 
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-            Your supplier network
+            {t.suppliers.yourSupplierNetwork}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Keep purchasing relationships organised and
-            ready for your next order.
+            {t.suppliers.supplierNetworkDescription}
           </p>
         </div>
 
@@ -161,18 +163,17 @@ export default async function SuppliersPage() {
 
               <div>
                 <p className="font-semibold text-slate-900">
-                  Active suppliers
+                  {t.suppliers.activeSuppliersTitle}
                 </p>
 
                 <p className="text-xs text-slate-500">
-                  Ready for purchasing
+                  {t.suppliers.readyForPurchasing}
                 </p>
               </div>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-slate-500">
-              Active suppliers can be used when creating
-              and managing purchases.
+              {t.suppliers.activeSuppliersDescription}
             </p>
           </div>
 
@@ -184,18 +185,17 @@ export default async function SuppliersPage() {
 
               <div>
                 <p className="font-semibold text-slate-900">
-                  Payment terms
+                  {t.suppliers.paymentTerms}
                 </p>
 
                 <p className="text-xs text-slate-500">
-                  Supplier credit information
+                  {t.suppliers.supplierCreditInformation}
                 </p>
               </div>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-slate-500">
-              Keep track of suppliers that offer payment
-              terms beyond immediate settlement.
+              {t.suppliers.paymentTermsDescription}
             </p>
           </div>
 
@@ -207,18 +207,17 @@ export default async function SuppliersPage() {
 
               <div>
                 <p className="font-semibold text-slate-900">
-                  Contact details
+                  {t.suppliers.contactDetails}
                 </p>
 
                 <p className="text-xs text-slate-500">
-                  Keep supplier information current
+                  {t.suppliers.keepSupplierInformationCurrent}
                 </p>
               </div>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-slate-500">
-              Store supplier phone numbers, email addresses
-              and tax information for easy reference.
+              {t.suppliers.contactDetailsDescription}
             </p>
           </div>
         </div>
@@ -229,15 +228,15 @@ export default async function SuppliersPage() {
         <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-              Supplier register
+              {t.suppliers.supplierRegister}
             </p>
 
             <h2 className="mt-1 text-lg font-semibold text-slate-950">
-              Supplier directory
+              {t.suppliers.supplierDirectory}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Review the businesses you purchase from.
+              {t.suppliers.supplierDirectoryDescription}
             </p>
           </div>
 
@@ -246,7 +245,7 @@ export default async function SuppliersPage() {
               href="/suppliers/new"
               className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
             >
-              + Add another supplier
+              + {t.suppliers.addAnotherSupplier}
             </Link>
           )}
         </div>
@@ -258,19 +257,18 @@ export default async function SuppliersPage() {
             </div>
 
             <p className="mt-5 text-lg font-semibold text-slate-950">
-              No suppliers yet
+              {t.suppliers.noSuppliersYet}
             </p>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Add your first supplier to start managing
-              purchasing relationships.
+              {t.suppliers.addFirstSupplierDescription}
             </p>
 
             <Link
               href="/suppliers/new"
               className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Add your first supplier
+              {t.suppliers.addFirstSupplier}
             </Link>
           </div>
         ) : (
@@ -279,27 +277,27 @@ export default async function SuppliersPage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/70 text-left">
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Supplier
+                    {t.suppliers.supplier}
                   </th>
 
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Contact
+                    {t.suppliers.contact}
                   </th>
 
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Currency
+                    {t.suppliers.currency}
                   </th>
 
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Payment terms
+                    {t.suppliers.paymentTerms}
                   </th>
 
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Status
+                    {t.suppliers.status}
                   </th>
 
                   <th className="px-6 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Action
+                    {t.suppliers.action}
                   </th>
                 </tr>
               </thead>
@@ -335,7 +333,7 @@ export default async function SuppliersPage() {
 
                             {supplier.taxNumber && (
                               <p className="mt-1 text-xs text-slate-400">
-                                Tax:{" "}
+                                {t.suppliers.tax}:{" "}
                                 {supplier.taxNumber}
                               </p>
                             )}
@@ -345,12 +343,12 @@ export default async function SuppliersPage() {
 
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-slate-700">
-                          {supplier.phone || "No phone"}
+                          {supplier.phone || t.suppliers.noPhone}
                         </p>
 
                         <p className="mt-1 text-xs text-slate-500">
                           {supplier.email ||
-                            "No email"}
+                            t.suppliers.noEmail}
                         </p>
                       </td>
 
@@ -368,16 +366,16 @@ export default async function SuppliersPage() {
                               {
                                 supplier.paymentTermsDays
                               }{" "}
-                              days
+                              {t.suppliers.days}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
-                              Credit terms
+                              {t.suppliers.creditTerms}
                             </p>
                           </div>
                         ) : (
                           <span className="text-sm text-slate-400">
-                            Immediate
+                            {t.suppliers.immediate}
                           </span>
                         )}
                       </td>
@@ -399,14 +397,14 @@ export default async function SuppliersPage() {
                           />
 
                           {supplier.isActive
-                            ? "Active"
-                            : "Inactive"}
+                            ? t.suppliers.active
+                            : t.suppliers.inactive}
                         </span>
                       </td>
 
                       <td className="px-6 py-4 text-right">
                         <span className="text-xs font-semibold text-slate-400">
-                          Supplier
+                          {t.suppliers.supplier}
                         </span>
                       </td>
                     </tr>
@@ -423,12 +421,11 @@ export default async function SuppliersPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-800">
-              Suppliers connect directly to purchasing
+              {t.suppliers.purchasingConnection}
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Use your supplier directory when creating
-              purchases and managing incoming stock.
+              {t.suppliers.purchasingConnectionDescription}
             </p>
           </div>
 
@@ -436,7 +433,7 @@ export default async function SuppliersPage() {
             href="/purchases"
             className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
           >
-            Open purchases →
+            {t.suppliers.openPurchases} →
           </Link>
         </div>
       </section>

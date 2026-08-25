@@ -19,11 +19,6 @@ export default async function CustomersPage() {
     (customer) => customer._count?.sales > 0,
   );
 
-  const customerLabel =
-    customers.length === 1
-      ? t.navigation.customers
-      : t.navigation.customers;
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 lg:px-10">
       <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -37,8 +32,7 @@ export default async function CustomersPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Manage your customers and keep their sales history
-            connected to your business.
+            {t.customers.description}
           </p>
         </div>
 
@@ -46,7 +40,7 @@ export default async function CustomersPage() {
           href="/customers/new"
           className="inline-flex w-fit items-center justify-center rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
         >
-          {t.common.add} {t.navigation.customers.toLowerCase()}
+          {t.customers.addCustomer}
         </Link>
       </section>
 
@@ -61,7 +55,7 @@ export default async function CustomersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Customers on record
+		  {t.customers.customersOnRecord}
           </p>
         </div>
 
@@ -75,13 +69,13 @@ export default async function CustomersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Currently active
+            {t.customers.currentlyActive}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">
-            With sales
+            {t.customers.withSales}
           </p>
 
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
@@ -89,7 +83,7 @@ export default async function CustomersPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Customers with recorded sales
+            {t.customers.customersWithRecordedSales}
           </p>
         </div>
       </section>
@@ -98,39 +92,38 @@ export default async function CustomersPage() {
         <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold text-slate-900">
-              Customer records
+              {t.customers.customerRecords}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              View customers and open their account details.
+              {t.customers.viewCustomersAndDetails}
             </p>
           </div>
 
           <span className="text-xs font-medium text-slate-400">
-            {customers.length} {customerLabel}
+            {t.customers.customersOnRecord}
           </span>
         </div>
 
         {customers.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-lg font-semibold text-slate-500">
-              C
-            </div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-500">
+  👥
+</div>
 
             <h3 className="mt-4 font-semibold text-slate-900">
-              No customers yet
+              {t.customers.noCustomersYet}
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-              Create your first customer record so future sales can
-              be connected to the right customer.
+              {t.customers.createFirstCustomer}
             </p>
 
             <Link
               href="/customers/new"
               className="mt-5 inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
             >
-              {t.common.add} {t.navigation.customers.toLowerCase()}
+              {t.customers.addCustomer}
             </Link>
           </div>
         ) : (
@@ -143,7 +136,7 @@ export default async function CustomersPage() {
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Contact
+                    {t.customers.contact}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -151,7 +144,7 @@ export default async function CustomersPage() {
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Credit limit
+                    {t.customers.creditLimit}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -184,7 +177,8 @@ export default async function CustomersPage() {
 
                         {customer.taxNumber && (
                           <p className="mt-1 text-xs text-slate-400">
-                            Tax: {customer.taxNumber}
+                            {t.customers.tax}:{" "}
+                            {customer.taxNumber}
                           </p>
                         )}
                       </td>
@@ -227,7 +221,7 @@ export default async function CustomersPage() {
                         >
                           {customer.isActive
                             ? t.dashboard.active
-                            : "Inactive"}
+                            : t.customers.inactive}
                         </span>
                       </td>
 

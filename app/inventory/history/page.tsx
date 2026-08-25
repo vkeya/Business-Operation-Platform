@@ -3,6 +3,8 @@ import { getInventoryMovementsAction } from "../action";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
+import { getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
 
 export default async function InventoryHistoryPage({
   searchParams,
@@ -27,6 +29,9 @@ const toDate = params.to
   
   const business =
   await getCurrentBusiness();
+  
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
 const products =
   await productService.listProducts(
@@ -78,20 +83,19 @@ const movementType =
           href="/inventory"
           className="text-sm text-slate-500 hover:text-slate-700"
         >
-          ← Inventory
+          ← {t.inventory.title}
         </Link>
 
         <p className="mt-6 text-sm font-medium text-slate-500">
-          Inventory
+          {t.inventory.title}
         </p>
 
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-          Movement History
+          {t.inventory.movementHistory}
         </h1>
 
         <p className="mt-2 text-sm text-slate-600">
-          Review receipts, adjustments, and other inventory
-          movements.
+          {t.inventory.movementHistoryDescription}
         </p>
       </div>
 	  
@@ -104,7 +108,7 @@ const movementType =
         : "border-slate-300 text-slate-700 hover:bg-slate-50"
     }`}
   >
-    All
+    {t.inventory.all}
   </Link>
 
   {allowedMovementTypes.map((type) => (
@@ -135,8 +139,7 @@ const movementType =
         : "border-slate-300 text-slate-700 hover:bg-slate-50"
     }`}
   >
-    All products
-  </Link>
+    {t.inventory.allProducts}  </Link>
 
   {products
     .filter(
@@ -198,8 +201,7 @@ const movementType =
         : "border-slate-300 text-slate-700 hover:bg-slate-50"
     }`}
   >
-    All warehouses
-  </Link>
+    {t.inventory.allWarehouses}  </Link>
 
   {warehouses.map((warehouse) => {
     const query = new URLSearchParams();
@@ -270,7 +272,7 @@ const movementType =
       htmlFor="from"
       className="block text-xs font-medium text-slate-500"
     >
-      From
+      {t.inventory.from}
     </label>
 
     <input
@@ -287,7 +289,7 @@ const movementType =
       htmlFor="to"
       className="block text-xs font-medium text-slate-500"
     >
-      To
+      {t.inventory.to}
     </label>
 
     <input
@@ -303,18 +305,18 @@ const movementType =
     type="submit"
     className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
   >
-    Apply dates
+    {t.inventory.applyDates}
   </button>
 </form>
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {movements.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="font-medium text-slate-900">
-              No inventory movements yet
+              {t.inventory.noInventoryMovements}
             </p>
 
             <p className="mt-2 text-sm text-slate-500">
-              Stock receipts and adjustments will appear here.
+              {t.inventory.inventoryMovementsEmptyDescription}
             </p>
           </div>
         ) : (
@@ -323,35 +325,35 @@ const movementType =
               <thead>
                 <tr className="border-b border-slate-200 text-left">
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Date
+                    {t.inventory.date}
                   </th>
 				  
 				  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-  Product
+  {t.inventory.product}
 </th>
 
 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-  Warehouse
+  {t.inventory.warehouse}
 </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Type
+                    {t.inventory.type}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Quantity
+                    {t.inventory.quantity}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Unit cost
+                    {t.inventory.unitCost}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Total cost
+                    {t.inventory.totalCost}
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Notes
+                    {t.inventory.notes}
                   </th>
                 </tr>
               </thead>

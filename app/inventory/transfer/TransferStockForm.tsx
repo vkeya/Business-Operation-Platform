@@ -6,6 +6,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { transferStockAction } from "../action";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface Product {
   id: string;
@@ -25,11 +26,13 @@ interface Warehouse {
 interface TransferStockFormProps {
   products: Product[];
   warehouses: Warehouse[];
+  translations: TranslationSet;
 }
 
 export default function TransferStockForm({
   products,
   warehouses,
+  translations: t,
 }: TransferStockFormProps) {
   const [productId, setProductId] =
     useState("");
@@ -69,20 +72,22 @@ export default function TransferStockForm({
     setSuccess("");
 
     if (!productId) {
-      setError("Please select a product.");
+      setError(
+        t.inventory.selectProductRequired,
+      );
       return;
     }
 
     if (!fromWarehouseId) {
       setError(
-        "Please select a source warehouse.",
+        t.inventory.selectSourceWarehouseRequired,
       );
       return;
     }
 
     if (!toWarehouseId) {
       setError(
-        "Please select a destination warehouse.",
+        t.inventory.selectDestinationWarehouseRequired,
       );
       return;
     }
@@ -92,7 +97,7 @@ export default function TransferStockForm({
       toWarehouseId
     ) {
       setError(
-        "Source and destination warehouses must be different.",
+        t.inventory.warehousesMustBeDifferent,
       );
       return;
     }
@@ -105,14 +110,14 @@ export default function TransferStockForm({
       parsedQuantity <= 0
     ) {
       setError(
-        "Transfer quantity must be greater than zero.",
+        t.inventory.transferQuantityPositive,
       );
       return;
     }
 
     if (!selectedProduct) {
       setError(
-        "Selected product was not found.",
+        t.inventory.selectedProductNotFound,
       );
       return;
     }
@@ -132,7 +137,7 @@ export default function TransferStockForm({
       });
 
       setSuccess(
-        `Successfully transferred ${parsedQuantity} ${selectedProduct.name}.`,
+        `${t.inventory.stockTransferredSuccessfully} ${parsedQuantity} ${selectedProduct.name}.`,
       );
 
       setQuantity("");
@@ -141,7 +146,7 @@ export default function TransferStockForm({
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to transfer stock.",
+          : t.inventory.transferStockError,
       );
     } finally {
       setSubmitting(false);
@@ -170,7 +175,7 @@ export default function TransferStockForm({
           htmlFor="productId"
           className="block text-sm font-medium text-slate-700"
         >
-          Product
+          {t.inventory.product}
         </label>
 
         <select
@@ -185,7 +190,7 @@ export default function TransferStockForm({
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select a product
+            {t.inventory.selectProduct}
           </option>
 
           {products
@@ -212,7 +217,7 @@ export default function TransferStockForm({
           htmlFor="fromWarehouseId"
           className="block text-sm font-medium text-slate-700"
         >
-          From warehouse
+          {t.inventory.fromWarehouse}
         </label>
 
         <select
@@ -227,7 +232,7 @@ export default function TransferStockForm({
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select source warehouse
+            {t.inventory.selectSourceWarehouse}
           </option>
 
           {warehouses.map(
@@ -249,7 +254,7 @@ export default function TransferStockForm({
           htmlFor="toWarehouseId"
           className="block text-sm font-medium text-slate-700"
         >
-          To warehouse
+          {t.inventory.toWarehouse}
         </label>
 
         <select
@@ -264,7 +269,7 @@ export default function TransferStockForm({
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
         >
           <option value="">
-            Select destination warehouse
+            {t.inventory.selectDestinationWarehouse}
           </option>
 
           {warehouses.map(
@@ -286,7 +291,7 @@ export default function TransferStockForm({
           htmlFor="quantity"
           className="block text-sm font-medium text-slate-700"
         >
-          Quantity
+          {t.inventory.quantity}
         </label>
 
         <input
@@ -301,14 +306,16 @@ export default function TransferStockForm({
             )
           }
           required
-          placeholder="Enter quantity"
+          placeholder={
+            t.inventory.enterQuantity
+          }
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
         />
       </div>
 
       {selectedProduct && (
         <p className="text-sm text-slate-500">
-          Currency:{" "}
+          {t.inventory.currency}:{" "}
           <span className="font-medium text-slate-700">
             {selectedProduct.currency}
           </span>
@@ -320,7 +327,7 @@ export default function TransferStockForm({
           htmlFor="notes"
           className="block text-sm font-medium text-slate-700"
         >
-          Notes
+          {t.inventory.notes}
         </label>
 
         <textarea
@@ -330,7 +337,9 @@ export default function TransferStockForm({
           onChange={(event) =>
             setNotes(event.target.value)
           }
-          placeholder="Optional transfer notes"
+          placeholder={
+            t.inventory.optionalTransferNotes
+          }
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
         />
       </div>
@@ -338,9 +347,9 @@ export default function TransferStockForm({
       <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
         <Link
           href="/inventory"
-          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
-          Cancel
+          {t.inventory.backToInventory}
         </Link>
 
         <button
@@ -349,8 +358,8 @@ export default function TransferStockForm({
           className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? "Transferring..."
-            : "Transfer stock"}
+            ? t.inventory.transferring
+            : t.inventory.transferStock}
         </button>
       </div>
     </form>
