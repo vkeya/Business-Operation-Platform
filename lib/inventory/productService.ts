@@ -80,7 +80,41 @@ export const productService = {
 
     return productRepository.list(businessId);
   },
-  
+
+  async listServices(businessId: string) {
+  if (!businessId) {
+    throw new Error("Business context is required.");
+  }
+
+  return productRepository.listByType(
+    businessId,
+    "SERVICE",
+  );
+},
+
+async listServicesByCategory(
+  businessId: string,
+  categoryId: string,
+) {
+  if (!businessId) {
+    throw new Error(
+      "Business context is required.",
+    );
+  }
+
+  if (!categoryId) {
+    throw new Error(
+      "Service category is required.",
+    );
+  }
+
+  return productRepository.listByTypeAndCategory(
+    businessId,
+    "SERVICE",
+    categoryId,
+  );
+},
+
   async searchProducts(
   businessId: string,
   query: string,

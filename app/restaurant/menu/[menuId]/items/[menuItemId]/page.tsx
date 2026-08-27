@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 interface MenuItemPageProps {
   params: Promise<{
@@ -13,12 +15,12 @@ interface MenuItemPageProps {
 export default async function RestaurantMenuItemPage({
   params,
 }: MenuItemPageProps) {
-  const {
-    menuId,
-    menuItemId,
-  } = await params;
+  const { menuId, menuItemId } = await params;
 
   const business = await getCurrentBusiness();
+
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   if (business.type !== "restaurant") {
     notFound();
@@ -49,7 +51,7 @@ export default async function RestaurantMenuItemPage({
 
         <div className="mt-6">
           <p className="text-sm font-semibold text-emerald-600">
-            Restaurant / Menu Item
+            {t.restaurantMenu.menuItem}
           </p>
 
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -81,8 +83,8 @@ export default async function RestaurantMenuItemPage({
               />
 
               {menuItem.isAvailable
-                ? "Available"
-                : "Unavailable"}
+                ? t.restaurantMenu.available
+                : t.restaurantMenu.unavailable}
             </span>
           </div>
         </div>
@@ -93,11 +95,11 @@ export default async function RestaurantMenuItemPage({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Menu item
+                {t.restaurantMenu.menuItem}
               </p>
 
               <h2 className="mt-2 text-lg font-semibold text-slate-950">
-                Item details
+                {t.restaurantMenu.itemDetails}
               </h2>
             </div>
 
@@ -109,7 +111,7 @@ export default async function RestaurantMenuItemPage({
           <div className="mt-7 divide-y divide-slate-100">
             <div className="pb-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Selling price
+                {t.restaurantMenu.sellingPrice}
               </p>
 
               <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
@@ -120,7 +122,7 @@ export default async function RestaurantMenuItemPage({
 
             <div className="py-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Availability
+                {t.restaurantMenu.availability}
               </p>
 
               <p
@@ -131,15 +133,15 @@ export default async function RestaurantMenuItemPage({
                 }
               >
                 {menuItem.isAvailable
-                  ? "Available for sale"
-                  : "Currently unavailable"}
+                  ? t.restaurantMenu.availableForSale
+                  : t.restaurantMenu.currentlyUnavailable}
               </p>
             </div>
 
             {menuItem.product && (
               <div className="pt-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                  Inventory product
+                  {t.restaurantMenu.inventoryProduct}
                 </p>
 
                 <p className="mt-2 text-sm font-semibold text-slate-950">
@@ -147,7 +149,7 @@ export default async function RestaurantMenuItemPage({
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  SKU: {menuItem.product.sku}
+                  {t.restaurantMenu.sku}: {menuItem.product.sku}
                 </p>
               </div>
             )}
@@ -160,16 +162,15 @@ export default async function RestaurantMenuItemPage({
           </div>
 
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-            Operations
+            {t.restaurantMenu.operations}
           </p>
 
           <h2 className="mt-2 text-lg font-semibold text-slate-950">
-            Recipe & costing
+            {t.restaurantMenu.recipeAndCosting}
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            Manage the recipe used to prepare this menu item,
-            including its ingredients and costing.
+            {t.restaurantMenu.recipeAndCostingDescription}
           </p>
 
           <div className="mt-7">
@@ -177,7 +178,7 @@ export default async function RestaurantMenuItemPage({
               href={`/restaurant/menu/${menuId}/items/${menuItemId}/recipe`}
               className="group inline-flex items-center rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
-              Manage recipe
+              {t.restaurantMenu.manageRecipe}
               <span
                 className="ml-2 text-emerald-400 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"

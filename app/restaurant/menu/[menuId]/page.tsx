@@ -6,6 +6,8 @@ import {
 } from "@/lib/business/currentBusiness";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
 import { recipeService } from "@/lib/restaurant/recipeService";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 interface RestaurantMenuPageProps {
   params: Promise<{
@@ -23,6 +25,9 @@ export default async function RestaurantMenuDetailPage({
   if (business.type !== "restaurant") {
     notFound();
   }
+
+  const locale = await getLocale();
+  const t = getTranslations(locale);
 
   const menu = await restaurantMenuService.findMenuById(
     business.id,
@@ -97,13 +102,13 @@ export default async function RestaurantMenuDetailPage({
           <span aria-hidden="true" className="mr-2">
             ←
           </span>
-          Menus
+          {t.restaurantMenu.backToMenus}
         </Link>
 
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-emerald-600">
-              Restaurant / Menu
+              {t.restaurantMenu.restaurantMenuBreadcrumb}
             </p>
 
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
@@ -121,7 +126,7 @@ export default async function RestaurantMenuDetailPage({
             href={`/restaurant/menu/${menu.id}/items/new`}
             className="inline-flex w-fit items-center justify-center rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
           >
-            Add menu item
+            {t.restaurantMenu.addMenuItem}
             <span
               className="ml-2 text-emerald-400"
               aria-hidden="true"
@@ -140,11 +145,11 @@ export default async function RestaurantMenuDetailPage({
             </div>
 
             <p className="mt-5 font-semibold text-slate-950">
-              No menu items yet
+              {t.restaurantMenu.noMenuItemsYet}
             </p>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Add dishes, drinks or other items offered on this menu.
+              {t.restaurantMenu.addMenuItemsDescription}
             </p>
 
             <div className="mt-6">
@@ -152,7 +157,7 @@ export default async function RestaurantMenuDetailPage({
                 href={`/restaurant/menu/${menu.id}/items/new`}
                 className="inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                Add your first menu item
+                {t.restaurantMenu.addFirstMenuItem}
               </Link>
             </div>
           </div>
@@ -162,21 +167,22 @@ export default async function RestaurantMenuDetailPage({
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">
-                Menu items
+                {t.restaurantMenu.menuItems}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 {menu.items.length}{" "}
                 {menu.items.length === 1
-                  ? "item"
-                  : "items"}{" "}
-                in this menu
+                  ? t.restaurantMenu.item
+                  : t.restaurantMenu.items}{" "}
+                {t.restaurantMenu.inThisMenu}
               </p>
             </div>
 
             {warehouse && (
               <p className="text-xs font-medium text-slate-400">
-                Costing warehouse: {warehouse.name}
+                {t.restaurantMenu.costingWarehouse}:{" "}
+                {warehouse.name}
               </p>
             )}
           </div>
@@ -189,12 +195,11 @@ export default async function RestaurantMenuDetailPage({
 
               <div>
                 <p className="font-semibold">
-                  Warehouse required for costing
+                  {t.restaurantMenu.warehouseRequiredForCosting}
                 </p>
 
                 <p className="mt-1 text-amber-700">
-                  Add an active warehouse to calculate menu item
-                  profitability.
+                  {t.restaurantMenu.addActiveWarehouseForProfitability}
                 </p>
               </div>
             </div>
@@ -225,7 +230,7 @@ export default async function RestaurantMenuDetailPage({
                         </p>
                       ) : (
                         <p className="mt-2 text-sm text-slate-400">
-                          No description added.
+                          {t.restaurantMenu.noDescription}
                         </p>
                       )}
                     </div>
@@ -251,9 +256,10 @@ export default async function RestaurantMenuDetailPage({
                             : "mr-1.5 h-1.5 w-1.5 rounded-full bg-slate-400"
                         }
                       />
+
                       {item.isAvailable
-                        ? "Available"
-                        : "Unavailable"}
+                        ? t.restaurantMenu.available
+                        : t.restaurantMenu.unavailable}
                     </span>
 
                     <span className="text-sm font-semibold text-slate-300 transition-colors group-hover:text-emerald-500">
@@ -266,7 +272,7 @@ export default async function RestaurantMenuDetailPage({
                       <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                            Recipe cost
+                            {t.restaurantMenu.recipeCost}
                           </p>
 
                           <p className="mt-1.5 text-sm font-semibold text-slate-950">
@@ -277,7 +283,7 @@ export default async function RestaurantMenuDetailPage({
 
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                            Gross profit
+                            {t.restaurantMenu.grossProfit}
                           </p>
 
                           <p className="mt-1.5 text-sm font-semibold text-slate-950">
@@ -289,7 +295,7 @@ export default async function RestaurantMenuDetailPage({
                         <div className="col-span-2">
                           <div className="flex items-center justify-between">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                              Gross margin
+                              {t.restaurantMenu.grossMargin}
                             </p>
 
                             <p className="text-sm font-semibold text-slate-950">
@@ -316,12 +322,11 @@ export default async function RestaurantMenuDetailPage({
                     ) : (
                       <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-4">
                         <p className="text-xs font-semibold text-amber-700">
-                          No recipe costing available
+                          {t.restaurantMenu.noRecipeCostingAvailable}
                         </p>
 
                         <p className="mt-1 text-xs leading-5 text-slate-500">
-                          Add a recipe and ingredients to calculate
-                          profitability.
+                          {t.restaurantMenu.addRecipeIngredientsForProfitability}
                         </p>
                       </div>
                     )}

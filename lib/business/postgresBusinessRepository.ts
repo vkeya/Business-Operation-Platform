@@ -138,6 +138,48 @@ export const postgresBusinessRepository: BusinessRepository = {
     };
   },
 
+  async createProductCategory(input: {
+  businessId: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+}) {
+  return prisma.productCategory.create({
+    data: {
+      businessId: input.businessId,
+      name: input.name,
+      description: input.description,
+      parentId: input.parentId,
+    },
+  });
+},
+
+  async listBusinesses() {
+  const businesses = await prisma.business.findMany({
+    where: {
+      status: "ACTIVE",
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return businesses.map((business) => ({
+    id: business.id,
+    name: business.name,
+    legalName: business.legalName ?? undefined,
+    type: business.type as Business["type"],
+    country: business.country,
+    baseCurrency: business.baseCurrency,
+    language: business.language,
+    timezone: business.timezone,
+    status:
+      business.status.toLowerCase() as Business["status"],
+    createdAt: business.createdAt.toISOString(),
+    updatedAt: business.updatedAt.toISOString(),
+  }));
+},
+
   async getBusiness(businessId: string) {
     const business = await prisma.business.findUnique({
       where: {

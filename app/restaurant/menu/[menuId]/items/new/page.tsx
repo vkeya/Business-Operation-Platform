@@ -5,6 +5,8 @@ import {
   getRestaurantMenuProductsAction,
 } from "@/app/restaurant/actions";
 import MenuItemForm from "../MenuItemForm";
+import { getLocale } from "@/lib/i18n/locale";
+import { getTranslations } from "@/lib/i18n";
 
 interface NewMenuItemPageProps {
   params: Promise<{
@@ -16,6 +18,9 @@ export default async function NewMenuItemPage({
   params,
 }: NewMenuItemPageProps) {
   const { menuId } = await params;
+
+  const locale = await getLocale();
+const translations = getTranslations(locale);
 
   const business = await getCurrentBusiness();
 
@@ -50,13 +55,11 @@ export default async function NewMenuItemPage({
       </div>
 
       <MenuItemForm
-        menuId={menu.id}
-        currency={business.baseCurrency}
-        products={products.filter(
-          (product) =>
-            product.type === "PRODUCT",
-        )}
-      />
+  menuId={menuId}
+  currency={business.baseCurrency}
+  products={products}
+  translations={translations}
+/>
     </div>
   );
 }

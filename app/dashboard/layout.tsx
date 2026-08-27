@@ -5,6 +5,8 @@ import type { NavigationItem } from "@/lib/navigation/appNavigation";
 import { getLocale } from "@/lib/i18n/locale";
 import { getTranslations } from "@/lib/i18n";
 import LanguageSelector from "@/components/layout/LanguageSelector";
+import { getBusinessesAction } from "@/app/businesses/actions";
+import BusinessSwitcher from "@/components/business/BusinessSwitcher";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,8 @@ export default async function DashboardLayout({
 }>) {
   const business = await getCurrentBusiness();
 
+  const businesses = await getBusinessesAction();
+
   const locale = await getLocale();
   const translations = getTranslations(locale);
 
@@ -91,6 +95,17 @@ export default async function DashboardLayout({
       typeof getBusinessNavigation
     >[0],
   );
+
+  console.log(
+  "[DashboardNavigation]",
+  {
+    business: business.name,
+    type: business.type,
+    navigation: navigation.map(
+      (item) => item.id,
+    ),
+  },
+);
 
   const sections = getNavigationSections(
     navigation,
@@ -125,6 +140,16 @@ export default async function DashboardLayout({
                 </p>
               </div>
             </div>
+
+			<BusinessSwitcher
+  businesses={businesses.map((item) => ({
+    id: item.id,
+    name: item.name,
+    type: item.type,
+  }))}
+  currentBusinessId={business.id}
+/>
+
           </div>
 
           {/* Navigation */}

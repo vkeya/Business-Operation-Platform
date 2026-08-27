@@ -24,6 +24,7 @@ const capabilityToNavigationModule:
   accounting: "accounting",
   reports: "reports",
   menu: "menu",
+  services: "services",
 };
 
 export function getBusinessNavigation(

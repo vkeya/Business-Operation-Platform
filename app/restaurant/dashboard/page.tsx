@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
 import { saleService } from "@/lib/sales/saleService";
 import { recipeService } from "@/lib/restaurant/recipeService";
 import {
@@ -12,30 +14,33 @@ import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
 
 export const dynamic = "force-dynamic";
 
-const quickActions = [
-  {
-    title: "Record a sale",
-    description: "Record a restaurant sale.",
-    href: "/sales/new",
-  },
-  {
-    title: "Manage menus",
-    description: "Manage dishes, drinks and menu items.",
-    href: "/restaurant/menu",
-  },
-  {
-    title: "Manage inventory",
-    description: "View stock and inventory movements.",
-    href: "/inventory",
-  },
-  {
-    title: "Add stock",
-    description: "Receive ingredients into inventory.",
-    href: "/inventory",
-  },
-];
-
 export default async function RestaurantDashboardPage() {
+  const locale = await getLocale();
+  const t = getTranslations(locale);
+
+  const quickActions = [
+    {
+      title: t.restaurantDashboard.recordSale,
+      description: t.restaurantDashboard.recordSaleDescription,
+      href: "/sales/new",
+    },
+    {
+      title: t.restaurantDashboard.manageMenus,
+      description: t.restaurantDashboard.manageMenusDescription,
+      href: "/restaurant/menu",
+    },
+    {
+      title: t.restaurantDashboard.manageInventory,
+      description: t.restaurantDashboard.manageInventoryDescription,
+      href: "/inventory",
+    },
+    {
+      title: t.restaurantDashboard.addStock,
+      description: t.restaurantDashboard.addStockDescription,
+      href: "/inventory",
+    },
+  ];
+
   const business =
     await getCurrentBusiness();
 
@@ -308,46 +313,47 @@ const topSellingMenuItems =
   <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
     <div className="mb-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
-          Restaurant / Overview
+          {t.restaurantDashboard.restaurantOverviewBreadcrumb}
         </p>
 
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-slate-950">
-          Restaurant dashboard
+          {t.restaurantDashboard.title}
         </h1>
 
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          Monitor your restaurant operations, menus,
-          inventory and sales from one place.
+          {t.restaurantDashboard.description}
         </p>
       </div>
 
       <section
-        aria-label="Restaurant overview"
+        aria-label={t.restaurantDashboard.restaurantOverview}
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         {[
           {
-  title: "Sales today",
+  title: t.restaurantDashboard.salesToday,
   value: `${business.baseCurrency} ${salesTodayTotal.toFixed(2)}`,
-  description: `${salesToday.length} sale${
-    salesToday.length === 1 ? "" : "s"
-  } recorded today`,
+  description: `${salesToday.length} ${
+    salesToday.length === 1
+      ? t.restaurantDashboard.sale
+      : t.restaurantDashboard.sales
+  } ${t.restaurantDashboard.recordedToday}`,
 },
           {
-  title: "Food cost",
+  title: t.restaurantDashboard.foodCost,
   value: `${business.baseCurrency} ${foodCostToday.toFixed(2)}`,
   description:
-    "Ingredient cost for completed sales today",
+    t.restaurantDashboard.ingredientCostToday,
 },
           {
-  title: "Gross profit",
+  title: t.restaurantDashboard.grossProfit,
   value: `${business.baseCurrency} ${grossProfitToday.toFixed(2)}`,
-  description: "Sales less food cost today",
+  description: t.restaurantDashboard.salesLessFoodCostToday,
 },
 {
-  title: "Gross margin",
+  title: t.restaurantDashboard.grossMargin,
   value: `${grossMarginToday.toFixed(1)}%`,
-  description: "Gross profit as a percentage of sales",
+  description: t.restaurantDashboard.grossProfitPercentage,
 },
         ].map((card) => (
           <div
@@ -370,12 +376,12 @@ const topSellingMenuItems =
       </section>
 	  
 	  <section
-  aria-label="Restaurant activity metrics"
+  aria-label={t.restaurantDashboard.restaurantActivityMetrics}
   className="mt-4 grid gap-4 sm:grid-cols-2"
 >
   <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
     <p className="text-sm font-medium text-slate-500">
-      Average sale
+      {t.restaurantDashboard.averageSale}
     </p>
 
     <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
@@ -384,13 +390,13 @@ const topSellingMenuItems =
     </p>
 
     <p className="mt-2 text-xs text-slate-500">
-      Average completed sale today
+      {t.restaurantDashboard.averageCompletedSaleToday}
     </p>
   </div>
 
   <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
     <p className="text-sm font-medium text-slate-500">
-      Completed sales
+      {t.restaurantDashboard.completedSales}
     </p>
 
     <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
@@ -398,7 +404,7 @@ const topSellingMenuItems =
     </p>
 
     <p className="mt-2 text-xs text-slate-500">
-      Completed sales recorded today
+      {t.restaurantDashboard.completedSalesRecordedToday}
     </p>
   </div>
 </section>
@@ -406,22 +412,22 @@ const topSellingMenuItems =
 <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
-      Today&apos;s sales breakdown
+      {t.restaurantDashboard.todaysSalesBreakdown}
     </h2>
 
     <p className="mt-1 text-sm text-slate-500">
-      Menu item sales from completed transactions today.
+      {t.restaurantDashboard.menuItemSalesFromCompletedTransactions}
     </p>
   </div>
 
   {dailySalesItems.length === 0 ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No menu item sales today
+        {t.restaurantDashboard.noMenuItemSalesToday}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Completed restaurant sales will appear here.
+        {t.restaurantDashboard.completedRestaurantSalesWillAppearHere}
       </p>
     </div>
   ) : (
@@ -430,15 +436,15 @@ const topSellingMenuItems =
         <thead>
           <tr className="border-b border-slate-200 text-xs text-slate-500">
             <th className="pb-3 font-medium">
-              Menu item
+              {t.restaurantDashboard.menuItem}
             </th>
 
             <th className="pb-3 text-right font-medium">
-              Quantity
+              {t.restaurantDashboard.quantity}
             </th>
 
             <th className="pb-3 text-right font-medium">
-              Revenue
+              {t.restaurantDashboard.revenue}
             </th>
           </tr>
         </thead>
@@ -474,11 +480,11 @@ const topSellingMenuItems =
       <section className="mt-8">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-slate-900">
-            Quick actions
+            {t.restaurantDashboard.quickActions}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Get common restaurant tasks done quickly.
+            {t.restaurantDashboard.quickActionsDescription}
           </p>
         </div>
 
@@ -498,7 +504,7 @@ const topSellingMenuItems =
               </p>
 
               <p className="mt-5 text-sm font-semibold text-slate-500 transition-colors group-hover:text-emerald-600">
-  Open <span aria-hidden="true">→</span>
+  {t.restaurantDashboard.open} <span aria-hidden="true">→</span>
 </p>
             </Link>
           ))}
@@ -507,17 +513,17 @@ const topSellingMenuItems =
 
            <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <h2 className="text-base font-semibold tracking-tight text-slate-950">
-    Restaurant performance
+    {t.restaurantDashboard.restaurantPerformance}
   </h2>
 
   <p className="mt-1 text-sm text-slate-500">
-    Today&apos;s operating performance.
+    {t.restaurantDashboard.todaysOperatingPerformance}
   </p>
 
   <div className="mt-6 grid gap-4 sm:grid-cols-2">
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Sales
+        {t.restaurantDashboard.sales}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -528,7 +534,7 @@ const topSellingMenuItems =
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Food cost
+        {t.restaurantDashboard.foodCost}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -539,7 +545,7 @@ const topSellingMenuItems =
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Gross profit
+        {t.restaurantDashboard.grossProfit}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -550,7 +556,7 @@ const topSellingMenuItems =
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Gross margin
+        {t.restaurantDashboard.grossMargin}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -560,7 +566,7 @@ const topSellingMenuItems =
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Average sale
+        {t.restaurantDashboard.averageSale}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -571,7 +577,7 @@ const topSellingMenuItems =
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
-        Completed sales
+        {t.restaurantDashboard.completedSales}
       </p>
 
       <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -585,22 +591,22 @@ const topSellingMenuItems =
 	  <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
-      Top-selling menu items
+      {t.restaurantDashboard.topSellingMenuItems}
     </h2>
 
     <p className="mt-1 text-sm text-slate-500">
-      Best-selling restaurant items today.
+      {t.restaurantDashboard.bestSellingRestaurantItemsToday}
     </p>
   </div>
 
   {topSellingMenuItems.length === 0 ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No menu item sales today
+        {t.restaurantDashboard.noMenuItemSalesToday}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Completed restaurant sales will appear here.
+        {t.restaurantDashboard.completedRestaurantSalesWillAppearHere}
       </p>
     </div>
   ) : (
@@ -622,7 +628,7 @@ const topSellingMenuItems =
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  {item.quantity} sold
+                  {item.quantity} {t.restaurantDashboard.sold}
                 </p>
               </div>
             </div>
@@ -641,22 +647,22 @@ const topSellingMenuItems =
 <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
-      Recent sales
+      {t.restaurantDashboard.recentSales}
     </h2>
 
     <p className="mt-1 text-sm text-slate-500">
-      Latest completed restaurant sales.
+      {t.restaurantDashboard.latestCompletedRestaurantSales}
     </p>
   </div>
 
   {completedSalesToday.length === 0 ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No completed sales today
+        {t.restaurantDashboard.noCompletedSalesToday}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Completed sales will appear here.
+        {t.restaurantDashboard.completedSalesWillAppearHere}
       </p>
     </div>
   ) : (
@@ -677,8 +683,8 @@ const topSellingMenuItems =
               <p className="mt-1 text-xs text-slate-500">
                 {sale.items.length}{" "}
                 {sale.items.length === 1
-                  ? "item"
-                  : "items"}
+                  ? t.restaurantDashboard.item
+                  : t.restaurantDashboard.items}
               </p>
             </div>
 
@@ -706,32 +712,32 @@ const topSellingMenuItems =
 <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
-      Low-stock ingredients
+      {t.restaurantDashboard.lowStockIngredients}
     </h2>
 
     <p className="mt-1 text-sm text-slate-500">
-      Ingredients that may need replenishment.
+      {t.restaurantDashboard.ingredientsNeedReplenishment}
     </p>
   </div>
 
   {!costingWarehouse ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No active warehouse
+        {t.restaurantDashboard.noActiveWarehouse}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Add an active warehouse to monitor ingredient stock.
+        {t.restaurantDashboard.addActiveWarehouse}
       </p>
     </div>
   ) : lowStockIngredients.length === 0 ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No low-stock ingredients
+        {t.restaurantDashboard.noLowStockIngredients}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Current ingredient balances are above the warning threshold.
+        {t.restaurantDashboard.ingredientBalancesAboveThreshold}
       </p>
     </div>
   ) : (
@@ -770,7 +776,7 @@ const topSellingMenuItems =
                 href={`/purchases/new?productId=${balance.productId}`}
                 className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
               >
-                Replenish
+                {t.restaurantDashboard.replenish}
               </Link>
             </div>
           </div>
@@ -783,22 +789,22 @@ const topSellingMenuItems =
 <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
-      Menu profitability
+      {t.restaurantDashboard.menuProfitability}
     </h2>
 
     <p className="mt-1 text-sm text-slate-500">
-      Menu items ranked by gross profit.
+      {t.restaurantDashboard.menuItemsRankedByGrossProfit}
     </p>
   </div>
 
   {menuProfitability.length === 0 ? (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6 text-center">
       <p className="text-sm font-medium text-slate-700">
-        No menu profitability data
+        {t.restaurantDashboard.noMenuProfitabilityData}
       </p>
 
       <p className="mt-1 text-sm text-slate-500">
-        Add recipes and inventory costs to calculate profitability.
+        {t.restaurantDashboard.addRecipesForProfitability}
       </p>
     </div>
   ) : (
@@ -807,19 +813,19 @@ const topSellingMenuItems =
         <thead>
           <tr className="border-b border-slate-200 text-xs text-slate-500">
             <th className="pb-3 font-medium">
-              Menu item
+              {t.restaurantDashboard.menuItem}
             </th>
             <th className="pb-3 text-right font-medium">
-              Selling price
+              {t.restaurantDashboard.sellingPrice}
             </th>
             <th className="pb-3 text-right font-medium">
-              Food cost
+              {t.restaurantDashboard.foodCost}
             </th>
             <th className="pb-3 text-right font-medium">
-              Gross profit
+              {t.restaurantDashboard.grossProfit}
             </th>
             <th className="pb-3 text-right font-medium">
-              Margin
+              {t.restaurantDashboard.margin}
             </th>
           </tr>
         </thead>

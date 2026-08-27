@@ -5,6 +5,7 @@ export type BusinessType =
   | "hospital"
   | "supermarket"
   | "shop"
+  | "boutique"
   | "other";
 
 export type BusinessStatus = "active" | "suspended" | "inactive";

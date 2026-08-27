@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
-import { prisma } from "@/lib/database/prisma";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getLocale } from "@/lib/i18n/locale";
 import {
   getTranslations,
@@ -19,18 +19,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const business = await prisma.business.findFirst({
-    where: {
-      status: "ACTIVE",
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    select: {
-      name: true,
-      type: true,
-    },
-  });
+  const business = await getCurrentBusiness();
   
   const locale = await getLocale();
   

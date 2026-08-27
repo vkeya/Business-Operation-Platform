@@ -2,6 +2,8 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -12,26 +14,25 @@ export default async function RestaurantMenuPage() {
     notFound();
   }
 
-  const menus =
-    await restaurantMenuService.listMenus(
-      business.id,
-    );
+  const locale = await getLocale();
+  const t = getTranslations(locale);
+
+  const menus = await restaurantMenuService.listMenus(business.id);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-emerald-600">
-            Restaurant / Menu
+            {t.restaurantMenu.breadcrumb}
           </p>
 
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Menus
+            {t.restaurantMenu.title}
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage the menus and customer-facing items offered by your
-            restaurant.
+            {t.restaurantMenu.description}
           </p>
         </div>
 
@@ -39,7 +40,7 @@ export default async function RestaurantMenuPage() {
           href="/restaurant/menu/new"
           className="inline-flex w-fit items-center justify-center rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
         >
-          Create menu
+          {t.restaurantMenu.createMenu}
           <span className="ml-2 text-emerald-400" aria-hidden="true">
             +
           </span>
@@ -54,12 +55,11 @@ export default async function RestaurantMenuPage() {
             </div>
 
             <p className="mt-5 font-semibold text-slate-950">
-              No menus yet
+              {t.restaurantMenu.noMenusYet}
             </p>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Create your first restaurant menu to start adding dishes,
-              drinks and other customer-facing items.
+              {t.restaurantMenu.createFirstMenuDescription}
             </p>
 
             <div className="mt-6">
@@ -67,7 +67,7 @@ export default async function RestaurantMenuPage() {
                 href="/restaurant/menu/new"
                 className="inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                Create your first menu
+                {t.restaurantMenu.createFirstMenu}
               </Link>
             </div>
           </div>
@@ -77,15 +77,15 @@ export default async function RestaurantMenuPage() {
           <div className="mb-5 flex items-end justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">
-                Your menus
+                {t.restaurantMenu.yourMenus}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 {menus.length}{" "}
                 {menus.length === 1
-                  ? "menu"
-                  : "menus"}{" "}
-                available
+                  ? t.restaurantMenu.menu
+                  : t.restaurantMenu.menus}{" "}
+                {t.restaurantMenu.available}
               </p>
             </div>
           </div>
@@ -117,13 +117,13 @@ export default async function RestaurantMenuPage() {
                   </p>
                 ) : (
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    No description added.
+                    {t.restaurantMenu.noDescription}
                   </p>
                 )}
 
                 <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Menu items
+                    {t.restaurantMenu.menuItems}
                   </span>
 
                   <span className="text-sm font-semibold text-slate-700">

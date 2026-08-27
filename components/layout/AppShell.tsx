@@ -84,6 +84,10 @@ function getNavigation(
         groups[4].items.push(item);
         break;
 
+	  case "services":
+        groups[2].items.push(item);
+        break;
+
       case "reports":
         groups[5].items.push(item);
         break;

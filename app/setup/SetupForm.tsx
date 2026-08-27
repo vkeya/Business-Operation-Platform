@@ -245,6 +245,7 @@ export default function SetupForm({
     hospital: t.setup.hospitalClinic,
     supermarket: t.setup.supermarket,
     shop: t.setup.shop,
+	boutique: t.setup.boutique,
     other: t.setup.otherBusiness,
   }[option.value]}
 </p>
@@ -257,6 +258,7 @@ export default function SetupForm({
     hospital: t.setup.hospitalClinicDescription,
     supermarket: t.setup.supermarketDescription,
     shop: t.setup.shopDescription,
+	 boutique: t.setup.boutiqueDescription,
     other: t.setup.otherBusinessDescription,
   }[option.value]}
 </p>

@@ -20,6 +20,7 @@ export interface TranslationSet {
     insights: string;
     reports: string;
     settings: string;
+	services: string;
   };
 
   common: {
@@ -195,9 +196,9 @@ export interface TranslationSet {
     emailPlaceholder: string;
     creditLimitPlaceholder: string;
   tax: string;
-  
+
   };
-  
+
   sales: {
   title: string;
   description: string;
@@ -260,7 +261,7 @@ selectDestinationWarehouse: string;
 enterQuantity: string;
 optionalTransferNotes: string;
 transferring: string;
-	
+
 	stockLevelsHealthy: string;
 	products: string;
 	unitsInStock: string;
@@ -288,7 +289,7 @@ transferring: string;
     basedOnAverageStockCost: string;
     operations: string;
     commonTasks: string;
-    
+
     inbound: string;
     correction: string;
     movement: string;
@@ -313,7 +314,7 @@ transferring: string;
     itemsNeedAttention: string;
     heroDescription: string;
 	adjustStockPageDescription: string;
-	
+
 warehouse: string;
 selectProduct: string;
 selectWarehouse: string;
@@ -574,15 +575,15 @@ recordPayment: {
     expenseDetails: string;
     currency: string;
     createdDate: string;
-    
+
     updatePaymentStatus: string;
     updatePaymentStatusDescription: string;
     updatingPaymentStatus: string;
     unableToUpdatePaymentStatus: string;
     record: string;
-	
+
   };
-  
+
   suppliers: {
   title: string;
   breadcrumb: string;
@@ -691,14 +692,184 @@ supermarket: string;
 supermarketDescription: string;
 shop: string;
 shopDescription: string;
+boutique: string;
+boutiqueDescription: string;
 otherBusiness: string;
 otherBusinessDescription: string;
 heading: string;
 description: string;
 language: string;
 timezone: string;
+
   };
+
+restaurantDashboard: {
+  restaurantOverviewBreadcrumb: string;
+  title: string;
+  description: string;
+  restaurantOverview: string;
+  salesToday: string;
+  foodCost: string;
+  ingredientCostToday: string;
+  grossProfit: string;
+  salesLessFoodCostToday: string;
+  grossMargin: string;
+  grossProfitPercentage: string;
+  restaurantActivityMetrics: string;
+  averageSale: string;
+  averageCompletedSaleToday: string;
+  completedSales: string;
+  completedSalesRecordedToday: string;
+  todaysSalesBreakdown: string;
+  menuItemSalesFromCompletedTransactions: string;
+  noMenuItemSalesToday: string;
+  completedRestaurantSalesWillAppearHere: string;
+  menuItem: string;
+  quantity: string;
+  revenue: string;
+  quickActions: string;
+  quickActionsDescription: string;
+  open: string;
+  restaurantPerformance: string;
+  todaysOperatingPerformance: string;
+  sales: string;
+  topSellingMenuItems: string;
+  bestSellingRestaurantItemsToday: string;
+  recentSales: string;
+  latestCompletedRestaurantSales: string;
+  noCompletedSalesToday: string;
+  completedSalesWillAppearHere: string;
+  lowStockIngredients: string;
+  ingredientsNeedReplenishment: string;
+  noActiveWarehouse: string;
+  addActiveWarehouse: string;
+  noLowStockIngredients: string;
+  ingredientBalancesAboveThreshold: string;
+  replenish: string;
+  menuProfitability: string;
+  menuItemsRankedByGrossProfit: string;
+  noMenuProfitabilityData: string;
+  addRecipesForProfitability: string;
+  sellingPrice: string;
+  margin: string;
+  recordSale: string;
+  recordSaleDescription: string;
+  manageMenus: string;
+  manageMenusDescription: string;
+  manageInventory: string;
+  manageInventoryDescription: string;
+  addStock: string;
+  addStockDescription: string;
+  sale: string;
+  recordedToday: string;
+  sold: string;
+  item: string;
+  items: string;
+};
+
+restaurantMenu: {
+  title: string;
+  breadcrumb: string;
+  description: string;
+  createMenu: string;
+  noMenusYet: string;
+  createFirstMenuDescription: string;
+  createFirstMenu: string;
+  yourMenus: string;
+  menu: string;
+  menus: string;
+
+  noDescription: string;
+  menuItems: string;
+  menuInformation: string;
+  menuName: string;
+  menuNamePlaceholder: string;
+  descriptionLabel: string;
+  descriptionPlaceholder: string;
+  cancel: string;
+  creating: string;
+  unableToCreateMenu: string;
+  createMenuPageDescription: string;
+  backToMenus: string;
+  restaurantMenuBreadcrumb: string;
+  addMenuItem: string;
+
+  noMenuItemsYet: string;
+  addMenuItemsDescription: string;
+  addFirstMenuItem: string;
+
+  item: string;
+  items: string;
+  inThisMenu: string;
+
+  costingWarehouse: string;
+  warehouseRequiredForCosting: string;
+  addActiveWarehouseForProfitability: string;
+  createMenuError: string;
+  recipeCost: string;
+  grossProfit: string;
+  grossMargin: string;
+  noRecipeCostingAvailable: string;
+  addRecipeIngredientsForProfitability: string;
+  createMenuItemError: string;
+menuItemInformation: string;
+
+standaloneMenuItem: string;
+inventoryProductDescription: string;
+itemName: string;
+itemNamePlaceholder: string;
+optionalDescription: string;
+
+availableOnMenu: string;
+creatingMenuItem: string;
+menuItem: string;
+available: string;
+unavailable: string;
+itemDetails: string;
+sellingPrice: string;
+availability: string;
+availableForSale: string;
+currentlyUnavailable: string;
+inventoryProduct: string;
+sku: string;
+operations: string;
+recipeAndCosting: string;
+recipeAndCostingDescription: string;
+manageRecipe: string;
+};
+
+services: {
+  serviceCatalogueLabel: string;
+  title: string;
+  description: string;
+  addService: string;
+  totalServices: string;
+  servicesInCatalogue: string;
+  activeServices: string;
+  currentlyAvailable: string;
+  catalogue: string;
+  yourServices: string;
+  manageServicesDescription: string;
+  noServicesYet: string;
+  createFirstServiceDescription: string;
+  createFirstService: string;
+  price: string;
+  active: string;
+  inactive: string;
+  serviceCategories: string;
+  categories: string;
+  categoriesDescription: string;
+  selectCategory: string;
+  deactivateCategory: string;
+  activateCategory: string;
+  categoryStatus: string;
+  activeCategories: string;
+inactiveCategories: string;
+addCategory: string;
+categoryName: string;
+};
 }
+
 
 export const translations: Record<Locale, TranslationSet> = {
   en: {
@@ -721,6 +892,7 @@ export const translations: Record<Locale, TranslationSet> = {
       insights: "Insights",
       reports: "Reports",
       settings: "Settings",
+	  services: "services",
     },
     common: {
       add: "Add",
@@ -878,10 +1050,10 @@ export const translations: Record<Locale, TranslationSet> = {
       customer: "Customer",
       customers: "Customers",
       contact: "Contact",
-      
+
       status: "Status",
       action: "Action",
-     
+
       inactive: "Inactive",
       noCustomersYet: "No customers yet",
       createFirstCustomer: "Create your first customer record so future sales can be connected to the right customer.",
@@ -895,9 +1067,9 @@ export const translations: Record<Locale, TranslationSet> = {
       emailPlaceholder: "customer@example.com",
       creditLimitPlaceholder: "0.00",
       tax: "Tax",
- 
+
 },
-	
+
 	sales: {
   title: "Sales",
   description:
@@ -1008,7 +1180,7 @@ transferring:
       basedOnAverageStockCost: "Based on average stock cost",
       operations: "Operations",
       commonTasks: "Common tasks for keeping your inventory accurate.",
-      
+
       inbound: "Inbound",
       correction: "Correction",
       movement: "Movement",
@@ -1153,7 +1325,7 @@ saving: "Saving...",
 saveProduct: "Save product",
 saveProductError: "Unable to save the product.",
 backToInventory: "Back to inventory",
-},    
+},
 
 saleForm: {
       saleDetails: "Sale details",
@@ -1340,9 +1512,9 @@ recordPayment: {
       unableToUpdatePaymentStatus:
         "Unable to update payment status.",
       record: "Record",
-	  
+
     },
-	
+
 	suppliers: {
   title: "Suppliers",
   breadcrumb: "Purchasing / Suppliers",
@@ -1474,7 +1646,9 @@ supermarketDescription:
 shop: "Shop",
 shopDescription:
   "Manage products, sales, inventory, purchasing and customers.",
-
+boutique: "Boutique / Beauty Services",
+boutiqueDescription:
+  "Manage boutique products, salon and beauty services, customers, sales and appointments.",
 otherBusiness: "Other Business",
 otherBusinessDescription:
   "Start with the core business tools and configure more later.",
@@ -1482,8 +1656,201 @@ heading: "Set up your business",
 description:
   "Tell us about your business so we can configure the right tools for you.",
 language: "Language",
-timezone: "Timezone", 
+timezone: "Timezone",
  },
+
+restaurantDashboard: {
+  restaurantOverviewBreadcrumb: "Restaurant / Overview",
+  title: "Restaurant dashboard",
+  description: "Monitor your restaurant operations, menus, inventory and sales from one place.",
+  restaurantOverview: "Restaurant overview",
+  salesToday: "Sales today",
+  foodCost: "Food cost",
+  ingredientCostToday: "Ingredient cost for completed sales today",
+  grossProfit: "Gross profit",
+  salesLessFoodCostToday: "Sales less food cost today",
+  grossMargin: "Gross margin",
+  grossProfitPercentage: "Gross profit as a percentage of sales",
+  restaurantActivityMetrics: "Restaurant activity metrics",
+  averageSale: "Average sale",
+  averageCompletedSaleToday: "Average completed sale today",
+  completedSales: "Completed sales",
+  completedSalesRecordedToday: "Completed sales recorded today",
+  todaysSalesBreakdown: "Today's sales breakdown",
+  menuItemSalesFromCompletedTransactions: "Menu item sales from completed transactions today.",
+  noMenuItemSalesToday: "No menu item sales today",
+  completedRestaurantSalesWillAppearHere: "Completed restaurant sales will appear here.",
+  menuItem: "Menu item",
+  quantity: "Quantity",
+  revenue: "Revenue",
+  quickActions: "Quick actions",
+  quickActionsDescription: "Get common restaurant tasks done quickly.",
+  open: "Open",
+  restaurantPerformance: "Restaurant performance",
+  todaysOperatingPerformance: "Today's operating performance.",
+  sales: "Sales",
+  topSellingMenuItems: "Top-selling menu items",
+  bestSellingRestaurantItemsToday: "Best-selling restaurant items today.",
+  recentSales: "Recent sales",
+  latestCompletedRestaurantSales: "Latest completed restaurant sales.",
+  noCompletedSalesToday: "No completed sales today",
+  completedSalesWillAppearHere: "Completed sales will appear here.",
+  lowStockIngredients: "Low-stock ingredients",
+  ingredientsNeedReplenishment: "Ingredients that may need replenishment.",
+  noActiveWarehouse: "No active warehouse",
+  addActiveWarehouse: "Add an active warehouse to monitor ingredient stock.",
+  noLowStockIngredients: "No low-stock ingredients",
+  ingredientBalancesAboveThreshold: "Current ingredient balances are above the warning threshold.",
+  replenish: "Replenish",
+  menuProfitability: "Menu profitability",
+  menuItemsRankedByGrossProfit: "Menu items ranked by gross profit.",
+  noMenuProfitabilityData: "No menu profitability data",
+  addRecipesForProfitability: "Add recipes and inventory costs to calculate profitability.",
+  sellingPrice: "Selling price",
+  margin: "Margin",
+  recordSale: "Record a sale",
+  recordSaleDescription: "Record a restaurant sale.",
+  manageMenus: "Manage menus",
+  manageMenusDescription: "Manage dishes, drinks and menu items.",
+  manageInventory: "Manage inventory",
+  manageInventoryDescription: "View stock and inventory movements.",
+  addStock: "Add stock",
+  addStockDescription: "Receive ingredients into inventory.",
+  sale: "sale",
+  recordedToday: "recorded today",
+  sold: "sold",
+  item: "item",
+  items: "items",
+},
+
+restaurantMenu: {
+  title: "Menus",
+  breadcrumb: "Restaurant / Menu",
+  description:
+    "Manage the menus and customer-facing items offered by your restaurant.",
+  createMenu: "Create menu",
+  noMenusYet: "No menus yet",
+  createFirstMenuDescription:
+    "Create your first restaurant menu to start adding dishes, drinks and other customer-facing items.",
+  createFirstMenu: "Create your first menu",
+  yourMenus: "Your menus",
+  menu: "menu",
+  menus: "menus",
+
+  noDescription: "No description added.",
+  menuItems: "Menu items",
+   menuInformation: "Menu information",
+  menuName: "Menu name",
+  menuNamePlaceholder: "e.g. Main Menu",
+  descriptionLabel: "Description",
+  descriptionPlaceholder: "Optional description of this menu",
+  cancel: "Cancel",
+  creating: "Creating...",
+  unableToCreateMenu: "Unable to create the menu.",
+  createMenuPageDescription:
+    "Create a menu for the products and dishes your restaurant offers.",
+  backToMenus: "Menus",
+  restaurantMenuBreadcrumb: "Restaurant / Menu",
+  addMenuItem: "Add menu item",
+
+  noMenuItemsYet: "No menu items yet",
+  addMenuItemsDescription:
+    "Add dishes, drinks or other items offered on this menu.",
+  addFirstMenuItem: "Add your first menu item",
+
+  item: "item",
+  items: "items",
+  inThisMenu: "in this menu",
+
+  costingWarehouse: "Costing warehouse",
+  warehouseRequiredForCosting: "Warehouse required for costing",
+  addActiveWarehouseForProfitability:
+    "Add an active warehouse to calculate menu item profitability.",
+
+  createMenuError: "Unable to create the menu.",
+  unavailable: "Unavailable",
+
+  recipeCost: "Recipe cost",
+  grossProfit: "Gross profit",
+  grossMargin: "Gross margin",
+
+  noRecipeCostingAvailable: "No recipe costing available",
+  addRecipeIngredientsForProfitability:
+    "Add a recipe and ingredients to calculate profitability.",
+  createMenuItemError:
+  "Unable to create the menu item.",
+menuItemInformation:
+  "Menu item information",
+inventoryProduct:
+  "Inventory product",
+standaloneMenuItem:
+  "Standalone menu item",
+inventoryProductDescription:
+  "Optional. Link this menu item to an existing inventory product.",
+itemName:
+  "Item name",
+itemNamePlaceholder:
+  "e.g. Chicken & Chips",
+optionalDescription:
+  "Optional description",
+sellingPrice:
+  "Selling price",
+availableOnMenu:
+  "Available on the menu",
+creatingMenuItem:
+  "Creating...",
+  menuItem: "Menu item",
+available: "Available",
+
+itemDetails: "Item details",
+
+availability: "Availability",
+availableForSale: "Available for sale",
+currentlyUnavailable: "Currently unavailable",
+
+sku: "SKU",
+operations: "Operations",
+recipeAndCosting: "Recipe & costing",
+recipeAndCostingDescription:
+  "Manage the recipe used to prepare this menu item, including its ingredients and costing.",
+manageRecipe: "Manage recipe",
+},
+
+services: {
+  serviceCatalogueLabel: "Service Catalogue",
+  title: "Services",
+  description:
+    "Manage the services your Boutique offers, including pricing and availability.",
+  addService: "Add Service",
+  totalServices: "Total Services",
+  servicesInCatalogue: "Services in your catalogue",
+  activeServices: "Active Services",
+  currentlyAvailable: "Currently available",
+  catalogue: "Catalogue",
+  yourServices: "Your Services",
+  manageServicesDescription:
+    "Search, review and manage the services in your catalogue.",
+  noServicesYet: "No Services Yet",
+  createFirstServiceDescription:
+    "Add your first service to start building your Boutique service catalogue.",
+  createFirstService: "Create Your First Service",
+  price: "Price",
+  active: "Active",
+  inactive: "Inactive",
+  serviceCategories: "Service Categories",
+  categories: "Categories",
+  categoriesDescription:
+    "Organize your Boutique services into clear categories.",
+  selectCategory: "Select a category",
+  deactivateCategory: "Deactivate category",
+  activateCategory: "Activate category",
+  categoryStatus: "Category status",
+  activeCategories: "Active Categories",
+inactiveCategories: "Inactive Categories",
+addCategory: "Add Category",
+categoryName: "Category Name",
+},
+
 },
   fr: {
     navigation: {
@@ -1505,6 +1872,7 @@ timezone: "Timezone",
       insights: "Analyses",
       reports: "Rapports",
       settings: "Paramètres",
+	  services: "Services",
     },
     common: {
       add: "Ajouter",
@@ -1662,10 +2030,10 @@ timezone: "Timezone",
       customer: "Client",
       customers: "Clients",
       contact: "Contact",
-      
+
       status: "Statut",
       action: "Action",
-      
+
       inactive: "Inactif",
       noCustomersYet: "Aucun client pour le moment",
       createFirstCustomer: "Créez votre première fiche client afin que les futures ventes puissent être associées au bon client.",
@@ -1679,9 +2047,9 @@ timezone: "Timezone",
       emailPlaceholder: "client@exemple.com",
       creditLimitPlaceholder: "0,00",
   tax: "Taxe",
-  
+
 },
-	
+
 	sales: {
   title: "Ventes",
   description:
@@ -1802,7 +2170,7 @@ transferring:
   operations: "Opérations",
   commonTasks:
     "Tâches courantes pour maintenir votre inventaire à jour.",
-  
+
   inbound: "Entrée",
   correction: "Correction",
   movement: "Mouvement",
@@ -1837,7 +2205,7 @@ itemsNeedAttention:
 heroDescription:
   "Gérez vos produits, surveillez les niveaux de stock et gardez votre inventaire sous contrôle.",
 adjustStockPageDescription:
-  "Corrigez les quantités d’inventaire après un comptage physique du stock ou une autre opération de rapprochement.",  
+  "Corrigez les quantités d’inventaire après un comptage physique du stock ou une autre opération de rapprochement.",
  product: "Produit",
   warehouse: "Entrepôt",
   selectProduct: "Sélectionnez un produit",
@@ -1914,7 +2282,7 @@ keepCatalogueAccurate:
   "Gardez votre catalogue à jour",
 catalogueOperationsDescription:
   "Les paramètres de prix et de stock des produits alimentent vos opérations commerciales.",
-openInventory: "Ouvrir l'inventaire", 
+openInventory: "Ouvrir l'inventaire",
 productIdRequired:
   "L'identifiant du produit est requis pour la modification.",
 editProduct: "Modifier le produit",
@@ -2147,7 +2515,7 @@ recordPayment: {
         "Impossible de mettre à jour l'état du paiement.",
       record: "Enregistrement",
     },
-	
+
 	suppliers: {
   title: "Fournisseurs",
   breadcrumb: "Achats / Fournisseurs",
@@ -2279,7 +2647,9 @@ supermarketDescription:
 shop: "Boutique",
 shopDescription:
   "Gérez les produits, les ventes, les stocks, les achats et les clients.",
-
+boutique: "Boutique / Services de beauté",
+boutiqueDescription:
+  "Gérez les produits de la boutique, les services de salon et de beauté, les clients, les ventes et les rendez-vous.",
 otherBusiness: "Autre entreprise",
 otherBusinessDescription:
   "Commencez avec les outils essentiels et configurez davantage votre entreprise plus tard.",
@@ -2287,8 +2657,203 @@ heading: "Configurez votre entreprise",
 description:
   "Parlez-nous de votre entreprise afin que nous puissions configurer les outils adaptés.",
 language: "Langue",
-timezone: "Fuseau horaire", 
+timezone: "Fuseau horaire",
  },
+restaurantDashboard: {
+  restaurantOverviewBreadcrumb: "Restaurant / Vue d’ensemble",
+  title: "Tableau de bord du restaurant",
+  description: "Suivez les opérations, les menus, les stocks et les ventes de votre restaurant depuis un seul endroit.",
+  restaurantOverview: "Vue d’ensemble du restaurant",
+  salesToday: "Ventes du jour",
+  foodCost: "Coût des aliments",
+  ingredientCostToday: "Coût des ingrédients pour les ventes terminées aujourd’hui",
+  grossProfit: "Marge brute",
+  salesLessFoodCostToday: "Ventes moins le coût des aliments aujourd’hui",
+  grossMargin: "Taux de marge brute",
+  grossProfitPercentage: "Marge brute en pourcentage des ventes",
+  restaurantActivityMetrics: "Indicateurs d’activité du restaurant",
+  averageSale: "Vente moyenne",
+  averageCompletedSaleToday: "Vente moyenne terminée aujourd’hui",
+  completedSales: "Ventes terminées",
+  completedSalesRecordedToday: "Ventes terminées enregistrées aujourd’hui",
+  todaysSalesBreakdown: "Détail des ventes du jour",
+  menuItemSalesFromCompletedTransactions: "Ventes par article du menu provenant des transactions terminées aujourd’hui.",
+  noMenuItemSalesToday: "Aucune vente d’article du menu aujourd’hui",
+  completedRestaurantSalesWillAppearHere: "Les ventes terminées du restaurant apparaîtront ici.",
+  menuItem: "Article du menu",
+  quantity: "Quantité",
+  revenue: "Chiffre d’affaires",
+  quickActions: "Actions rapides",
+  quickActionsDescription: "Effectuez rapidement les tâches courantes du restaurant.",
+  open: "Ouvrir",
+  restaurantPerformance: "Performance du restaurant",
+  todaysOperatingPerformance: "Performance opérationnelle du jour.",
+  sales: "Ventes",
+  topSellingMenuItems: "Articles du menu les plus vendus",
+  bestSellingRestaurantItemsToday: "Articles du restaurant les plus vendus aujourd’hui.",
+  recentSales: "Ventes récentes",
+  latestCompletedRestaurantSales: "Dernières ventes terminées du restaurant.",
+  noCompletedSalesToday: "Aucune vente terminée aujourd’hui",
+  completedSalesWillAppearHere: "Les ventes terminées apparaîtront ici.",
+  lowStockIngredients: "Ingrédients en stock faible",
+  ingredientsNeedReplenishment: "Ingrédients susceptibles de nécessiter un réapprovisionnement.",
+  noActiveWarehouse: "Aucun entrepôt actif",
+  addActiveWarehouse: "Ajoutez un entrepôt actif pour surveiller le stock des ingrédients.",
+  noLowStockIngredients: "Aucun ingrédient en stock faible",
+  ingredientBalancesAboveThreshold: "Les niveaux actuels des ingrédients sont au-dessus du seuil d’alerte.",
+  replenish: "Réapprovisionner",
+  menuProfitability: "Rentabilité du menu",
+  menuItemsRankedByGrossProfit: "Articles du menu classés par marge brute.",
+  noMenuProfitabilityData: "Aucune donnée de rentabilité du menu",
+  addRecipesForProfitability: "Ajoutez des recettes et les coûts de stock pour calculer la rentabilité.",
+  sellingPrice: "Prix de vente",
+  margin: "Marge",
+  recordSale: "Enregistrer une vente",
+  recordSaleDescription: "Enregistrez une vente du restaurant.",
+  manageMenus: "Gérer les menus",
+  manageMenusDescription: "Gérez les plats, les boissons et les articles du menu.",
+  manageInventory: "Gérer le stock",
+  manageInventoryDescription: "Consultez le stock et les mouvements d’inventaire.",
+  addStock: "Ajouter du stock",
+  addStockDescription: "Réceptionnez les ingrédients dans le stock.",
+  sale: "vente",
+  recordedToday: "enregistrée aujourd’hui",
+  sold: "vendu",
+  item: "article",
+  items: "articles",
+},
+
+restaurantMenu: {
+  title: "Menus",
+  breadcrumb: "Restaurant / Menu",
+  description:
+    "Gérez les menus et les articles proposés aux clients par votre restaurant.",
+  createMenu: "Créer un menu",
+  noMenusYet: "Aucun menu pour le moment",
+  createFirstMenuDescription:
+    "Créez votre premier menu de restaurant pour commencer à ajouter des plats, des boissons et d’autres articles proposés aux clients.",
+  createFirstMenu: "Créer votre premier menu",
+  yourMenus: "Vos menus",
+  menu: "menu",
+  menus: "menus",
+
+  noDescription: "Aucune description ajoutée.",
+  menuItems: "Articles du menu",
+  menuInformation: "Informations sur le menu",
+  menuName: "Nom du menu",
+  menuNamePlaceholder: "ex. Menu principal",
+  descriptionLabel: "Description",
+  descriptionPlaceholder:
+    "Description facultative de ce menu",
+  cancel: "Annuler",
+  creating: "Création...",
+  unableToCreateMenu:
+    "Impossible de créer le menu.",
+  createMenuPageDescription:
+    "Créez un menu pour les produits et les plats proposés par votre restaurant.",
+  backToMenus: "Menus",
+  restaurantMenuBreadcrumb: "Restaurant / Menu",
+  addMenuItem: "Ajouter un article au menu",
+
+  noMenuItemsYet: "Aucun article au menu",
+  addMenuItemsDescription:
+    "Ajoutez les plats, boissons ou autres articles proposés dans ce menu.",
+  addFirstMenuItem: "Ajouter votre premier article au menu",
+
+  item: "article",
+  items: "articles",
+  inThisMenu: "dans ce menu",
+
+  costingWarehouse: "Entrepôt de calcul des coûts",
+  warehouseRequiredForCosting:
+    "Entrepôt requis pour le calcul des coûts",
+  addActiveWarehouseForProfitability:
+    "Ajoutez un entrepôt actif pour calculer la rentabilité des articles du menu.",
+
+  createMenuError: "Impossible de créer le menu.",
+  unavailable: "Indisponible",
+
+  recipeCost: "Coût de la recette",
+  grossProfit: "Marge brute",
+  grossMargin: "Taux de marge brute",
+
+  noRecipeCostingAvailable:
+    "Aucun calcul de coût de recette disponible",
+  addRecipeIngredientsForProfitability:
+    "Ajoutez une recette et des ingrédients pour calculer la rentabilité.",
+  createMenuItemError:
+  "Impossible de créer l’article du menu.",
+menuItemInformation:
+  "Informations sur l’article du menu",
+inventoryProduct:
+  "Produit d’inventaire",
+standaloneMenuItem:
+  "Article de menu autonome",
+inventoryProductDescription:
+  "Facultatif. Associez cet article à un produit d’inventaire existant.",
+itemName:
+  "Nom de l’article",
+itemNamePlaceholder:
+  "ex. Poulet et frites",
+optionalDescription:
+  "Description facultative",
+sellingPrice:
+  "Prix de vente",
+availableOnMenu:
+  "Disponible sur le menu",
+creatingMenuItem:
+  "Création en cours...",
+  menuItem: "Article du menu",
+available: "Disponible",
+
+itemDetails: "Détails de l’article",
+
+availability: "Disponibilité",
+availableForSale: "Disponible à la vente",
+currentlyUnavailable: "Actuellement indisponible",
+
+sku: "SKU",
+operations: "Opérations",
+recipeAndCosting: "Recette et calcul des coûts",
+recipeAndCostingDescription:
+  "Gérez la recette utilisée pour préparer cet article du menu, y compris ses ingrédients et son calcul des coûts.",
+manageRecipe: "Gérer la recette",
+},
+
+services: {
+  serviceCatalogueLabel: "Catalogue des services",
+  title: "Services",
+  description:
+    "Gérez les services proposés par votre boutique, notamment leurs prix et leur disponibilité.",
+  addService: "Ajouter un service",
+  totalServices: "Total des services",
+  servicesInCatalogue: "Services dans votre catalogue",
+  activeServices: "Services actifs",
+  currentlyAvailable: "Actuellement disponibles",
+  catalogue: "Catalogue",
+  yourServices: "Vos services",
+  manageServicesDescription:
+    "Recherchez, consultez et gérez les services de votre catalogue.",
+  noServicesYet: "Aucun service pour le moment",
+  createFirstServiceDescription:
+    "Ajoutez votre premier service pour commencer à créer le catalogue de services de votre boutique.",
+  createFirstService: "Créer votre premier service",
+  price: "Prix",
+  active: "Actif",
+  inactive: "Inactif",
+  serviceCategories: "Catégories de services",
+  categories: "Catégories",
+  categoriesDescription:
+    "Organisez les services de votre boutique en catégories claires.",
+  selectCategory: "Sélectionner une catégorie",
+  deactivateCategory: "Désactiver la catégorie",
+  activateCategory: "Activer la catégorie",
+  categoryStatus: "Statut de la catégorie",
+  activeCategories: "Catégories actives",
+inactiveCategories: "Catégories inactives",
+addCategory: "Ajouter une catégorie",
+categoryName: "Nom de la catégorie",
+},
   },
   am: {
     navigation: {
@@ -2310,6 +2875,7 @@ timezone: "Fuseau horaire",
       insights: "ትንታኔ",
       reports: "ሪፖርቶች",
       settings: "ቅንብሮች",
+	  services: "አገልግሎቶች",
     },
     common: {
       add: "አክል",
@@ -2467,10 +3033,10 @@ timezone: "Fuseau horaire",
       customer: "ደንበኛ",
       customers: "ደንበኞች",
       contact: "የመገኛ መረጃ",
-     
+
       status: "ሁኔታ",
       action: "እርምጃ",
-     
+
       inactive: "ንቁ ያልሆነ",
       noCustomersYet: "እስካሁን ደንበኞች የሉም",
       createFirstCustomer: "የመጀመሪያውን የደንበኛ መዝገብ ይፍጠሩ፣ ስለዚህ የወደፊት ሽያጮች ከትክክለኛው ደንበኛ ጋር ሊገናኙ ይችላሉ።",
@@ -2484,9 +3050,9 @@ timezone: "Fuseau horaire",
       emailPlaceholder: "customer@example.com",
       creditLimitPlaceholder: "0.00",
   tax: "ግብር",
- 
+
 },
-      	
+
 	sales: {
   title: "ሽያጭ",
   description:
@@ -2608,7 +3174,7 @@ transferring:
   operations: "ስራዎች",
   commonTasks:
     "የእቃ ክምችትዎን ትክክለኛ ለማድረግ የሚያስፈልጉ የተለመዱ ስራዎች።",
-  
+
   inbound: "ገቢ እቃ",
   correction: "ማስተካከያ",
   movement: "እንቅስቃሴ",
@@ -2799,7 +3365,7 @@ saleForm: {
 recordSaleTitle: "ሽያጭ ይመዝግቡ",
 recordSaleDescription:
   "ምርቶችን ያክሉ እና አዲስ ሽያጭ ይመዝግቡ።",
-  
+
 },
 
 saleDetail: {
@@ -2954,7 +3520,7 @@ recordPayment: {
         "የክፍያ ሁኔታን ማዘመን አልተቻለም።",
       record: "መዝግብ",
     },
-	
+
 	suppliers: {
   title: "አቅራቢዎች",
   breadcrumb: "ግዢ / አቅራቢዎች",
@@ -3057,7 +3623,7 @@ unableToSaveSupplier: "አቅራቢውን ማስቀመጥ አልተቻለም።"
       setupSummary: "የቅንብር ማጠቃለያ",
       business: "ንግድ",
       type: "ዓይነት",
-      
+
       branch: "ቅርንጫፍ",
       notProvided: "አልተሰጠም",
       setupReady: "የንግድዎ ቅንብር ትክክል ነው እና ለመቀመጥ ዝግጁ ነው።",
@@ -3066,27 +3632,29 @@ unableToSaveSupplier: "አቅራቢውን ማስቀመጥ አልተቻለም።"
       restaurant: "ሬስቶራንት",
       restaurantDescription:
         "ምግብ፣ መጠጦች፣ ሽያጭ፣ እቃ ክምችት እና ግዢዎችን ያስተዳድሩ።",
-      
+
       bar: "ባር",
       barDescription:
         "መጠጦችን፣ ክምችትን፣ ሽያጭን፣ ግዢን እና ገንዘብን ያስተዳድሩ።",
-      
+
       hotel: "ሆቴል",
       hotelDescription:
         "የሆቴል ስራዎችን፣ ሽያጭን፣ እቃ ክምችትን እና አገልግሎቶችን ያስተዳድሩ።",
-      
+
       hospitalClinic: "ሆስፒታል / ክሊኒክ",
       hospitalClinicDescription:
         "አቅርቦቶችን፣ መድኃኒቶችን፣ ሽያጭን፣ ግዢን እና የስራ እንቅስቃሴዎችን ያስተዳድሩ።",
-      
+
       supermarket: "ሱፐርማርኬት",
       supermarketDescription:
         "ምርቶችን፣ በባርኮድ ሽያጭን፣ ክምችትን፣ አቅራቢዎችን እና ደንበኞችን ያስተዳድሩ።",
-      
+
       shop: "ሱቅ",
       shopDescription:
         "ምርቶችን፣ ሽያጭን፣ ክምችትን፣ ግዢን እና ደንበኞችን ያስተዳድሩ።",
-      
+      boutique: "ቡቲክ / የውበት አገልግሎቶች",
+boutiqueDescription:
+  "የቡቲክ ምርቶችን፣ የሳሎን እና የውበት አገልግሎቶችን፣ ደንበኞችን፣ ሽያጮችን እና ቀጠሮዎችን ያስተዳድሩ።",
             otherBusiness: "ሌላ ንግድ",
       otherBusinessDescription:
         "በመሠረታዊ የንግድ መሣሪያዎች ይጀምሩ እና በኋላ ተጨማሪ ያዘጋጁ።",
@@ -3094,8 +3662,204 @@ unableToSaveSupplier: "አቅራቢውን ማስቀመጥ አልተቻለም።"
 description:
   "ለንግድዎ ተስማሚ መሣሪያዎችን ለማዘጋጀት ስለ ንግድዎ መረጃ ያስገቡ።",
 language: "ቋንቋ",
-timezone: "የሰዓት ክልል",   
+timezone: "የሰዓት ክልል",
 
    },
+restaurantDashboard: {
+  restaurantOverviewBreadcrumb: "ሬስቶራንት / አጠቃላይ እይታ",
+  title: "የሬስቶራንት ዳሽቦርድ",
+  description: "የሬስቶራንትዎን ስራዎች፣ ምናሌዎች፣ ክምችት እና ሽያጮች ከአንድ ቦታ ይከታተሉ።",
+  restaurantOverview: "የሬስቶራንት አጠቃላይ እይታ",
+  salesToday: "የዛሬ ሽያጮች",
+  foodCost: "የምግብ ወጪ",
+  ingredientCostToday: "ለዛሬ የተጠናቀቁ ሽያጮች የንጥረ ነገሮች ወጪ",
+  grossProfit: "ጠቅላላ ትርፍ",
+  salesLessFoodCostToday: "የዛሬ ሽያጭ ከምግብ ወጪ በኋላ",
+  grossMargin: "ጠቅላላ የትርፍ ህዳግ",
+  grossProfitPercentage: "ጠቅላላ ትርፍ ከሽያጭ ጋር በመቶኛ",
+  restaurantActivityMetrics: "የሬስቶራንት እንቅስቃሴ መለኪያዎች",
+  averageSale: "አማካይ ሽያጭ",
+  averageCompletedSaleToday: "የዛሬ አማካይ የተጠናቀቀ ሽያጭ",
+  completedSales: "የተጠናቀቁ ሽያጮች",
+  completedSalesRecordedToday: "ዛሬ የተመዘገቡ የተጠናቀቁ ሽያጮች",
+  todaysSalesBreakdown: "የዛሬ ሽያጮች ዝርዝር",
+  menuItemSalesFromCompletedTransactions: "ዛሬ ከተጠናቀቁ ግብይቶች የምናሌ እቃ ሽያጮች።",
+  noMenuItemSalesToday: "ዛሬ የምናሌ እቃ ሽያጭ የለም",
+  completedRestaurantSalesWillAppearHere: "የተጠናቀቁ የሬስቶራንት ሽያጮች እዚህ ይታያሉ።",
+  menuItem: "የምናሌ እቃ",
+  quantity: "መጠን",
+  revenue: "ገቢ",
+  quickActions: "ፈጣን እርምጃዎች",
+  quickActionsDescription: "የተለመዱ የሬስቶራንት ስራዎችን በፍጥነት ያከናውኑ።",
+  open: "ክፈት",
+  restaurantPerformance: "የሬስቶራንት አፈጻጸም",
+  todaysOperatingPerformance: "የዛሬ የስራ አፈጻጸም።",
+  sales: "ሽያጮች",
+  topSellingMenuItems: "በጣም የተሸጡ የምናሌ እቃዎች",
+  bestSellingRestaurantItemsToday: "የዛሬ በጣም የተሸጡ የሬስቶራንት እቃዎች።",
+  recentSales: "የቅርብ ጊዜ ሽያጮች",
+  latestCompletedRestaurantSales: "የቅርብ ጊዜ የተጠናቀቁ የሬስቶራንት ሽያጮች።",
+  noCompletedSalesToday: "ዛሬ የተጠናቀቀ ሽያጭ የለም",
+  completedSalesWillAppearHere: "የተጠናቀቁ ሽያጮች እዚህ ይታያሉ።",
+  lowStockIngredients: "አነስተኛ ክምችት ያላቸው ንጥረ ነገሮች",
+  ingredientsNeedReplenishment: "እንደገና መሙላት ሊያስፈልጋቸው የሚችሉ ንጥረ ነገሮች።",
+  noActiveWarehouse: "ንቁ መጋዘን የለም",
+  addActiveWarehouse: "የንጥረ ነገሮችን ክምችት ለመከታተል ንቁ መጋዘን ያክሉ።",
+  noLowStockIngredients: "አነስተኛ ክምችት ያላቸው ንጥረ ነገሮች የሉም",
+  ingredientBalancesAboveThreshold: "የአሁኑ የንጥረ ነገሮች መጠን ከማስጠንቀቂያ ደረጃው በላይ ነው።",
+  replenish: "እንደገና ሙላ",
+  menuProfitability: "የምናሌ ትርፋማነት",
+  menuItemsRankedByGrossProfit: "የምናሌ እቃዎች በጠቅላላ ትርፍ ደረጃ ተሰጥቷቸዋል።",
+  noMenuProfitabilityData: "የምናሌ ትርፋማነት መረጃ የለም",
+  addRecipesForProfitability: "ትርፋማነትን ለማስላት ሬሲፖችን እና የክምችት ወጪዎችን ያክሉ።",
+  sellingPrice: "የሽያጭ ዋጋ",
+  margin: "ህዳግ",
+  recordSale: "ሽያጭ ይመዝግቡ",
+  recordSaleDescription: "የሬስቶራንት ሽያጭ ይመዝግቡ።",
+  manageMenus: "ምናሌዎችን ያስተዳድሩ",
+  manageMenusDescription: "ምግቦችን፣ መጠጦችን እና የምናሌ እቃዎችን ያስተዳድሩ።",
+  manageInventory: "ክምችትን ያስተዳድሩ",
+  manageInventoryDescription: "የእቃ ክምችትን እና የክምችት እንቅስቃሴዎችን ይመልከቱ።",
+  addStock: "ክምችት ያክሉ",
+  addStockDescription: "ንጥረ ነገሮችን ወደ ክምችት ይቀበሉ።",
+  sale: "ሽያጭ",
+  recordedToday: "ዛሬ ተመዝግቧል",
+  sold: "ተሽጧል",
+  item: "እቃ",
+  items: "እቃዎች",
+},
+
+restaurantMenu: {
+  title: "ምናሌዎች",
+  breadcrumb: "ሬስቶራንት / ምናሌ",
+  description:
+    "በሬስቶራንትዎ የሚቀርቡ ምናሌዎችን እና ለደንበኞች የሚታዩ እቃዎችን ያስተዳድሩ።",
+  createMenu: "ምናሌ ይፍጠሩ",
+  noMenusYet: "እስካሁን ምንም ምናሌ የለም",
+  createFirstMenuDescription:
+    "ምግቦችን፣ መጠጦችን እና ሌሎች ለደንበኞች የሚቀርቡ እቃዎችን ለመጨመር የመጀመሪያዎን የሬስቶራንት ምናሌ ይፍጠሩ።",
+  createFirstMenu: "የመጀመሪያዎን ምናሌ ይፍጠሩ",
+  yourMenus: "የእርስዎ ምናሌዎች",
+  menu: "ምናሌ",
+  menus: "ምናሌዎች",
+
+  noDescription: "ምንም መግለጫ አልተጨመረም።",
+  menuItems: "የምናሌ እቃዎች",
+  menuInformation: "የምናሌ መረጃ",
+  menuName: "የምናሌ ስም",
+  menuNamePlaceholder: "ለምሳሌ ዋና ምናሌ",
+  descriptionLabel: "መግለጫ",
+  descriptionPlaceholder:
+    "የዚህ ምናሌ አማራጭ መግለጫ",
+  cancel: "ሰርዝ",
+  creating: "በመፍጠር ላይ...",
+  unableToCreateMenu:
+    "ምናሌውን መፍጠር አልተቻለም።",
+  createMenuPageDescription:
+    "ሬስቶራንትዎ ለሚያቀርባቸው ምርቶችና ምግቦች ምናሌ ይፍጠሩ።",
+
+   backToMenus: "ምናሌዎች",
+   restaurantMenuBreadcrumb: "ሬስቶራንት / ምናሌ",
+   addMenuItem: "የምናሌ እቃ ያክሉ",
+
+   noMenuItemsYet: "እስካሁን ምንም የምናሌ እቃዎች የሉም",
+   addMenuItemsDescription:
+     "በዚህ ምናሌ ላይ የሚቀርቡ ምግቦችን፣ መጠጦችን ወይም ሌሎች እቃዎችን ያክሉ።",
+   addFirstMenuItem: "የመጀመሪያዎን የምናሌ እቃ ያክሉ",
+
+   item: "እቃ",
+   items: "እቃዎች",
+   inThisMenu: "በዚህ ምናሌ ውስጥ",
+
+   costingWarehouse: "የወጪ ማስሊያ መጋዘን",
+   warehouseRequiredForCosting:
+     "የወጪ ስሌት ለማድረግ መጋዘን ያስፈልጋል",
+   addActiveWarehouseForProfitability:
+     "የምናሌ እቃዎችን ትርፋማነት ለማስላት ንቁ መጋዘን ያክሉ።",
+
+   createMenuError: "ምናሌውን መፍጠር አልተቻለም።",
+   unavailable: "አይገኝም",
+
+   recipeCost: "የምግብ ዝግጅት ወጪ",
+   grossProfit: "ጠቅላላ ትርፍ",
+   grossMargin: "ጠቅላላ የትርፍ ምጣኔ",
+
+   noRecipeCostingAvailable:
+     "የምግብ ዝግጅት ወጪ ስሌት አይገኝም",
+   addRecipeIngredientsForProfitability:
+     "ትርፋማነትን ለማስላት የምግብ ዝግጅት እና ግብዓቶችን ያክሉ።",
+	 createMenuItemError:
+  "የምናሌ እቃውን መፍጠር አልተቻለም።",
+menuItemInformation:
+  "የምናሌ እቃ መረጃ",
+inventoryProduct:
+  "የእቃ ክምችት ምርት",
+standaloneMenuItem:
+  "ራሱን የቻለ የምናሌ እቃ",
+inventoryProductDescription:
+  "አማራጭ። ይህን የምናሌ እቃ ከነባር የእቃ ክምችት ምርት ጋር ያገናኙ።",
+itemName:
+  "የእቃ ስም",
+itemNamePlaceholder:
+  "ለምሳሌ ዶሮ እና ቺፕስ",
+optionalDescription:
+  "አማራጭ መግለጫ",
+sellingPrice:
+  "የሽያጭ ዋጋ",
+availableOnMenu:
+  "በምናሌው ላይ ይገኛል",
+creatingMenuItem:
+  "በመፍጠር ላይ...",
+  menuItem: "የምናሌ እቃ",
+available: "ይገኛል",
+
+itemDetails: "የእቃ ዝርዝሮች",
+
+availability: "ተገኝነት",
+availableForSale: "ለሽያጭ ይገኛል",
+currentlyUnavailable: "በአሁኑ ጊዜ አይገኝም",
+
+sku: "SKU",
+operations: "ስራዎች",
+recipeAndCosting: "የምግብ አሰራር እና የወጪ ስሌት",
+recipeAndCostingDescription:
+  "ይህን የምናሌ እቃ ለማዘጋጀት የሚጠቀሙበትን የምግብ አሰራር፣ ንጥረ ነገሮቹን እና የወጪ ስሌቱን ያስተዳድሩ።",
+manageRecipe: "የምግብ አሰራርን ያስተዳድሩ",
+},
+
+services: {
+  serviceCatalogueLabel: "የአገልግሎት ካታሎግ",
+  title: "አገልግሎቶች",
+  description:
+    "ቡቲክዎ የሚያቀርባቸውን አገልግሎቶች፣ ዋጋቸውን እና ተገኝነታቸውን ያስተዳድሩ።",
+  addService: "አገልግሎት ያክሉ",
+  totalServices: "ጠቅላላ አገልግሎቶች",
+  servicesInCatalogue: "በካታሎግዎ ውስጥ ያሉ አገልግሎቶች",
+  activeServices: "ንቁ አገልግሎቶች",
+  currentlyAvailable: "በአሁኑ ጊዜ የሚገኙ",
+  catalogue: "ካታሎግ",
+  yourServices: "የእርስዎ አገልግሎቶች",
+  manageServicesDescription:
+    "በካታሎግዎ ውስጥ ያሉ አገልግሎቶችን ይፈልጉ፣ ይገምግሙ እና ያስተዳድሩ።",
+  noServicesYet: "እስካሁን አገልግሎት የለም",
+  createFirstServiceDescription:
+    "የቡቲክዎን የአገልግሎት ካታሎግ ለመጀመር የመጀመሪያዎን አገልግሎት ያክሉ።",
+  createFirstService: "የመጀመሪያዎን አገልግሎት ይፍጠሩ",
+  price: "ዋጋ",
+  active: "ንቁ",
+  inactive: "እንቅስቃሴ የሌለው",
+  serviceCategories: "የአገልግሎት ምድቦች",
+  categories: "ምድቦች",
+  categoriesDescription:
+    "የቡቲክዎን አገልግሎቶች በግልጽ ምድቦች ያደራጁ።",
+	selectCategory: "ምድብ ይምረጡ",
+	deactivateCategory: "ምድቡን ያቦዝኑ",
+  activateCategory: "ምድቡን ያንቁ",
+  categoryStatus: "የምድብ ሁኔታ",
+  activeCategories: "ንቁ ምድቦች",
+inactiveCategories: "የቦዘኑ ምድቦች",
+addCategory: "ምድብ ጨምር",
+categoryName: "የምድብ ስም",
+},
   },
 };

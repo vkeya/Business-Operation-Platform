@@ -61,7 +61,7 @@ export const productRepository = {
 
     return serializeProduct(product);
   },
-  
+
     async update(
     businessId: string,
     productId: string,
@@ -105,6 +105,48 @@ export const productRepository = {
 
     return products.map(serializeProduct);
   },
+
+  async listByType(
+  businessId: string,
+  type: "PRODUCT" | "SERVICE",
+) {
+  const products = await prisma.product.findMany({
+  where: {
+    businessId,
+    type,
+  },
+  include: {
+    category: true,
+  },
+  orderBy: {
+    name: "asc",
+  },
+});
+
+  return products.map(serializeProduct);
+},
+
+async listByTypeAndCategory(
+  businessId: string,
+  type: "PRODUCT" | "SERVICE",
+  categoryId: string,
+) {
+  const products = await prisma.product.findMany({
+    where: {
+      businessId,
+      type,
+      categoryId,
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return products.map(serializeProduct);
+},
 
   async search(
   businessId: string,

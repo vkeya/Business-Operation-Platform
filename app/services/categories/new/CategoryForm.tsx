@@ -5,26 +5,27 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { createRestaurantMenuAction } from "../../actions";
-import type { TranslationSet } from "@/lib/i18n/translations";
+import { createServiceCategoryAction } from "../../actions";
+import type { TranslationSet } from "@/lib/i18n";
 
-type RestaurantMenuTranslations =
-  TranslationSet["restaurantMenu"];
+interface CategoryFormProps {
+  translations: TranslationSet;
+}
 
-type MenuFormProps = {
-  translations: RestaurantMenuTranslations;
-};
-
-export default function MenuForm({
-  translations,
-}: MenuFormProps) {
+export default function CategoryForm({
+  translations: t,
+}: CategoryFormProps) {
   const router = useRouter();
 
-  const [name, setName] = useState("");
+  const [name, setName] =
+    useState("");
+
   const [description, setDescription] =
     useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
+
   const [saving, setSaving] =
     useState(false);
 
@@ -37,18 +38,19 @@ export default function MenuForm({
     setSaving(true);
 
     try {
-      await createRestaurantMenuAction({
+      await createServiceCategoryAction({
         name,
         description:
-          description || undefined,
+          description.trim() || undefined,
       });
 
-      router.push("/restaurant/menu");
+      router.push("/services/categories");
+      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : translations.createMenuError,
+          : "Unable to create the category.",
       );
     } finally {
       setSaving(false);
@@ -58,7 +60,7 @@ export default function MenuForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="space-y-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
     >
       {error && (
         <div
@@ -71,52 +73,47 @@ export default function MenuForm({
 
       <section>
         <h2 className="text-lg font-semibold text-slate-900">
-          {translations.menuInformation}
+          {t.services.addCategory}
         </h2>
 
         <div className="mt-5 space-y-5">
           <div>
             <label
-              htmlFor="name"
+              htmlFor="category-name"
               className="block text-sm font-medium text-slate-900"
             >
-              {translations.menuName}
+              {t.services.categoryName}
             </label>
 
             <input
-              id="name"
+              id="category-name"
               value={name}
               onChange={(event) =>
                 setName(event.target.value)
               }
-              placeholder={
-                translations.menuNamePlaceholder
-              }
               required
+              autoFocus
+              placeholder="e.g. Hair Care"
               className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
           </div>
 
           <div>
             <label
-              htmlFor="description"
+              htmlFor="category-description"
               className="block text-sm font-medium text-slate-900"
             >
-              {translations.descriptionLabel}
+              {t.inventory.description}
             </label>
 
             <textarea
-              id="description"
+              id="category-description"
               value={description}
               onChange={(event) =>
-                setDescription(
-                  event.target.value,
-                )
+                setDescription(event.target.value)
               }
               rows={4}
-              placeholder={
-                translations.descriptionPlaceholder
-              }
+              placeholder="Optional category description"
               className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
           </div>
@@ -127,21 +124,21 @@ export default function MenuForm({
         <button
           type="button"
           onClick={() =>
-            router.push("/restaurant/menu")
+            router.push("/services/categories")
           }
           className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
-          {translations.cancel}
+          {t.common.cancel}
         </button>
 
         <button
           type="submit"
           disabled={saving}
-          className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
-            ? translations.creating
-            : translations.createMenu}
+            ? t.inventory.saving
+            : t.services.addCategory}
         </button>
       </div>
     </form>

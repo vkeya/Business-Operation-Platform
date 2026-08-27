@@ -1,16 +1,46 @@
-import type { Branch, Business, Warehouse } from "@/types";
+import type {
+  Branch,
+  Business,
+  Warehouse,
+} from "@/types";
 import type { BusinessSetup } from "@/types/setup";
 
 export interface BusinessRepository {
-  createBusiness(setup: BusinessSetup): Promise<{
+  createBusiness(
+    setup: BusinessSetup,
+  ): Promise<{
     business: Business;
     branch: Branch;
     warehouse: Warehouse;
   }>;
 
-  getBusiness(businessId: string): Promise<Business | null>;
+  createProductCategory(input: {
+  businessId: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+}): Promise<{
+  id: string;
+  businessId: string;
+  name: string;
+  description: string | null;
+  parentId: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}>;
 
-  getBranches(businessId: string): Promise<Branch[]>;
+  listBusinesses(): Promise<Business[]>;
 
-  getWarehouses(businessId: string): Promise<Warehouse[]>;
+  getBusiness(
+    businessId: string,
+  ): Promise<Business | null>;
+
+  getBranches(
+    businessId: string,
+  ): Promise<Branch[]>;
+
+  getWarehouses(
+    businessId: string,
+  ): Promise<Warehouse[]>;
 }

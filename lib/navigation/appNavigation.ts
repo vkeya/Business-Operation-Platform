@@ -10,7 +10,8 @@ export type NavigationModule =
   | "reports"
   | "settings"
   | "menu"
-  | "expenses";
+  | "expenses"
+  | "services";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -98,4 +99,10 @@ export const appNavigation: NavigationItem[] = [
     descriptionKey: "navigationDescriptions.settings",
     href: "/settings",
   },
+  {
+  id: "services",
+  labelKey: "services",
+  descriptionKey: "",
+  href: "/services",
+},
 ];

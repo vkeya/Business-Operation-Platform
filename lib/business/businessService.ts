@@ -1,6 +1,9 @@
 import type { BusinessRepository } from "./businessRepository";
 import { requireBusinessContext } from "./businessContext";
 import type { BusinessSetup } from "@/types/setup";
+import {
+  boutiqueCategoryDefaults,
+} from "./boutiqueDefaults";
 
 export function createBusinessService(
   repository: BusinessRepository,
@@ -32,6 +35,16 @@ export function createBusinessService(
 
       const result = await repository.createBusiness(setup);
 
+      if (setup.business.type === "boutique") {
+        for (const category of boutiqueCategoryDefaults) {
+          await repository.createProductCategory({
+            businessId: result.business.id,
+            name: category.name,
+            description: category.description,
+          });
+        }
+      }
+
       return {
         ...result,
         context: requireBusinessContext({
@@ -40,6 +53,10 @@ export function createBusinessService(
           branchId: result.branch.id,
         }),
       };
+    },
+
+    async listBusinesses() {
+      return repository.listBusinesses();
     },
 
     async getBusiness(

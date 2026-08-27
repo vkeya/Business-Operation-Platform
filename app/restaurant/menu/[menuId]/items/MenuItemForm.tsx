@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import {
   createRestaurantMenuItemAction,
 } from "@/app/restaurant/actions";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface ProductOption {
   id: string;
@@ -21,14 +22,17 @@ interface MenuItemFormProps {
   menuId: string;
   currency: string;
   products: ProductOption[];
+  translations: TranslationSet;
 }
 
 export default function MenuItemForm({
   menuId,
   currency,
   products,
+  translations,
 }: MenuItemFormProps) {
   const router = useRouter();
+  const t = translations;
 
   const [productId, setProductId] =
     useState("");
@@ -103,7 +107,7 @@ export default function MenuItemForm({
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to create the menu item.",
+          : t.restaurantMenu.createMenuItemError,
       );
     } finally {
       setSaving(false);
@@ -126,7 +130,7 @@ export default function MenuItemForm({
 
       <section>
         <h2 className="text-lg font-semibold text-slate-900">
-          Menu item information
+          {t.restaurantMenu.menuItemInformation}
         </h2>
 
         <div className="mt-5 space-y-5">
@@ -135,7 +139,7 @@ export default function MenuItemForm({
               htmlFor="productId"
               className="block text-sm font-medium text-slate-900"
             >
-              Inventory product
+              {t.restaurantMenu.inventoryProduct}
             </label>
 
             <select
@@ -149,7 +153,7 @@ export default function MenuItemForm({
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             >
               <option value="">
-                Standalone menu item
+                {t.restaurantMenu.standaloneMenuItem}
               </option>
 
               {products.map((product) => (
@@ -163,8 +167,7 @@ export default function MenuItemForm({
             </select>
 
             <p className="mt-2 text-xs text-slate-500">
-              Optional. Link this menu item to an
-              existing inventory product.
+              {t.restaurantMenu.inventoryProductDescription}
             </p>
           </div>
 
@@ -173,7 +176,7 @@ export default function MenuItemForm({
               htmlFor="name"
               className="block text-sm font-medium text-slate-900"
             >
-              Item name
+              {t.restaurantMenu.itemName}
             </label>
 
             <input
@@ -182,7 +185,9 @@ export default function MenuItemForm({
               onChange={(event) =>
                 setName(event.target.value)
               }
-              placeholder="e.g. Chicken & Chips"
+              placeholder={
+                t.restaurantMenu.itemNamePlaceholder
+              }
               required
               className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
@@ -193,7 +198,7 @@ export default function MenuItemForm({
               htmlFor="description"
               className="block text-sm font-medium text-slate-900"
             >
-              Description
+              {t.restaurantMenu.descriptionLabel}
             </label>
 
             <textarea
@@ -205,7 +210,9 @@ export default function MenuItemForm({
                 )
               }
               rows={3}
-              placeholder="Optional description"
+              placeholder={
+                t.restaurantMenu.optionalDescription
+              }
               className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
           </div>
@@ -215,7 +222,7 @@ export default function MenuItemForm({
               htmlFor="sellingPrice"
               className="block text-sm font-medium text-slate-900"
             >
-              Selling price
+              {t.restaurantMenu.sellingPrice}
             </label>
 
             <div className="mt-2 flex">
@@ -253,7 +260,7 @@ export default function MenuItemForm({
             />
 
             <span className="text-sm font-medium text-slate-900">
-              Available on the menu
+              {t.restaurantMenu.availableOnMenu}
             </span>
           </label>
         </div>
@@ -269,7 +276,7 @@ export default function MenuItemForm({
           }
           className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
-          Cancel
+          {t.restaurantMenu.cancel}
         </button>
 
         <button
@@ -278,8 +285,8 @@ export default function MenuItemForm({
           className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
-            ? "Creating..."
-            : "Add menu item"}
+            ? t.restaurantMenu.creatingMenuItem
+            : t.restaurantMenu.addMenuItem}
         </button>
       </div>
     </form>
