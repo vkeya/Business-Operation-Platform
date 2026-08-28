@@ -10,17 +10,26 @@ export const businessTypeOptions: BusinessTypeOption[] = [
   {
     value: "restaurant",
     label: "Restaurant",
-    description: "Manage food, drinks, sales, inventory and purchasing.",
+    description:
+      "Manage food, drinks, sales, inventory and purchasing.",
   },
   {
     value: "bar",
     label: "Bar",
-    description: "Manage drinks, stock, sales, purchasing and cash.",
+    description:
+      "Manage drinks, stock, sales, purchasing and cash.",
+  },
+  {
+    value: "wines_spirits",
+    label: "Wines & Spirits",
+    description:
+      "Manage wines, spirits, beer, draughts, stock, sales, purchasing and suppliers.",
   },
   {
     value: "hotel",
     label: "Hotel",
-    description: "Manage hotel operations, sales, inventory and services.",
+    description:
+      "Manage hotel operations, sales, inventory and services.",
   },
   {
     value: "hospital",
@@ -41,11 +50,11 @@ export const businessTypeOptions: BusinessTypeOption[] = [
       "Manage products, sales, inventory, purchasing and customers.",
   },
   {
-  value: "boutique",
-  label: "Boutique / Beauty",
-  description:
-    "Manage boutique products, beauty services, customers, sales and appointments.",
-},
+    value: "boutique",
+    label: "Boutique / Beauty",
+    description:
+      "Manage boutique products, beauty services, customers, sales and appointments.",
+  },
   {
     value: "other",
     label: "Other Business",

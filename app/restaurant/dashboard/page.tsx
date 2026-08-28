@@ -170,11 +170,7 @@ const lowStockIngredients =
       }
 
       const reorderLevel =
-        product.reorderLevel?.toNumber
-          ? product.reorderLevel.toNumber()
-          : Number(
-              product.reorderLevel ?? 0,
-            );
+  product.reorderLevel ?? 0;
 
       return (
         reorderLevel > 0 &&

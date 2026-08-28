@@ -236,6 +236,7 @@ export interface TranslationSet {
   saleTransaction: string;
   viewSale: string;
   cancelled: string;
+  reversed: string;
   noSalesYet: string;
   recordFirstSaleDescription: string;
   recordFirstSale: string;
@@ -447,12 +448,16 @@ saleForm: {
 recordSaleTitle: string;
 recordSaleDescription:
   string;
+  barcode: string;
+barcodePlaceholder: string;
+barcodeNotFound: string;
 };
 
 saleDetail: {
   backToSales: string;
   breadcrumb: string;
   completeSale: string;
+  reverseSale: string;
   item: string;
   items: string;
   saleItems: string;
@@ -471,6 +476,7 @@ saleDetail: {
   noPaymentsRecorded: string;
   paymentsWillAppearHere: string;
   notes: string;
+
 };
 
 recordPayment: {
@@ -684,6 +690,8 @@ restaurant: string;
 restaurantDescription: string;
 bar: string;
 barDescription: string;
+winesSpirits: string;
+winesSpiritsDescription: string;
 hotel: string;
 hotelDescription: string;
 hospitalClinic: string;
@@ -1085,6 +1093,7 @@ export const translations: Record<Locale, TranslationSet> = {
   itemsSold: "Items sold",
   lineItemsAcrossSales: "Line items across sales",
   cancelled: "Cancelled",
+  reversed: "Reversed",
   revenue: "Revenue",
   salesValue: "Sales value",
   salesValueDescription:
@@ -1359,12 +1368,16 @@ saleForm: {
       recordSaleTitle: "Record a sale",
       recordSaleDescription:
         "Add products and record a new sale.",
+		barcode: "Scan barcode",
+barcodePlaceholder: "Scan or enter product barcode",
+barcodeNotFound: "No product found for barcode",
 },
 
 saleDetail: {
   backToSales: "← Sales",
   breadcrumb: "Business / Sale",
   completeSale: "Complete sale",
+  reverseSale: "Reverse sale",
   item: "item",
   items: "items",
   saleItems: "Sale items",
@@ -1626,6 +1639,9 @@ unableToSaveSetup: "Unable to save your business setup.",
  restaurant: "Restaurant",
 restaurantDescription:
   "Manage food, drinks, sales, inventory and purchasing.",
+winesSpirits: "Wines & Spirits",
+winesSpiritsDescription:
+  "Manage wines, spirits, beers, soft drinks, stock, barcode sales and purchasing.",
 
 bar: "Bar",
 barDescription:
@@ -2065,6 +2081,7 @@ categoryName: "Category Name",
   itemsSold: "Articles vendus",
   lineItemsAcrossSales: "Lignes d'articles dans les ventes",
   cancelled: "Annulées",
+  reversed: "Contre-passées",
   revenue: "Chiffre d'affaires",
   salesValue: "Valeur des ventes",
   salesValueDescription:
@@ -2360,12 +2377,16 @@ saleForm: {
 recordSaleTitle: "Enregistrer une vente",
 recordSaleDescription:
   "Ajoutez des produits et enregistrez une nouvelle vente.",
+barcode: "Scanner le code-barres",
+barcodePlaceholder: "Scannez ou saisissez le code-barres du produit",
+barcodeNotFound: "Aucun produit trouvé pour le code-barres",
 },
 
 saleDetail: {
   backToSales: "← Ventes",
   breadcrumb: "Entreprise / Vente",
   completeSale: "Terminer la vente",
+  reverseSale: "Annuler la vente",
   item: "article",
   items: "articles",
   saleItems: "Articles de la vente",
@@ -2627,7 +2648,9 @@ unableToSaveSetup: "Impossible d’enregistrer la configuration de votre entrepr
 restaurant: "Restaurant",
 restaurantDescription:
   "Gérez les aliments, les boissons, les ventes, les stocks et les achats.",
-
+winesSpirits: "Vins et spiritueux",
+winesSpiritsDescription:
+  "Gérez les vins, spiritueux, bières, boissons sans alcool, stocks, ventes par code-barres et achats.",
 bar: "Bar",
 barDescription:
   "Gérez les boissons, les stocks, les ventes, les achats et la trésorerie.",
@@ -3068,6 +3091,7 @@ categoryName: "Nom de la catégorie",
   itemsSold: "የተሸጡ እቃዎች",
   lineItemsAcrossSales: "በሽያጮች ውስጥ ያሉ የእቃ መስመሮች",
   cancelled: "የተሰረዙ",
+  reversed: "የተቀለበሱ",
   revenue: "ገቢ",
   salesValue: "የሽያጭ ዋጋ",
   salesValueDescription:
@@ -3365,6 +3389,9 @@ saleForm: {
 recordSaleTitle: "ሽያጭ ይመዝግቡ",
 recordSaleDescription:
   "ምርቶችን ያክሉ እና አዲስ ሽያጭ ይመዝግቡ።",
+  barcode: "ባርኮድ ይቃኙ",
+barcodePlaceholder: "የምርት ባርኮድ ይቃኙ ወይም ያስገቡ",
+barcodeNotFound: "ለዚህ ባርኮድ ምንም ምርት አልተገኘም",
 
 },
 
@@ -3372,6 +3399,7 @@ saleDetail: {
   backToSales: "← ሽያጮች",
   breadcrumb: "ንግድ / ሽያጭ",
   completeSale: "ሽያጩን ያጠናቅቁ",
+  reverseSale: "ሽያጩን መቀልበስ",
   item: "እቃ",
   items: "እቃዎች",
   saleItems: "የሽያጭ እቃዎች",
@@ -3636,7 +3664,9 @@ unableToSaveSupplier: "አቅራቢውን ማስቀመጥ አልተቻለም።"
       bar: "ባር",
       barDescription:
         "መጠጦችን፣ ክምችትን፣ ሽያጭን፣ ግዢን እና ገንዘብን ያስተዳድሩ።",
-
+      winesSpirits: "ወይን እና መንፈሳዊ መጠጦች",
+winesSpiritsDescription:
+  "ወይን፣ መንፈሳዊ መጠጦች፣ ቢራዎች፣ ለስላሳ መጠጦች፣ ክምችት፣ በባርኮድ ሽያጭ እና ግዢዎችን ያስተዳድሩ።",
       hotel: "ሆቴል",
       hotelDescription:
         "የሆቴል ስራዎችን፣ ሽያጭን፣ እቃ ክምችትን እና አገልግሎቶችን ያስተዳድሩ።",

@@ -16,8 +16,9 @@ export interface CreateSaleInput {
   createdBy: string;
 
   items: Array<{
-    productId: string;
-	menuItemId?: string;
+  productId: string;
+  menuItemId?: string;
+  sellingUnitId?: string;
     productName: string;
     sku?: string;
 
@@ -40,6 +41,7 @@ function serializeSaleItem<
     id: string;
     productId: string;
 	menuItemId?: string | null;
+	sellingUnitId?: string | null;
     productName: string;
     sku: string | null;
     quantity: { toNumber(): number };
@@ -75,6 +77,7 @@ function serializeSale<
   id: string;
   productId: string;
   menuItemId?: string | null;
+  sellingUnitId?: string | null;
   productName: string;
   sku: string | null;
       quantity: { toNumber(): number };
@@ -143,12 +146,10 @@ export const saleRepository = {
           items: {
             create: input.items.map(
               (item) => ({
-                productId:
-                  item.productId,
-				menuItemId:
-                  item.menuItemId,
-                productName:
-                  item.productName,
+                productId: item.productId,
+				menuItemId: item.menuItemId,
+				sellingUnitId: item.sellingUnitId,
+                productName: item.productName,
                 sku: item.sku,
 
                 quantity: item.quantity,
@@ -247,7 +248,8 @@ export const saleRepository = {
     status:
       | "DRAFT"
       | "COMPLETED"
-      | "CANCELLED",
+      | "CANCELLED"
+	  | "REVERSED",
   ) {
     const sale =
       await prisma.sale.update({

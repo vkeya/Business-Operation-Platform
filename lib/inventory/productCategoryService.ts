@@ -5,6 +5,10 @@ import {
 import {
   boutiqueCategoryDefaults,
 } from "@/lib/business/boutiqueDefaults";
+import {
+  winesSpiritsCategoryDefaults,
+} from "@/lib/business/winesSpiritsDefaults";
+
 
 export const productCategoryService = {
   async createCategory(
@@ -208,4 +212,42 @@ export const productCategoryService = {
 
   return categories;
 },
+
+  async ensureWinesSpiritsCategories(
+    businessId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    const categories = [];
+
+    for (
+      const category of winesSpiritsCategoryDefaults
+    ) {
+      const existing =
+        await productCategoryRepository.findByName(
+          businessId,
+          category.name,
+        );
+
+      if (existing) {
+        categories.push(existing);
+        continue;
+      }
+
+      const created =
+        await productCategoryRepository.create({
+          businessId,
+          name: category.name,
+          description: category.description,
+        });
+
+      categories.push(created);
+    }
+
+    return categories;
+  },
 };

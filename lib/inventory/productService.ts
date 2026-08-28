@@ -1,6 +1,7 @@
 import {
   productRepository,
   type CreateProductInput,
+  type CreateProductSellingUnitInput,
 } from "./productRepository";
 
 export const productService = {
@@ -128,6 +129,141 @@ async listServicesByCategory(
     query,
   );
 },
+
+  async findProductByBarcode(
+    businessId: string,
+    barcode: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    const normalizedBarcode = barcode.trim();
+
+    if (!normalizedBarcode) {
+      throw new Error(
+        "Product barcode is required.",
+      );
+    }
+
+    return productRepository.findByBarcode(
+      businessId,
+      normalizedBarcode,
+    );
+  },
+
+    async createSellingUnit(
+    businessId: string,
+    input: CreateProductSellingUnitInput,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.productId) {
+      throw new Error(
+        "Product ID is required.",
+      );
+    }
+
+    const name = input.name.trim();
+
+    if (!name) {
+      throw new Error(
+        "Selling unit name is required.",
+      );
+    }
+
+    if (input.quantity <= 0) {
+      throw new Error(
+        "Selling unit quantity must be greater than zero.",
+      );
+    }
+
+    if (input.sellingPrice < 0) {
+      throw new Error(
+        "Selling unit price cannot be negative.",
+      );
+    }
+
+    const product =
+      await productRepository.findById(
+        businessId,
+        input.productId,
+      );
+
+    if (!product) {
+      throw new Error(
+        "Product not found.",
+      );
+    }
+
+    return productRepository.createSellingUnit({
+      ...input,
+      name,
+    });
+  },
+
+    async findSellingUnitById(
+    productId: string,
+    sellingUnitId: string,
+  ) {
+    if (!productId) {
+      throw new Error(
+        "Product is required.",
+      );
+    }
+
+    if (!sellingUnitId) {
+      throw new Error(
+        "Selling unit is required.",
+      );
+    }
+
+    return productRepository.findSellingUnitById(
+      productId,
+      sellingUnitId,
+    );
+  },
+
+  async listSellingUnits(
+    businessId: string,
+    productId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!productId) {
+      throw new Error(
+        "Product ID is required.",
+      );
+    }
+
+    const product =
+      await productRepository.findById(
+        businessId,
+        productId,
+      );
+
+    if (!product) {
+      throw new Error(
+        "Product not found.",
+      );
+    }
+
+    return productRepository.listSellingUnits(
+      productId,
+    );
+  },
+
+
 
   async updateProduct(
     businessId: string,

@@ -19,20 +19,60 @@ export interface CreateProductInput {
   reorderLevel?: number;
 }
 
-function serializeProduct<T extends {
-  costPrice: { toNumber(): number };
+ export interface CreateProductSellingUnitInput {
+  productId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  sellingPrice: number;
+}
+
+function serializeProduct<
+  T extends {
+    costPrice: { toNumber(): number };
+    sellingPrice: { toNumber(): number };
+    taxRate?: { toNumber(): number } | null;
+    minimumStock?: { toNumber(): number } | null;
+    reorderLevel?: { toNumber(): number } | null;
+    sellingUnits?: Array<{
+  id: string;
+  name: string;
+  unit: string;
+  quantity: { toNumber(): number };
   sellingPrice: { toNumber(): number };
-  taxRate?: { toNumber(): number } | null;
-  minimumStock?: { toNumber(): number } | null;
-  reorderLevel?: { toNumber(): number } | null;
-}>(product: T) {
+}>;
+  },
+>(product: T) {
+  const {
+    sellingUnits,
+    costPrice,
+    sellingPrice,
+    taxRate,
+    minimumStock,
+    reorderLevel,
+    ...rest
+  } = product;
+
   return {
-    ...product,
-    costPrice: product.costPrice.toNumber(),
-    sellingPrice: product.sellingPrice.toNumber(),
-    taxRate: product.taxRate?.toNumber() ?? null,
-    minimumStock: product.minimumStock?.toNumber() ?? null,
-    reorderLevel: product.reorderLevel?.toNumber() ?? null,
+    ...rest,
+    costPrice: costPrice.toNumber(),
+    sellingPrice: sellingPrice.toNumber(),
+    taxRate: taxRate?.toNumber() ?? null,
+    minimumStock: minimumStock?.toNumber() ?? null,
+    reorderLevel: reorderLevel?.toNumber() ?? null,
+    ...(sellingUnits
+      ? {
+          sellingUnits: sellingUnits.map(
+            (sellingUnit) => ({
+              ...sellingUnit,
+              quantity:
+                sellingUnit.quantity.toNumber(),
+              sellingPrice:
+                sellingUnit.sellingPrice.toNumber(),
+            }),
+          ),
+        }
+      : {}),
   };
 }
 
@@ -61,6 +101,8 @@ export const productRepository = {
 
     return serializeProduct(product);
   },
+
+
 
     async update(
     businessId: string,
@@ -95,13 +137,23 @@ export const productRepository = {
 
   async list(businessId: string) {
     const products = await prisma.product.findMany({
+  where: {
+    businessId,
+  },
+  include: {
+    sellingUnits: {
       where: {
-        businessId,
+        isActive: true,
       },
       orderBy: {
         name: "asc",
       },
-    });
+    },
+  },
+  orderBy: {
+    name: "asc",
+  },
+});
 
     return products.map(serializeProduct);
   },
@@ -206,6 +258,23 @@ async listByTypeAndCategory(
     return product ? serializeProduct(product) : null;
   },
 
+    async findByBarcode(
+    businessId: string,
+    barcode: string,
+  ) {
+    const product =
+      await prisma.product.findFirst({
+        where: {
+          businessId,
+          barcode,
+        },
+      });
+
+    return product
+      ? serializeProduct(product)
+      : null;
+  },
+
     async findById(
     businessId: string,
     productId: string,
@@ -222,4 +291,72 @@ async listByTypeAndCategory(
       ? serializeProduct(product)
       : null;
   },
+
+  async createSellingUnit(
+  input: CreateProductSellingUnitInput,
+) {
+  const sellingUnit =
+    await prisma.productSellingUnit.create({
+      data: {
+        productId: input.productId,
+        name: input.name,
+        quantity: input.quantity,
+		unit: input.unit,
+        sellingPrice: input.sellingPrice,
+      },
+    });
+
+  return {
+    ...sellingUnit,
+    quantity: sellingUnit.quantity.toNumber(),
+    sellingPrice:
+      sellingUnit.sellingPrice.toNumber(),
+  };
+},
+
+  async findSellingUnitById(
+    productId: string,
+    sellingUnitId: string,
+  ) {
+    const sellingUnit =
+      await prisma.productSellingUnit.findFirst({
+        where: {
+          id: sellingUnitId,
+          productId,
+          isActive: true,
+        },
+      });
+
+    return sellingUnit
+      ? {
+          ...sellingUnit,
+          quantity:
+            sellingUnit.quantity.toNumber(),
+          sellingPrice:
+            sellingUnit.sellingPrice.toNumber(),
+        }
+      : null;
+  },
+
+async listSellingUnits(
+  productId: string,
+) {
+  const sellingUnits =
+    await prisma.productSellingUnit.findMany({
+      where: {
+        productId,
+        isActive: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+  return sellingUnits.map((sellingUnit) => ({
+    ...sellingUnit,
+    quantity: sellingUnit.quantity.toNumber(),
+    sellingPrice:
+      sellingUnit.sellingPrice.toNumber(),
+  }));
+},
 };

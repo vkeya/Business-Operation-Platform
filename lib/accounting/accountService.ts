@@ -26,14 +26,6 @@ const defaultAccounts = [
   description:
     "Amounts owed by customers",
 },
-  
-  {
-  code: "1200",
-  name: "Accounts Receivable",
-  type: "ASSET" as const,
-  description:
-    "Amounts owed by customers",
-},
 
   {
     code: "2000",

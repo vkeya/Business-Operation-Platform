@@ -1,6 +1,5 @@
 import type { BusinessType } from "@/types";
 
-
 export type BusinessCapability =
   | "dashboard"
   | "inventory"
@@ -34,10 +33,14 @@ export const businessCapabilities: Record<
 > = {
   restaurant: [
     ...coreBusinessCapabilities,
-	"menu",
+    "menu",
   ],
 
   bar: [
+    ...coreBusinessCapabilities,
+  ],
+
+  wines_spirits: [
     ...coreBusinessCapabilities,
   ],
 
@@ -57,9 +60,9 @@ export const businessCapabilities: Record<
     ...coreBusinessCapabilities,
   ],
 
-    boutique: [
+  boutique: [
     ...coreBusinessCapabilities,
-	"services",
+    "services",
   ],
 
   other: [
@@ -70,9 +73,7 @@ export const businessCapabilities: Record<
 export function getBusinessCapabilities(
   businessType: BusinessType,
 ): BusinessCapability[] {
-  return businessCapabilities[
-    businessType
-  ];
+  return businessCapabilities[businessType];
 }
 
 export function hasBusinessCapability(

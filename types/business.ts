@@ -6,6 +6,7 @@ export type BusinessType =
   | "supermarket"
   | "shop"
   | "boutique"
+  | "wines_spirits"
   | "other";
 
 export type BusinessStatus = "active" | "suspended" | "inactive";

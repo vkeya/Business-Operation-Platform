@@ -68,7 +68,8 @@ export async function updateSaleStatusAction(
   status:
     | "DRAFT"
     | "COMPLETED"
-    | "CANCELLED",
+    | "CANCELLED"
+	| "REVERSED",
 ) {
   const business =
     await getCurrentBusiness();
@@ -87,6 +88,18 @@ export async function cancelSaleAction(
     await getCurrentBusiness();
 
   return saleService.cancel(
+    business.id,
+    saleId,
+  );
+}
+
+export async function reverseSaleAction(
+  saleId: string,
+) {
+  const business =
+    await getCurrentBusiness();
+
+  return saleService.reverse(
     business.id,
     saleId,
   );

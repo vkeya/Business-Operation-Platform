@@ -502,4 +502,109 @@ export const recipeService = {
       ),
     });
   },
+
+    async restoreSaleRecipes(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceId: string;
+    items: Array<{
+      menuItemId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.warehouseId) {
+      throw new Error(
+        "Warehouse is required.",
+      );
+    }
+
+    if (!input.currency) {
+      throw new Error(
+        "Currency is required.",
+      );
+    }
+
+    if (!input.createdBy) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    if (!input.referenceId) {
+      throw new Error(
+        "Sale reference is required.",
+      );
+    }
+
+    if (input.items.length === 0) {
+      return [];
+    }
+
+    const restorationByProduct = new Map<
+      string,
+      number
+    >();
+
+    for (const item of input.items) {
+      if (!item.menuItemId) {
+        continue;
+      }
+
+      if (item.quantity <= 0) {
+        throw new Error(
+          "Menu item sale quantity must be greater than zero.",
+        );
+      }
+
+      const result =
+        await this.calculateConsumption({
+          businessId: input.businessId,
+          menuItemId: item.menuItemId,
+          saleQuantity: item.quantity,
+        });
+
+      for (
+        const consumption of result.consumption
+      ) {
+        const existing =
+          restorationByProduct.get(
+            consumption.productId,
+          ) ?? 0;
+
+        restorationByProduct.set(
+          consumption.productId,
+          existing + consumption.quantity,
+        );
+      }
+    }
+
+    if (restorationByProduct.size === 0) {
+      return [];
+    }
+
+    return inventoryService.returnStockBatch({
+      businessId: input.businessId,
+      warehouseId: input.warehouseId,
+      currency: input.currency,
+      createdBy: input.createdBy,
+      referenceType: "SALE_REVERSAL",
+      referenceId: input.referenceId,
+      items: Array.from(
+        restorationByProduct.entries(),
+      ).map(
+        ([productId, quantity]) => ({
+          productId,
+          quantity,
+        }),
+      ),
+    });
+  },
 };

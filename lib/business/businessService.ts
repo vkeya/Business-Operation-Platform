@@ -4,6 +4,12 @@ import type { BusinessSetup } from "@/types/setup";
 import {
   boutiqueCategoryDefaults,
 } from "./boutiqueDefaults";
+import {
+  winesSpiritsCategoryDefaults,
+} from "./winesSpiritsDefaults";
+import {
+  accountService,
+} from "@/lib/accounting/accountService";
 
 export function createBusinessService(
   repository: BusinessRepository,
@@ -33,17 +39,28 @@ export function createBusinessService(
         throw new Error("Initial warehouse name is required.");
       }
 
-      const result = await repository.createBusiness(setup);
+      const result =
+        await repository.createBusiness(setup);
 
-      if (setup.business.type === "boutique") {
-        for (const category of boutiqueCategoryDefaults) {
-          await repository.createProductCategory({
-            businessId: result.business.id,
-            name: category.name,
-            description: category.description,
-          });
-        }
-      }
+	  await accountService.createDefaultAccounts(
+  result.business.id,
+);
+
+      const defaultCategories =
+  setup.business.type === "boutique"
+    ? boutiqueCategoryDefaults
+    : setup.business.type === "wines_spirits"
+      ? winesSpiritsCategoryDefaults
+      : [];
+
+for (const category of defaultCategories) {
+  await repository.createProductCategory({
+    businessId: result.business.id,
+    name: category.name,
+    description: category.description,
+  });
+}
+
 
       return {
         ...result,
@@ -68,7 +85,9 @@ export function createBusinessService(
         userId,
       });
 
-      return repository.getBusiness(context.businessId);
+      return repository.getBusiness(
+        context.businessId,
+      );
     },
 
     async getBranches(
@@ -80,7 +99,9 @@ export function createBusinessService(
         userId,
       });
 
-      return repository.getBranches(context.businessId);
+      return repository.getBranches(
+        context.businessId,
+      );
     },
 
     async getWarehouses(
@@ -92,7 +113,9 @@ export function createBusinessService(
         userId,
       });
 
-      return repository.getWarehouses(context.businessId);
+      return repository.getWarehouses(
+        context.businessId,
+      );
     },
   };
 }

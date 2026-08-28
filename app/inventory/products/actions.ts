@@ -35,3 +35,23 @@ export async function updateProductAction(
     input,
   );
 }
+
+export async function createProductSellingUnitAction(
+  productId: string,
+  input: {
+    name: string;
+    quantity: number;
+    unit: string;
+    sellingPrice: number;
+  },
+) {
+  const business = await getCurrentBusiness();
+
+  return productService.createSellingUnit(
+    business.id,
+    {
+      productId,
+      ...input,
+    },
+  );
+}

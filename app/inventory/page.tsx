@@ -555,11 +555,11 @@ export default async function InventoryPage() {
                         </div>
 
                         <p className="text-xs text-slate-500">
-                          t.inventory.threshold{" "}
-                          <span className="font-semibold text-slate-700">
-                            {alert.threshold}
-                          </span>
-                        </p>
+  {t.inventory.threshold}{" "}
+  <span className="font-semibold text-slate-700">
+    {alert.threshold}
+  </span>
+</p>
                       </div>
                     </Link>
                   ))}

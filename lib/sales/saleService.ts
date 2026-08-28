@@ -3,6 +3,8 @@ import {
   type CreateSaleInput,
 } from "./saleRepository";
 import { postSaleToAccounting } from "@/lib/accounting/posting/salesPosting";
+import { inventoryService } from "@/lib/inventory/inventoryService";
+import { productService } from "@/lib/inventory/productService";
 
 export const saleService = {
   async create(input: CreateSaleInput) {
@@ -149,7 +151,8 @@ export const saleService = {
     status:
       | "DRAFT"
       | "COMPLETED"
-      | "CANCELLED",
+      | "CANCELLED"
+	  | "REVERSED",
   ) {
     if (!businessId) {
       throw new Error(
@@ -222,72 +225,140 @@ export const saleService = {
     }
 
     if (
-      sale.status === "DRAFT" &&
-      status === "COMPLETED"
-    ) {
-      const restaurantItems =
-        sale.items
-          .filter(
-            (item) => item.menuItemId,
-          )
-          .map((item) => ({
-            menuItemId:
-              item.menuItemId!,
-            quantity:
-              item.quantity.toNumber(),
-          }));
+  sale.status === "DRAFT" &&
+  status === "COMPLETED"
+) {
+  const restaurantItems =
+  sale.items
+    .filter(
+      (item) => item.menuItemId,
+    )
+    .map((item) => ({
+      menuItemId: item.menuItemId!,
+      quantity:
+        item.quantity.toNumber(),
+    }));
 
-      if (
-        restaurantItems.length > 0 &&
-        sale.warehouseId
-      ) {
-        const { recipeService } =
-          await import(
-            "@/lib/restaurant/recipeService"
-          );
+  const inventoryItems: Array<{
+    productId: string;
+    quantity: number;
+  }> = [];
 
-        await recipeService.consumeSaleRecipes({
-          businessId,
-          warehouseId:
-            sale.warehouseId,
-          currency:
-            sale.currency,
-          createdBy:
-            sale.createdBy,
-          referenceId:
-            sale.id,
-          items:
-            restaurantItems,
-        });
-      }
+  const { productService } =
+    await import(
+      "@/lib/inventory/productService"
+    );
 
-      await postSaleToAccounting({
-        businessId,
-        saleId:
-          existingSale.id,
-        referenceNumber:
-          existingSale.referenceNumber,
-        totalAmount:
-          existingSale.totalAmount.toNumber(),
-        currency:
-          existingSale.currency,
-        customerId:
-          existingSale.customerId,
-        createdBy:
-          existingSale.createdBy,
-      });
-
-      return saleRepository.updateStatus(
-        businessId,
-        saleId,
-        status,
-      );
+  for (const item of sale.items) {
+    // Restaurant menu items consume stock
+    // through their recipes.
+    if (item.menuItemId) {
+      continue;
     }
 
-    if (
-      sale.status === "DRAFT" &&
-      status !== "COMPLETED"
-    ) {
+    let inventoryQuantity =
+  Number(item.quantity);
+
+    if (item.sellingUnitId) {
+      const sellingUnit =
+        await productService.findSellingUnitById(
+          item.productId,
+          item.sellingUnitId,
+        );
+
+      if (!sellingUnit) {
+        throw new Error(
+          `Selling unit not found for product "${item.productName}".`,
+        );
+      }
+
+      inventoryQuantity =
+        item.quantity *
+        sellingUnit.quantity;
+    }
+
+    inventoryItems.push({
+      productId:
+        item.productId,
+      quantity:
+        inventoryQuantity,
+    });
+  }
+
+  if (
+    restaurantItems.length > 0 &&
+    sale.warehouseId
+  ) {
+    const { recipeService } =
+      await import(
+        "@/lib/restaurant/recipeService"
+      );
+
+    await recipeService.consumeSaleRecipes({
+      businessId,
+      warehouseId:
+        sale.warehouseId,
+      currency:
+        sale.currency,
+      createdBy:
+        sale.createdBy,
+      referenceId:
+        sale.id,
+      items:
+        restaurantItems,
+    });
+  }
+
+  if (
+    inventoryItems.length > 0 &&
+    sale.warehouseId
+  ) {
+    const { inventoryService } =
+      await import(
+        "@/lib/inventory/inventoryService"
+      );
+
+    await inventoryService.consumeStockBatch({
+      businessId,
+      warehouseId:
+        sale.warehouseId,
+      currency:
+        sale.currency,
+      createdBy:
+        sale.createdBy,
+      referenceType:
+        "SALE",
+      referenceId:
+        sale.id,
+      notes:
+        `Inventory consumption for sale ${sale.referenceNumber}.`,
+      items:
+        inventoryItems,
+    });
+  }
+
+  await postSaleToAccounting({
+    businessId,
+    saleId:
+      existingSale.id,
+    referenceNumber:
+      existingSale.referenceNumber,
+    totalAmount:
+      existingSale.totalAmount,
+    currency:
+      existingSale.currency,
+    customerId:
+      existingSale.customerId,
+    createdBy:
+      existingSale.createdBy,
+  });
+
+  return saleRepository.updateStatus(
+    businessId,
+    saleId,
+    status,
+  );
+} {
       throw new Error(
         "Draft sales can only be completed or cancelled.",
       );
@@ -300,7 +371,7 @@ export const saleService = {
     );
   },
 
-  async cancel(
+      async reverse(
     businessId: string,
     saleId: string,
   ) {
@@ -313,6 +384,171 @@ export const saleService = {
     if (!saleId) {
       throw new Error(
         "Sale is required.",
+      );
+    }
+
+    const sale =
+      await saleRepository.findById(
+        businessId,
+        saleId,
+      );
+
+    if (!sale) {
+      throw new Error(
+        "Sale not found.",
+      );
+    }
+
+    if (sale.status !== "COMPLETED") {
+      throw new Error(
+        "Only completed sales can be reversed.",
+      );
+    }
+
+    if (!sale.warehouseId) {
+      throw new Error(
+        "Completed sale has no warehouse for stock reversal.",
+      );
+    }
+
+    const restaurantItems =
+      sale.items
+        .filter(
+          (item) => item.menuItemId,
+        )
+        .map((item) => ({
+          menuItemId:
+            item.menuItemId!,
+          quantity:
+            Number(item.quantity),
+        }));
+
+    const inventoryItems: Array<{
+      productId: string;
+      quantity: number;
+    }> = [];
+
+    for (const item of sale.items) {
+      // Restaurant menu items are restored
+      // through their recipes.
+      if (item.menuItemId) {
+        continue;
+      }
+
+      let inventoryQuantity =
+        Number(item.quantity);
+
+      if (item.sellingUnitId) {
+        const sellingUnit =
+          await productService.findSellingUnitById(
+            item.productId,
+            item.sellingUnitId,
+          );
+
+        if (!sellingUnit) {
+          throw new Error(
+            `Selling unit not found for product "${item.productName}".`,
+          );
+        }
+
+        inventoryQuantity =
+          Number(item.quantity) *
+          sellingUnit.quantity;
+      }
+
+      inventoryItems.push({
+        productId:
+          item.productId,
+        quantity:
+          inventoryQuantity,
+      });
+    }
+
+    if (restaurantItems.length > 0) {
+  const { recipeService } =
+    await import(
+      "@/lib/restaurant/recipeService"
+    );
+
+  await recipeService.restoreSaleRecipes({
+    businessId,
+    warehouseId:
+      sale.warehouseId,
+    currency:
+      sale.currency,
+    createdBy:
+      sale.createdBy,
+    referenceId:
+      sale.id,
+    items:
+      restaurantItems,
+  });
+}
+
+    if (inventoryItems.length > 0) {
+      await inventoryService.returnStockBatch({
+        businessId,
+        warehouseId:
+          sale.warehouseId,
+        currency:
+          sale.currency,
+        createdBy:
+          sale.createdBy,
+        referenceType:
+          "SALE_REVERSAL",
+        referenceId:
+          sale.id,
+        notes:
+          `Stock restored from reversed sale ${sale.referenceNumber}.`,
+        items:
+          inventoryItems,
+      });
+    }
+
+    return saleRepository.updateStatus(
+      businessId,
+      saleId,
+      "REVERSED",
+    );
+  },
+
+    async cancel(
+    businessId: string,
+    saleId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!saleId) {
+      throw new Error(
+        "Sale is required.",
+      );
+    }
+
+    const sale =
+      await saleRepository.findById(
+        businessId,
+        saleId,
+      );
+
+    if (!sale) {
+      throw new Error(
+        "Sale not found.",
+      );
+    }
+
+    if (sale.status === "COMPLETED") {
+      throw new Error(
+        "Completed sales must be reversed instead of cancelled.",
+      );
+    }
+
+    if (sale.status === "CANCELLED") {
+      throw new Error(
+        "Sale is already cancelled.",
       );
     }
 

@@ -20,6 +20,7 @@ export function getSetupDefaults(
   const warehouseName =
     businessType === "restaurant" ||
 	businessType === "bar" ||
+	businessType === "wines_spirits" ||
 	businessType === "boutique"
       ? "Main Store"
       : "Main Warehouse";

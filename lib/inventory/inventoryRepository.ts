@@ -736,4 +736,111 @@ return movements.map(serializeMovement);
     return results;
   },
 
+    async returnStockBatch(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (input.items.length === 0) {
+      throw new Error(
+        "At least one stock return item is required.",
+      );
+    }
+
+    for (const item of input.items) {
+      if (item.quantity <= 0) {
+        throw new Error(
+          "Return quantity must be greater than zero.",
+        );
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const results = [];
+
+      for (const item of input.items) {
+        const existingBalance =
+          await tx.inventoryBalance.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: input.warehouseId,
+              },
+            },
+          });
+
+        const currentQuantity =
+          existingBalance?.quantity.toNumber() ?? 0;
+
+        const averageCost =
+          existingBalance?.averageCost.toNumber() ?? 0;
+
+        const newQuantity =
+          currentQuantity + item.quantity;
+
+        const totalCost =
+          item.quantity * averageCost;
+
+        const movement =
+          await tx.inventoryMovement.create({
+            data: {
+              businessId: input.businessId,
+              productId: item.productId,
+              warehouseId: input.warehouseId,
+              type: "RETURN",
+              quantity: item.quantity,
+              unitCost: averageCost,
+              totalCost,
+              referenceType:
+                input.referenceType,
+              referenceId:
+                input.referenceId,
+              createdBy: input.createdBy,
+              notes: input.notes,
+            },
+          });
+
+        const balance =
+          await tx.inventoryBalance.upsert({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: input.warehouseId,
+              },
+            },
+            create: {
+              businessId: input.businessId,
+              productId: item.productId,
+              warehouseId: input.warehouseId,
+              quantity: newQuantity,
+              reservedQuantity: 0,
+              averageCost,
+              currency: input.currency,
+            },
+            update: {
+              quantity: newQuantity,
+              currency: input.currency,
+            },
+          });
+
+        results.push({
+          movement:
+            serializeMovement(movement),
+          balance:
+            serializeBalance(balance),
+        });
+      }
+
+      return results;
+    });
+  },
+
 };

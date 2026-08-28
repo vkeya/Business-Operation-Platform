@@ -7,17 +7,27 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSaleAction } from "@/lib/sales/actions";
-import { getTranslations } from "@/lib/i18n";
+
 import type { TranslationSet } from "@/lib/i18n";
+
+interface ProductSellingUnit {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  sellingPrice: number;
+}
 
 interface Product {
   id: string;
   name: string;
   sku: string;
+  barcode?: string | null;
   type: string;
   trackInventory: boolean;
   sellingPrice: number;
   currency: string;
+  sellingUnits?: ProductSellingUnit[];
 }
 
 interface RestaurantMenuItem {
@@ -53,6 +63,7 @@ interface SaleItem {
   id: string;
   productId: string;
   menuItemId: string;
+  sellingUnitId: string;
   quantity: string;
 }
 
@@ -84,6 +95,7 @@ export default function SaleForm({
         id: crypto.randomUUID(),
         productId: "",
         menuItemId: "",
+        sellingUnitId: "",
         quantity: "",
       },
     ]);
@@ -93,6 +105,15 @@ export default function SaleForm({
 
   const [error, setError] =
     useState("");
+
+  const [discountAmount, setDiscountAmount] =
+    useState("");
+
+  const [taxRate, setTaxRate] =
+  useState("");
+
+  const [barcode, setBarcode] =
+  useState("");
 
   const inventoryProducts = useMemo(
     () =>
@@ -120,8 +141,14 @@ export default function SaleForm({
                 menuItem.id === item.menuItemId,
             );
 
+          const sellingUnit =
+            product?.sellingUnits?.find(
+              (sellingUnit) => sellingUnit.id === item.sellingUnitId,
+            );
+
           const unitPrice =
             menuItem?.sellingPrice ??
+            sellingUnit?.sellingPrice ??
             product?.sellingPrice ??
             0;
 
@@ -140,11 +167,35 @@ export default function SaleForm({
     ],
   );
 
+  const discount = Math.min(
+    Math.max(
+      Number(discountAmount || 0),
+      0,
+    ),
+    subtotal,
+  );
+
+  const taxableAmount =
+  subtotal - discount;
+
+const taxPercentage = Math.max(
+  Number(taxRate || 0),
+  0,
+);
+
+const taxAmount =
+  taxableAmount *
+  (taxPercentage / 100);
+
+const totalAmount =
+  taxableAmount + taxAmount;
+
   function updateItem(
     id: string,
     field:
       | "productId"
       | "menuItemId"
+      | "sellingUnitId"
       | "quantity",
     value: string,
   ) {
@@ -167,6 +218,7 @@ export default function SaleForm({
         id: crypto.randomUUID(),
         productId: "",
         menuItemId: "",
+        sellingUnitId: "",
         quantity: "",
       },
     ]);
@@ -181,6 +233,86 @@ export default function SaleForm({
           ),
     );
   }
+
+  function handleBarcodeScan() {
+  const scannedBarcode =
+    barcode.trim();
+
+  if (!scannedBarcode) {
+    return;
+  }
+
+  const product =
+    inventoryProducts.find(
+      (item) =>
+        item.barcode === scannedBarcode,
+    );
+
+  if (!product) {
+    setError(
+      `No product found for barcode "${scannedBarcode}".`,
+    );
+
+    return;
+  }
+
+  setError("");
+
+  setItems((current) => {
+    const existingItem =
+      current.find(
+        (item) =>
+          item.productId === product.id &&
+          !item.menuItemId,
+      );
+
+    if (existingItem) {
+      return current.map((item) =>
+        item.id === existingItem.id
+          ? {
+              ...item,
+              quantity: String(
+                Number(item.quantity || 0) + 1,
+              ),
+            }
+          : item,
+      );
+    }
+
+    const emptyItem =
+      current.find(
+        (item) =>
+          !item.productId &&
+          !item.menuItemId,
+      );
+
+    if (emptyItem) {
+      return current.map((item) =>
+        item.id === emptyItem.id
+          ? {
+              ...item,
+              productId: product.id,
+              menuItemId: "",
+              quantity: "1",
+            }
+          : item,
+      );
+    }
+
+    return [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        productId: product.id,
+        menuItemId: "",
+        sellingUnitId: "",
+        quantity: "1",
+      },
+    ];
+  });
+
+  setBarcode("");
+}
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -249,8 +381,14 @@ export default function SaleForm({
           );
         }
 
+        const sellingUnit =
+          product.sellingUnits?.find(
+            (sellingUnit) => sellingUnit.id === item.sellingUnitId,
+          );
+
         const unitPrice =
           menuItem?.sellingPrice ??
+          sellingUnit?.sellingPrice ??
           product.sellingPrice;
 
         return {
@@ -258,6 +396,8 @@ export default function SaleForm({
             product.id,
           menuItemId:
             menuItem?.id || undefined,
+          sellingUnitId:
+            sellingUnit?.id || undefined,
           productName:
             menuItem?.name ??
             product.name,
@@ -286,9 +426,9 @@ export default function SaleForm({
             notes.trim() || undefined,
           items: saleItems,
           subtotal,
-          discountAmount: 0,
-          taxAmount: 0,
-          totalAmount: subtotal,
+          discountAmount: discount,
+          taxAmount,
+          totalAmount,
         });
 
       router.push(
@@ -443,6 +583,32 @@ export default function SaleForm({
           </button>
         </div>
 
+		<div className="mt-6">
+  <label
+    htmlFor="barcode"
+    className="block text-sm font-medium text-slate-700"
+  >
+    Scan barcode
+  </label>
+
+  <input
+    id="barcode"
+    value={barcode}
+    onChange={(event) =>
+      setBarcode(event.target.value)
+    }
+    onKeyDown={(event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    handleBarcodeScan();
+  }
+}}
+    placeholder="Scan or enter product barcode"
+    autoComplete="off"
+    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
+  />
+</div>
+
         <div className="mt-6 space-y-4">
           {items.map((item) => {
             const product =
@@ -457,8 +623,14 @@ export default function SaleForm({
                   menuItem.id === item.menuItemId,
               );
 
+            const sellingUnit =
+              product?.sellingUnits?.find(
+                (sellingUnit) => sellingUnit.id === item.sellingUnitId,
+              );
+
             const unitPrice =
               menuItem?.sellingPrice ??
+              sellingUnit?.sellingPrice ??
               product?.sellingPrice ??
               0;
 
@@ -469,7 +641,7 @@ export default function SaleForm({
             return (
               <div
                 key={item.id}
-                className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-[1fr_140px_140px_auto]"
+                className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-[1fr_180px_140px_140px_auto]"
               >
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
@@ -623,6 +795,33 @@ export default function SaleForm({
                 </div>
 
                 <div>
+                   <label className="block text-sm font-medium text-slate-700">
+                     Selling unit
+                   </label>
+                   <select
+                     value={item.sellingUnitId}
+                     onChange={(event) =>
+                       updateItem(item.id, "sellingUnitId", event.target.value)
+                     }
+                     disabled={
+                       !product ||
+                       Boolean(item.menuItemId) ||
+                       (product.sellingUnits?.length ?? 0) === 0
+                     }
+                     className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
+                   >
+                     <option value="">Base unit</option>
+                     {product?.sellingUnits?.map((sellingUnit) => (
+                       <option key={sellingUnit.id} value={sellingUnit.id}>
+                         {sellingUnit.name} — {sellingUnit.quantity}{" "}
+                         {sellingUnit.unit} — {currency}{" "}
+                         {sellingUnit.sellingPrice.toFixed(2)}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+
+                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     {t.saleForm.quantity}
                   </label>
@@ -674,28 +873,95 @@ export default function SaleForm({
         </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">
-            {t.saleForm.saleTotal}
-          </p>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+  <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="grid flex-1 gap-4 sm:grid-cols-4">
+      <div>
+        <p className="text-sm text-slate-500">
+          Subtotal
+        </p>
 
-          <p className="mt-1 text-2xl font-semibold text-slate-900">
-            {currency}{" "}
-            {subtotal.toFixed(2)}
-          </p>
+        <p className="mt-1 text-lg font-semibold text-slate-900">
+          {currency}{" "}
+          {subtotal.toFixed(2)}
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm text-slate-500">
+          Discount
+        </label>
+
+        <div className="mt-1 flex max-w-xs rounded-xl border border-slate-300 bg-white">
+          <span className="flex items-center border-r border-slate-200 px-3 text-sm text-slate-500">
+            {currency}
+          </span>
+
+          <input
+            type="number"
+            min="0"
+            max={subtotal}
+            step="0.01"
+            value={discountAmount}
+            onChange={(event) =>
+              setDiscountAmount(
+                event.target.value,
+              )
+            }
+            placeholder="0.00"
+            className="w-full rounded-r-xl px-4 py-2.5 text-sm outline-none"
+          />
         </div>
+      </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting
-            ? t.saleForm.saving
-            : t.sales.recordSale}
-        </button>
-      </section>
+	  <div>
+  <label className="block text-sm text-slate-500">
+    Tax (%)
+  </label>
+
+  <input
+    type="number"
+    min="0"
+    step="0.01"
+    value={taxRate}
+    onChange={(event) =>
+      setTaxRate(
+        event.target.value,
+      )
+    }
+    placeholder="0"
+    className="mt-1 w-full max-w-xs rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
+  />
+
+  <p className="mt-2 text-sm text-slate-500">
+    {currency}{" "}
+    {taxAmount.toFixed(2)}
+  </p>
+</div>
+
+      <div>
+        <p className="text-sm text-slate-500">
+          {t.saleForm.saleTotal}
+        </p>
+
+        <p className="mt-1 text-2xl font-semibold text-slate-900">
+          {currency}{" "}
+          {totalAmount.toFixed(2)}
+        </p>
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      disabled={submitting}
+      className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {submitting
+        ? t.saleForm.saving
+        : t.sales.recordSale}
+    </button>
+  </div>
+</section>
     </form>
   );
 }

@@ -22,6 +22,7 @@ enum SaleStatus {
   DRAFT
   COMPLETED
   CANCELLED
+  REVERSED
 }
 
 enum PaymentStatus {
@@ -264,7 +265,7 @@ model Product {
 
   type        ProductType
   description String?
-
+  sellingUnits ProductSellingUnit[]
   unit String
 
   costPrice    Decimal @db.Decimal(18, 4)
@@ -298,6 +299,27 @@ model Product {
   @@index([businessId])
   @@index([categoryId])
   @@index([barcode])
+}
+
+model ProductSellingUnit {
+  id        String @id @default(cuid())
+  productId String
+
+  name         String
+  quantity     Decimal @db.Decimal(18, 4)
+  unit         String
+  sellingPrice Decimal @db.Decimal(18, 4)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  saleItems SaleItem[]
+
+  @@index([productId])
 }
 
 model RestaurantMenu {
@@ -537,10 +559,11 @@ model Sale {
 }
 
 model SaleItem {
-  id         String  @id @default(cuid())
-  saleId     String
-  productId  String
-  menuItemId String?
+  id            String  @id @default(cuid())
+  saleId        String
+  productId     String
+  menuItemId    String?
+  sellingUnitId String?
 
   productName String
   sku         String?
@@ -553,12 +576,14 @@ model SaleItem {
 
   totalAmount Decimal @db.Decimal(18, 4)
 
-  sale     Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  menuItem RestaurantMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  sale        Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  menuItem    RestaurantMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  sellingUnit ProductSellingUnit? @relation(fields: [sellingUnitId], references: [id], onDelete: SetNull)
 
   @@index([saleId])
   @@index([productId])
   @@index([menuItemId])
+  @@index([sellingUnitId])
 }
 
 model Purchase {

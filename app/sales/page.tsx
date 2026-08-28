@@ -8,7 +8,7 @@ import { getLocale } from "@/lib/i18n/locale";
 export const dynamic = "force-dynamic";
 
 export default async function SalesPage() {
-	
+
   const locale = await getLocale();
   const t = getTranslations(locale);
 
@@ -25,17 +25,24 @@ export default async function SalesPage() {
   const pendingSales = sales.filter(
     (sale) =>
       sale.status !== "COMPLETED" &&
-      sale.status !== "CANCELLED",
+      sale.status !== "CANCELLED" &&
+	  sale.status !== "REVERSED",
   );
 
   const cancelledSales = sales.filter(
     (sale) => sale.status === "CANCELLED",
   );
 
+    const reversedSales = sales.filter(
+    (sale) => sale.status === "REVERSED",
+  );
+
   const revenueByCurrency =
     sales.reduce<Record<string, number>>(
       (totals, sale) => {
-        if (sale.status === "CANCELLED") {
+        if (sale.status === "CANCELLED" ||
+		    sale.status === "REVERSED"
+			) {
           return totals;
         }
 
@@ -106,7 +113,7 @@ export default async function SalesPage() {
       </section>
 
       {/* Sales KPIs */}
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
             {t.sales.transactions}
@@ -148,6 +155,20 @@ export default async function SalesPage() {
             {t.sales.stillInProgress}
           </p>
         </div>
+
+		<div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm">
+  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600">
+    {t.sales.reversed}
+  </p>
+
+  <p className="mt-3 text-3xl font-semibold tracking-tight text-violet-900">
+    {reversedSales.length}
+  </p>
+
+  <p className="mt-2 text-xs text-violet-700">
+    {t.sales.reversed}
+  </p>
+</div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
@@ -353,6 +374,9 @@ export default async function SalesPage() {
                     const isCancelled =
                       sale.status === "CANCELLED";
 
+					const isReversed =
+                      sale.status === "REVERSED";
+
                     return (
                       <tr
                         key={sale.id}
@@ -397,23 +421,33 @@ export default async function SalesPage() {
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                               isCompleted
-                                ? "bg-emerald-50 text-emerald-700"
-                                : isCancelled
-                                  ? "bg-red-50 text-red-600"
-                                  : "bg-amber-50 text-amber-700"
+  ? "bg-emerald-50 text-emerald-700"
+  : isCancelled
+    ? "bg-red-50 text-red-600"
+    : isReversed
+      ? "bg-violet-50 text-violet-700"
+      : "bg-amber-50 text-amber-700"
                             }`}
                           >
                             <span
                               className={`h-1.5 w-1.5 rounded-full ${
                                 isCompleted
-                                  ? "bg-emerald-500"
-                                  : isCancelled
-                                    ? "bg-red-500"
-                                    : "bg-amber-500"
+  ? "bg-emerald-500"
+  : isCancelled
+    ? "bg-red-500"
+    : isReversed
+      ? "bg-violet-500"
+      : "bg-amber-500"
                               }`}
                             />
 
-                            {sale.status}
+                            {isCompleted
+  ? t.sales.completed
+  : isCancelled
+    ? t.sales.cancelled
+    : isReversed
+      ? t.sales.reversed
+      : t.sales.pending}
                           </span>
                         </td>
 

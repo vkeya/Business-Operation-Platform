@@ -241,6 +241,7 @@ export default function SetupForm({
   {{
     restaurant: t.setup.restaurant,
     bar: t.setup.bar,
+	wines_spirits: t.setup.winesSpirits,
     hotel: t.setup.hotel,
     hospital: t.setup.hospitalClinic,
     supermarket: t.setup.supermarket,
@@ -254,6 +255,7 @@ export default function SetupForm({
   {{
     restaurant: t.setup.restaurantDescription,
     bar: t.setup.barDescription,
+	wines_spirits: t.setup.winesSpiritsDescription,
     hotel: t.setup.hotelDescription,
     hospital: t.setup.hospitalClinicDescription,
     supermarket: t.setup.supermarketDescription,

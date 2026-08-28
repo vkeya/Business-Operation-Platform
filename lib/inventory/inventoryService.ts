@@ -293,6 +293,48 @@ async transferStock(input: {
     );
   },
 
+    async returnStockBatch(input: {
+    businessId: string;
+    warehouseId: string;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+    }>;
+  }) {
+    if (!input.businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!input.warehouseId) {
+      throw new Error(
+        "Warehouse is required.",
+      );
+    }
+
+    if (!input.currency) {
+      throw new Error(
+        "Currency is required.",
+      );
+    }
+
+    if (!input.createdBy) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    return inventoryRepository.returnStockBatch(
+      input,
+    );
+  },
+
   async listMovements(
   businessId: string,
   productId?: string,

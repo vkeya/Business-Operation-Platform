@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createProductAction,
+  createProductSellingUnitAction,
   getProductDefaultsAction,
 } from "../actions";
 import { currencies } from "@/lib/currency/currencies";
@@ -11,6 +12,14 @@ import type { TranslationSet } from "@/lib/i18n";
 
 interface NewProductFormProps {
   translations: TranslationSet;
+}
+
+interface SellingUnitInput {
+  id: string;
+  name: string;
+  quantity: string;
+  unit: string;
+  sellingPrice: string;
 }
 
 export default function NewProductForm({
@@ -30,6 +39,10 @@ export default function NewProductForm({
   const [trackInventory, setTrackInventory] = useState(true);
   const [minimumStock, setMinimumStock] = useState("");
   const [reorderLevel, setReorderLevel] = useState("");
+
+  const [sellingUnits, setSellingUnits] = useState<
+    SellingUnitInput[]
+  >([]);
 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -68,8 +81,8 @@ useEffect(() => {
     setSaving(true);
 
     try {
-      await createProductAction({
-  name,
+      const product = await createProductAction({
+        name,
         sku,
         barcode: barcode || undefined,
         type,
@@ -88,6 +101,22 @@ useEffect(() => {
             ? undefined
             : Number(reorderLevel),
       });
+
+      await Promise.all(
+        sellingUnits.map((sellingUnit) =>
+          createProductSellingUnitAction(
+            product.id,
+            {
+              name: sellingUnit.name.trim(),
+              quantity: Number(sellingUnit.quantity),
+              unit: sellingUnit.unit.trim(),
+              sellingPrice: Number(
+                sellingUnit.sellingPrice,
+              ),
+            },
+          ),
+        ),
+      );
 
       router.push("/inventory/products");
     } catch (err) {
@@ -340,6 +369,148 @@ useEffect(() => {
   </select>
 </div>
           </div>
+        </section>
+
+        <section className="border-t border-slate-200 pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Selling units
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Add optional ways to sell this product, such as shots,
+                glasses, draughts, packs, or bottles.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSellingUnits((current) => [
+                  ...current,
+                  {
+                    id: crypto.randomUUID(),
+                    name: "",
+                    quantity: "",
+                    unit,
+                    sellingPrice: "",
+                  },
+                ])
+              }
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Add selling unit
+            </button>
+          </div>
+
+          {sellingUnits.length > 0 && (
+            <div className="mt-5 space-y-4">
+              {sellingUnits.map((sellingUnit) => (
+                <div
+                  key={sellingUnit.id}
+                  className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-5"
+                >
+                  <input
+                    value={sellingUnit.name}
+                    onChange={(event) =>
+                      setSellingUnits((current) =>
+                        current.map((item) =>
+                          item.id === sellingUnit.id
+                            ? {
+                                ...item,
+                                name: event.target.value,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                    placeholder="e.g. Shot"
+                    required
+                    className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={sellingUnit.quantity}
+                    onChange={(event) =>
+                      setSellingUnits((current) =>
+                        current.map((item) =>
+                          item.id === sellingUnit.id
+                            ? {
+                                ...item,
+                                quantity: event.target.value,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                    placeholder="Quantity"
+                    required
+                    className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+
+                  <input
+                    value={sellingUnit.unit}
+                    onChange={(event) =>
+                      setSellingUnits((current) =>
+                        current.map((item) =>
+                          item.id === sellingUnit.id
+                            ? {
+                                ...item,
+                                unit: event.target.value,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                    placeholder="Unit"
+                    required
+                    className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={sellingUnit.sellingPrice}
+                    onChange={(event) =>
+                      setSellingUnits((current) =>
+                        current.map((item) =>
+                          item.id === sellingUnit.id
+                            ? {
+                                ...item,
+                                sellingPrice: event.target.value,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                    placeholder="Selling price"
+                    required
+                    className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSellingUnits((current) =>
+                        current.filter(
+                          (item) =>
+                            item.id !== sellingUnit.id,
+                        ),
+                      )
+                    }
+                    className="rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="border-t border-slate-200 pt-8">
