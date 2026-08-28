@@ -121,11 +121,38 @@ export default function SetupForm({
 
     setErrors({});
 
-    try {
-      await createBusinessAction(setup, "setup-user");
-      setSubmitted(true);
-      router.push("/dashboard");
-    } catch (error) {
+   try {
+  const business =
+    await createBusinessAction(
+      setup,
+      "setup-user",
+    );
+
+  const response = await fetch(
+    "/api/businesses/switch",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        businessId: business.business.id,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to activate the new business.",
+    );
+  }
+
+  setSubmitted(true);
+
+  router.push("/dashboard");
+  router.refresh();
+} catch (error) {
       console.error("Failed to create business:", error);
 
       setErrors({
