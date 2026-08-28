@@ -124,16 +124,59 @@ export default function AppShell({
   );
 
   /*
-   * Dashboard has its own business-aware shell.
-   * All other routes continue using the existing AppShell.
-   */
-  const isDashboardRoute =
-    pathname === "/dashboard" ||
-    pathname.startsWith("/dashboard/");
+ * Platform routes are independent from a business workspace.
+ * They should not display the active business identity or
+ * business-specific navigation.
+ */
+const isPlatformRoute =
+  pathname === "/setup";
 
-  if (isDashboardRoute) {
-    return <>{children}</>;
-  }
+const isDashboardRoute =
+  pathname === "/dashboard" ||
+  pathname.startsWith("/dashboard/");
+
+if (isPlatformRoute) {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-3"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
+              T
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-slate-900">
+                Teketeke
+              </p>
+
+              <p className="mt-1 text-[11px] text-slate-500">
+                {t.common.businessOperatingSystem}
+              </p>
+            </div>
+          </Link>
+
+          <div className="ml-auto">
+            <LanguageSelector
+              currentLocale={currentLocale}
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="min-w-0">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+if (isDashboardRoute) {
+  return <>{children}</>;
+}
 
   return (
     <div className="min-h-screen bg-slate-50">
