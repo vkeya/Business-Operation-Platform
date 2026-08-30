@@ -9,6 +9,9 @@ import {
 } from "./actions";
 import { currencies } from "@/lib/currency/currencies";
 import { getTranslations } from "@/lib/i18n";
+import type {
+  ProductConfiguration,
+} from "@/lib/business/productConfiguration";
 
 interface SellingUnitInput {
   id: string;
@@ -32,16 +35,19 @@ type Product = {
   trackInventory: boolean;
   minimumStock: number | null;
   reorderLevel: number | null;
+  attributes: Record<string, string>;
 };
 
 interface ProductFormProps {
   mode: "create" | "edit";
   product?: Product;
+  configuration: ProductConfiguration;
 }
 
 export default function ProductForm({
   mode,
   product,
+  configuration,
 }: ProductFormProps) {
   const router = useRouter();
   const t = getTranslations();
@@ -86,6 +92,10 @@ export default function ProductForm({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [attributes, setAttributes] = useState<
+    Record<string, string>
+  >(product?.attributes ?? {});
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -114,6 +124,7 @@ export default function ProductForm({
           reorderLevel === ""
             ? undefined
             : Number(reorderLevel),
+        attributes,
       };
 
       const savedProduct = isEdit
@@ -261,53 +272,143 @@ export default function ProductForm({
             </div>
 
             <div>
+  <label
+    htmlFor="type"
+    className="block text-sm font-medium text-slate-900"
+  >
+    Type
+  </label>
+
+  <select
+    id="type"
+    value={type}
+    onChange={(event) =>
+      setType(
+        event.target.value as
+          | "PRODUCT"
+          | "SERVICE",
+      )
+    }
+    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+  >
+    <option value="PRODUCT">
+      {t.inventory.product}
+    </option>
+
+    {configuration.supportsServices && (
+      <option value="SERVICE">
+        {t.inventory.service}
+      </option>
+    )}
+  </select>
+</div>
+
+<div>
+  <label
+    htmlFor="unit"
+    className="block text-sm font-medium text-slate-900"
+  >
+    Unit
+  </label>
+
+  <select
+    id="unit"
+    value={unit}
+    onChange={(event) =>
+      setUnit(event.target.value)
+    }
+    required
+    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+  >
+    {configuration.sellingUnits.map(
+      (sellingUnit) => (
+        <option
+          key={sellingUnit}
+          value={sellingUnit}
+        >
+          {sellingUnit}
+        </option>
+      ),
+    )}
+  </select>
+</div>
+
+{configuration.attributes.length > 0 && (
+  <div className="sm:col-span-2">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+      <h3 className="text-sm font-semibold text-slate-900">
+        Product attributes
+      </h3>
+
+      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+        {configuration.attributes.map(
+          (attribute) => (
+            <div key={attribute.id}>
               <label
-                htmlFor="type"
+                htmlFor={attribute.id}
                 className="block text-sm font-medium text-slate-900"
               >
-                Type
+                {attribute.label}
               </label>
 
-              <select
-                id="type"
-                value={type}
-                onChange={(event) =>
-                  setType(
-                    event.target.value as
-                      | "PRODUCT"
-                      | "SERVICE",
-                  )
-                }
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              >
-                <option value="PRODUCT">
-                  {t.inventory.product}
-                </option>
-                <option value="SERVICE">
-                  {t.inventory.service}
-                </option>
-              </select>
-            </div>
+              {attribute.type === "select" ? (
+                <select
+                  id={attribute.id}
+                  value={
+                    attributes[attribute.id] ?? ""
+                  }
+                  onChange={(event) =>
+                    setAttributes((current) => ({
+                      ...current,
+                      [attribute.id]:
+                        event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="">
+                    Select {attribute.label}
+                  </option>
 
-            <div>
-              <label
-                htmlFor="unit"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Unit
-              </label>
-
-              <input
-                id="unit"
-                value={unit}
-                onChange={(event) =>
-                  setUnit(event.target.value)
-                }
-                placeholder="pcs, kg, litre..."
-                required
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              />
+                  {attribute.options?.map(
+                    (option) => (
+                      <option
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              ) : (
+                <input
+                  id={attribute.id}
+                  type={
+                    attribute.type === "number"
+                      ? "number"
+                      : "text"
+                  }
+                  value={
+                    attributes[attribute.id] ?? ""
+                  }
+                  onChange={(event) =>
+                    setAttributes((current) => ({
+                      ...current,
+                      [attribute.id]:
+                        event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              )}
             </div>
+          ),
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
             <div className="sm:col-span-2">
               <label
@@ -433,8 +534,8 @@ export default function ProductForm({
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Add optional selling formats such as shots, glasses,
-                draughts, packs, or bottles.
+                Add optional selling formats relevant to this
+                business type.
               </p>
             </div>
 
@@ -445,7 +546,7 @@ export default function ProductForm({
                   ...current,
                   {
                     id: crypto.randomUUID(),
-                    name: "",
+                    name: configuration.sellingUnits[0] ?? "",
                     quantity: "",
                     unit,
                     sellingPrice: "",
@@ -479,7 +580,10 @@ export default function ProductForm({
                         ),
                       )
                     }
-                    placeholder="e.g. Shot"
+                    placeholder={
+                      configuration.sellingUnits[0] ??
+                      "Selling unit"
+                    }
                     required
                     className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   />

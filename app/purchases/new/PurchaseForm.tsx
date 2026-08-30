@@ -17,6 +17,8 @@ interface Product {
   type: string;
   trackInventory: boolean;
   currency: string;
+  unit: string;
+  attributes?: unknown;
 }
 
 interface Supplier {
@@ -45,6 +47,50 @@ interface PurchaseItem {
   productId: string;
   quantity: string;
   unitCost: string;
+}
+
+function getProductVolume(
+  product?: Product,
+) {
+  if (!product) {
+    return null;
+  }
+
+  if (
+    !product.attributes ||
+    typeof product.attributes !== "object" ||
+    Array.isArray(product.attributes)
+  ) {
+    return null;
+  }
+
+  const attributes =
+    product.attributes as Record<
+      string,
+      unknown
+    >;
+
+  const volume =
+    attributes.volume;
+
+  const numericVolume =
+    typeof volume === "number"
+      ? volume
+      : typeof volume === "string"
+        ? Number(volume)
+        : NaN;
+
+  if (
+    !Number.isFinite(numericVolume) ||
+    numericVolume <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    quantity: numericVolume,
+    unit: product.unit,
+  };
 }
 
 export default function PurchaseForm({
@@ -467,10 +513,30 @@ export default function PurchaseForm({
         </div>
 
         <div className="mt-5 space-y-4">
-          {items.map((item) => {
-            const lineTotal =
-              Number(item.quantity || 0) *
-              Number(item.unitCost || 0);
+         {items.map((item) => {
+  const selectedProduct =
+    inventoryProducts.find(
+      (product) =>
+        product.id === item.productId,
+    );
+
+  const productVolume =
+    getProductVolume(
+      selectedProduct,
+    );
+
+  const purchaseQuantity =
+    Number(item.quantity || 0);
+
+  const inventoryQuantity =
+    productVolume
+      ? purchaseQuantity *
+        productVolume.quantity
+      : purchaseQuantity;
+
+  const lineTotal =
+    purchaseQuantity *
+    Number(item.unitCost || 0);
 
             return (
               <div
@@ -541,6 +607,15 @@ export default function PurchaseForm({
                       required
                       className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
                     />
+					{productVolume && (
+  <p className="mt-1 text-xs text-slate-500">
+    {purchaseQuantity || 0} ×{" "}
+    {productVolume.quantity}{" "}
+    {productVolume.unit} ={" "}
+    {inventoryQuantity.toLocaleString()}{" "}
+    {productVolume.unit} stock
+  </p>
+)}
                   </div>
 
                   <div className="sm:col-span-2">

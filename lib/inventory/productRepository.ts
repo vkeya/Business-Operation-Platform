@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/database/prisma";
 
+export type ProductAttributes =
+  Record<string, string | number>;
+
 export interface CreateProductInput {
   businessId: string;
   categoryId?: string;
@@ -9,6 +12,9 @@ export interface CreateProductInput {
   type: "PRODUCT" | "SERVICE";
   description?: string;
   unit: string;
+
+  attributes?: ProductAttributes;
+
   costPrice: number;
   sellingPrice: number;
   currency: string;
@@ -88,6 +94,7 @@ export const productRepository = {
         type: input.type,
         description: input.description,
         unit: input.unit,
+		attributes: input.attributes,
         costPrice: input.costPrice,
         sellingPrice: input.sellingPrice,
         currency: input.currency,
@@ -121,6 +128,7 @@ export const productRepository = {
         type: input.type,
         description: input.description,
         unit: input.unit,
+		attributes: input.attributes,
         costPrice: input.costPrice,
         sellingPrice: input.sellingPrice,
         currency: input.currency,

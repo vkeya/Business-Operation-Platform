@@ -18,8 +18,20 @@ export async function createProductAction(
 export async function getProductDefaultsAction() {
   const business = await getCurrentBusiness();
 
+  const {
+    productCategoryService,
+  } = await import(
+    "@/lib/inventory/productCategoryService"
+  );
+
+  const categories =
+    await productCategoryService.listCategories(
+      business.id,
+    );
+
   return {
     currency: business.baseCurrency,
+    categories,
   };
 }
 

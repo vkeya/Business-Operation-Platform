@@ -3,11 +3,20 @@ import { getProductsAction } from "./listActions";
 import ProductList from "./ProductList";
 import { getTranslations } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getProductConfiguration } from "@/lib/business/productConfiguration";
+import type { BusinessType } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   const products = await getProductsAction();
+
+  const business = await getCurrentBusiness();
+
+  const configuration = getProductConfiguration(
+    business.type as BusinessType,
+  );
 
   const locale = await getLocale();
   const t = getTranslations(locale);
@@ -179,7 +188,10 @@ export default async function ProductsPage() {
               </Link>
             </div>
           ) : (
-            <ProductList products={products} />
+            <ProductList
+              products={products}
+              configuration={configuration}
+            />
           )}
         </div>
       </section>

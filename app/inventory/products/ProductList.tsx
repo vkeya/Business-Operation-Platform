@@ -9,6 +9,8 @@ import {
 import ProductSearch from "./ProductSearch";
 import { getAllInventoryBalancesAction } from "./listActions";
 import { getTranslations } from "@/lib/i18n";
+import type { ProductConfiguration } from "@/lib/business/productConfiguration";
+
 
 interface Product {
   id: string;
@@ -20,14 +22,41 @@ interface Product {
   currency: string;
   trackInventory: boolean;
   status: string;
+  attributes: unknown;
 }
 
 interface ProductListProps {
   products: Product[];
+  configuration: ProductConfiguration;
+}
+
+function getProductAttributeValue(
+  attributes: unknown,
+  attributeId: string,
+): string | null {
+  if (
+    !attributes ||
+    typeof attributes !== "object" ||
+    Array.isArray(attributes)
+  ) {
+    return null;
+  }
+
+  const record = attributes as Record<
+    string,
+    unknown
+  >;
+
+  const value = record[attributeId];
+
+  return typeof value === "string"
+    ? value
+    : null;
 }
 
 export default function ProductList({
   products: initialProducts,
+  configuration,
 }: ProductListProps) {
   const t = getTranslations();
 
@@ -118,7 +147,7 @@ export default function ProductList({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1050px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-left">
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
@@ -127,6 +156,10 @@ export default function ProductList({
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                   SKU
+                </th>
+
+                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Attributes
                 </th>
 
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
@@ -163,6 +196,19 @@ export default function ProductList({
                   product.trackInventory &&
                   stock <= 0;
 
+                const visibleAttributes =
+  configuration.attributes.filter(
+    (attribute) => {
+      const value =
+        getProductAttributeValue(
+          product.attributes,
+          attribute.id,
+        );
+
+      return Boolean(value?.trim());
+    },
+  );
+
                 return (
                   <tr
                     key={product.id}
@@ -197,6 +243,34 @@ export default function ProductList({
                       <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 font-mono text-xs font-medium text-slate-600">
                         {product.sku}
                       </span>
+                    </td>
+
+                    {/* Attributes */}
+                    <td className="px-6 py-4">
+                      {visibleAttributes.length > 0 ? (
+                        <div className="flex max-w-xs flex-wrap gap-1.5">
+                          {visibleAttributes.map(
+                            (attribute) => (
+                              <span
+                                key={attribute.id}
+                                className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
+                              >
+                                {attribute.label}:{" "}
+                                {
+  getProductAttributeValue(
+    product.attributes,
+    attribute.id,
+  )
+}
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          —
+                        </span>
+                      )}
                     </td>
 
                     {/* Type */}

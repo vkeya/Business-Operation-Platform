@@ -209,7 +209,7 @@ export const purchaseRepository = {
       ? serializePurchase(purchase)
       : null;
   },
-  
+
     async findById(
     businessId: string,
     purchaseId: string,
@@ -231,7 +231,7 @@ export const purchaseRepository = {
       ? serializePurchase(purchase)
       : null;
   },
-  
+
     async updateStatus(
     businessId: string,
     purchaseId: string,
@@ -294,6 +294,48 @@ export const purchaseRepository = {
       }
 
       for (const item of purchase.items) {
+
+		  const product =
+  await tx.product.findUnique({
+    where: {
+      id: item.productId,
+    },
+    select: {
+      attributes: true,
+    },
+  });
+
+const attributes =
+  product?.attributes &&
+  typeof product.attributes === "object" &&
+  !Array.isArray(product.attributes)
+    ? product.attributes as Record<
+        string,
+        string | number
+      >
+    : {};
+
+const volume =
+  typeof attributes.volume === "number"
+    ? attributes.volume
+    : Number(attributes.volume);
+
+const purchaseQuantity =
+  item.quantity.toNumber();
+
+const quantity =
+  Number.isFinite(volume) && volume > 0
+    ? purchaseQuantity * volume
+    : purchaseQuantity;
+
+	const unitCost =
+  item.unitCost.toNumber();
+
+const inventoryUnitCost =
+  Number.isFinite(volume) && volume > 0
+    ? unitCost / volume
+    : unitCost;
+
         const existingBalance =
           await tx.inventoryBalance.findUnique({
             where: {
@@ -308,25 +350,19 @@ export const purchaseRepository = {
           existingBalance?.quantity.toNumber() ?? 0;
 
         const previousAverageCost =
-          existingBalance?.averageCost.toNumber() ?? 0;
-
-        const quantity =
-          item.quantity.toNumber();
-
-        const unitCost =
-          item.unitCost.toNumber();
+          existingBalance?.averageCost.toNumber() ?? 0
 
         const newQuantity =
           previousQuantity + quantity;
 
         const newAverageCost =
-          newQuantity === 0
-            ? unitCost
-            : (
-                previousQuantity *
-                  previousAverageCost +
-                quantity * unitCost
-              ) / newQuantity;
+  newQuantity === 0
+    ? inventoryUnitCost
+    : (
+        previousQuantity *
+          previousAverageCost +
+        quantity * inventoryUnitCost
+      ) / newQuantity;
 
         await tx.inventoryMovement.create({
           data: {
@@ -335,9 +371,9 @@ export const purchaseRepository = {
             warehouseId: purchase.warehouseId,
             type: "RECEIPT",
             quantity,
-            unitCost,
-            totalCost:
-              quantity * unitCost,
+            unitCost: inventoryUnitCost,
+totalCost:
+  quantity * inventoryUnitCost,
             referenceType: "PURCHASE",
             referenceId: purchase.id,
             createdBy: purchase.createdBy,
@@ -388,7 +424,7 @@ export const purchaseRepository = {
       );
     });
   },
-  
+
     async cancelPurchase(
     businessId: string,
     purchaseId: string,
@@ -410,5 +446,5 @@ export const purchaseRepository = {
 
     return serializePurchase(purchase);
   },
-  
+
 };
