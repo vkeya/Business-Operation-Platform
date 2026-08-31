@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/database/prisma";
 
 const CURRENT_BUSINESS_COOKIE =
@@ -9,8 +11,28 @@ export async function POST(
   request: Request,
 ) {
   try {
+    const session =
+      await getServerSession(authOptions);
+
+    const userId =
+      typeof session?.user?.id === "string"
+        ? session.user.id
+        : null;
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          error:
+            "Authentication is required.",
+        },
+        { status: 401 },
+      );
+    }
+
     const body = await request.json();
-    const businessId = body?.businessId;
+
+    const businessId =
+      body?.businessId;
 
     if (
       typeof businessId !== "string" ||
@@ -25,32 +47,37 @@ export async function POST(
       );
     }
 
-    const business =
-      await prisma.business.findFirst({
+    const membership =
+      await prisma.businessMembership.findFirst({
         where: {
-          id: businessId,
-          status: "ACTIVE",
+          userId,
+          businessId,
+          isActive: true,
+          business: {
+            status: "ACTIVE",
+          },
         },
         select: {
-          id: true,
+          businessId: true,
         },
       });
 
-    if (!business) {
+    if (!membership) {
       return NextResponse.json(
         {
           error:
-            "Business not found.",
+            "You do not have access to this business.",
         },
-        { status: 404 },
+        { status: 403 },
       );
     }
 
-    const cookieStore = await cookies();
+    const cookieStore =
+      await cookies();
 
     cookieStore.set(
       CURRENT_BUSINESS_COOKIE,
-      business.id,
+      membership.businessId,
       {
         httpOnly: true,
         sameSite: "lax",

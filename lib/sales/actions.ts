@@ -2,32 +2,38 @@
 
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import {
-  saleService,
-} from "@/lib/sales/saleService";
-import type {
-  CreateSaleInput,
-} from "@/lib/sales/saleRepository";
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
+
 import type {
   CreateSalePaymentInput,
 } from "@/lib/payment/paymentRepository";
 import {
   paymentService,
 } from "@/lib/payment/paymentService";
+import {
+  saleService,
+  type CreateSaleServiceInput,
+} from "@/lib/sales/saleService";
 
 export async function createSaleAction(
   input: Omit<
-    CreateSaleInput,
-    "businessId" | "createdBy"
-  >,
+  CreateSaleServiceInput,
+  | "businessId"
+  | "createdBy"
+>,
 ) {
   const business =
-    await getCurrentBusiness();
+  await getCurrentBusiness();
 
-  return saleService.create({
-    ...input,
-    businessId: business.id,
-    createdBy: business.id,
-  });
+const userId =
+  await getAuthenticatedUserId();
+
+return saleService.create({
+  ...input,
+  businessId: business.id,
+  createdBy: userId,
+});
 }
 
 export async function getSalesAction() {
@@ -137,11 +143,14 @@ export async function createSalePaymentAction(
   >,
 ) {
   const business =
-    await getCurrentBusiness();
+  await getCurrentBusiness();
 
-  return paymentService.createSalePayment({
-    ...input,
-    businessId: business.id,
-    createdBy: business.id,
-  });
+const userId =
+  await getAuthenticatedUserId();
+
+return paymentService.createSalePayment({
+  ...input,
+  businessId: business.id,
+  createdBy: userId,
+});
 }

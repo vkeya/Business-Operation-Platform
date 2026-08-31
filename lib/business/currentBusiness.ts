@@ -1,10 +1,41 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/database/prisma";
+import {
+  getAuthenticatedUser,
+} from "@/lib/auth/auth";
 
 const CURRENT_BUSINESS_COOKIE =
   "teketeke_current_business";
 
-export async function getCurrentBusiness() {
+export interface CurrentBusinessContext {
+  user: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+
+  business: {
+    id: string;
+    name: string;
+    type: string;
+    country: string;
+    baseCurrency: string;
+    language: string;
+    timezone: string;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}
+
+
+
+export async function getCurrentBusinessContext(): Promise<
+  CurrentBusinessContext
+> {
+  const user =
+  await getAuthenticatedUser();
+
   const cookieStore = await cookies();
 
   const businessId = cookieStore.get(
@@ -12,40 +43,94 @@ export async function getCurrentBusiness() {
   )?.value;
 
   if (businessId) {
-    const selectedBusiness =
-      await prisma.business.findFirst({
+    const membership =
+      await prisma.businessMembership.findFirst({
         where: {
-          id: businessId,
-          status: "ACTIVE",
+          userId: user.id,
+          businessId,
+          isActive: true,
+          business: {
+            status: "ACTIVE",
+          },
+        },
+        include: {
+          business: true,
         },
       });
 
-    if (selectedBusiness) {
-      return selectedBusiness;
+    if (membership) {
+      return {
+        user,
+        business: membership.business,
+      };
     }
   }
 
-  const business = await prisma.business.findFirst({
-    where: {
-      status: "ACTIVE",
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  const membership =
+    await prisma.businessMembership.findFirst({
+      where: {
+        userId: user.id,
+        isActive: true,
+        business: {
+          status: "ACTIVE",
+        },
+      },
+      include: {
+        business: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
-  if (!business) {
+  if (!membership) {
     throw new Error(
-      "No active business is available.",
+      "You do not have access to any active business.",
     );
   }
 
-  return business;
+  return {
+    user,
+    business: membership.business,
+  };
+}
+
+export async function getCurrentBusiness() {
+  const context =
+    await getCurrentBusinessContext();
+
+  return context.business;
 }
 
 export async function getCurrentBusinessWarehouses(
   businessId: string,
 ) {
+  const context =
+    await getCurrentBusinessContext();
+
+  if (context.business.id !== businessId) {
+    const membership =
+      await prisma.businessMembership.findFirst({
+        where: {
+          userId: context.user.id,
+          businessId,
+          isActive: true,
+          business: {
+            status: "ACTIVE",
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!membership) {
+      throw new Error(
+        "You do not have access to this business.",
+      );
+    }
+  }
+
   return prisma.warehouse.findMany({
     where: {
       businessId,

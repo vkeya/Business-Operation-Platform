@@ -4,6 +4,9 @@ import {
   type CreateSalePaymentInput,
 } from "./paymentRepository";
 import { postPaymentToAccounting } from "@/lib/accounting/posting/paymentPosting";
+import {
+  generateBusinessReference,
+} from "@/lib/business/reference/referenceGenerator";
 
 export const paymentService = {
   async createPurchasePayment(
@@ -18,12 +21,6 @@ export const paymentService = {
     if (!input.purchaseId) {
       throw new Error(
         "Purchase is required.",
-      );
-    }
-
-    if (!input.reference.trim()) {
-      throw new Error(
-        "Payment reference is required.",
       );
     }
 
@@ -50,6 +47,8 @@ export const paymentService = {
         "User context is required.",
       );
     }
+
+
 
     const purchase =
       await paymentRepository.findPurchaseWithPayments(
@@ -89,12 +88,19 @@ export const paymentService = {
         ? "PAID"
         : "PARTIAL";
 
+	const reference =
+  input.reference?.trim() ||
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "PAYMENT",
+    prefix: "PAY",
+  });
+
     const payment =
       await paymentRepository.createPurchasePayment(
         {
           ...input,
-          reference:
-            input.reference.trim(),
+          reference,
           method:
             input.method.trim(),
           currency:
@@ -132,31 +138,6 @@ await postPaymentToAccounting({
 });
 
 return payment;
-	
-	await postPaymentToAccounting({
-  businessId:
-    payment.businessId,
-
-  paymentId:
-    payment.id,
-
-  reference:
-    payment.reference,
-
-  amount:
-    payment.amount.toNumber(),
-
-  currency:
-    payment.currency,
-
-  createdBy:
-    payment.createdBy,
-
-  type:
-    "SALE",
-});
-
-    return payment;
   },
 
   async listPurchasePayments(
@@ -193,12 +174,6 @@ return payment;
     if (!input.saleId) {
       throw new Error(
         "Sale is required.",
-      );
-    }
-
-    if (!input.reference.trim()) {
-      throw new Error(
-        "Payment reference is required.",
       );
     }
 
@@ -270,12 +245,19 @@ return payment;
         ? "PAID"
         : "PARTIAL";
 
+	const reference =
+  input.reference?.trim() ||
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "PAYMENT",
+    prefix: "PAY",
+  });
+
     const payment =
       await paymentRepository.createSalePayment(
         {
           ...input,
-          reference:
-            input.reference.trim(),
+          reference,
           method:
             input.method.trim(),
           currency:
@@ -288,6 +270,16 @@ return payment;
       input.saleId,
       paymentStatus,
     );
+
+	await postPaymentToAccounting({
+  businessId: payment.businessId,
+  paymentId: payment.id,
+  reference: payment.reference,
+  amount: payment.amount.toNumber(),
+  currency: payment.currency,
+  createdBy: payment.createdBy,
+  type: "SALE",
+});
 
     return payment;
   },

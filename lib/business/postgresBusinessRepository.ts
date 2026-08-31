@@ -90,7 +90,10 @@ function mapWarehouse(record: {
 }
 
 export const postgresBusinessRepository: BusinessRepository = {
-  async createBusiness(setup: BusinessSetup) {
+  async createBusiness(
+  setup: BusinessSetup,
+  userId: string,
+) {
     const business = await prisma.business.create({
       data: {
         name: setup.business.name,
@@ -99,6 +102,14 @@ export const postgresBusinessRepository: BusinessRepository = {
         baseCurrency: setup.business.baseCurrency,
         language: setup.business.language,
         timezone: setup.business.timezone,
+
+		memberships: {
+  create: {
+    userId,
+    isOwner: true,
+    isActive: true,
+  },
+},
 
         branches: {
           create: {

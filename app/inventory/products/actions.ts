@@ -5,7 +5,10 @@ import { productService } from "@/lib/inventory/productService";
 import type { CreateProductInput } from "@/lib/inventory/productRepository";
 
 export async function createProductAction(
-  input: Omit<CreateProductInput, "businessId">,
+  input: Omit<
+  CreateProductInput,
+  "businessId" | "sku"
+>,
 ) {
   const business = await getCurrentBusiness();
 

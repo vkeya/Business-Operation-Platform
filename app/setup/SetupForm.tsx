@@ -123,10 +123,7 @@ export default function SetupForm({
 
    try {
   const business =
-    await createBusinessAction(
-      setup,
-      "setup-user",
-    );
+  await createBusinessAction(setup);
 
   const response = await fetch(
     "/api/businesses/switch",

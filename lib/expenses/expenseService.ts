@@ -3,6 +3,9 @@ import {
   type CreateExpenseInput,
 } from "./expenseRepository";
 import { postExpenseToAccounting } from "@/lib/accounting/posting/expensePosting";
+import {
+  generateBusinessReference,
+} from "@/lib/business/reference/referenceGenerator";
 
 export const expenseService = {
   async createExpense(
@@ -11,12 +14,6 @@ export const expenseService = {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
-      );
-    }
-
-    if (!input.reference.trim()) {
-      throw new Error(
-        "Expense reference is required.",
       );
     }
 
@@ -53,11 +50,18 @@ export const expenseService = {
       );
     }
 
+	const reference =
+  input.reference?.trim() ||
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "EXPENSE",
+    prefix: "EXP",
+  });
+
     const expense =
   await expenseRepository.create({
     ...input,
-    reference:
-      input.reference.trim(),
+    reference,
     category:
       input.category.trim(),
     description:

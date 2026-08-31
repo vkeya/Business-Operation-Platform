@@ -7,8 +7,9 @@ import type { BusinessSetup } from "@/types/setup";
 
 export interface BusinessRepository {
   createBusiness(
-    setup: BusinessSetup,
-  ): Promise<{
+  setup: BusinessSetup,
+  userId: string,
+): Promise<{
     business: Business;
     branch: Branch;
     warehouse: Warehouse;

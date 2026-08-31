@@ -40,7 +40,10 @@ export function createBusinessService(
       }
 
       const result =
-        await repository.createBusiness(setup);
+  await repository.createBusiness(
+    setup,
+    userId,
+  );
 
 	  await accountService.createDefaultAccounts(
   result.business.id,
@@ -64,11 +67,12 @@ for (const category of defaultCategories) {
 
       return {
         ...result,
-        context: requireBusinessContext({
-          businessId: result.business.id,
-          userId,
-          branchId: result.branch.id,
-        }),
+        context: await requireBusinessContext({
+  businessId: result.business.id,
+  userId,
+  branchId: result.branch.id,
+}),
+
       };
     },
 
@@ -80,7 +84,7 @@ for (const category of defaultCategories) {
       businessId: string,
       userId: string,
     ) {
-      const context = requireBusinessContext({
+      const context = await requireBusinessContext({
         businessId,
         userId,
       });
@@ -94,7 +98,7 @@ for (const category of defaultCategories) {
       businessId: string,
       userId: string,
     ) {
-      const context = requireBusinessContext({
+      const context = await requireBusinessContext({
         businessId,
         userId,
       });
@@ -108,7 +112,7 @@ for (const category of defaultCategories) {
       businessId: string,
       userId: string,
     ) {
-      const context = requireBusinessContext({
+      const context = await requireBusinessContext({
         businessId,
         userId,
       });

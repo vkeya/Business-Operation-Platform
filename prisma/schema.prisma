@@ -71,6 +71,16 @@ enum JournalEntryStatus {
   VOIDED
 }
 
+enum BusinessReferenceType {
+  PRODUCT_SKU
+  SALE
+  PURCHASE
+  PAYMENT
+  EXPENSE
+  JOURNAL_ENTRY
+  INVENTORY_MOVEMENT
+}
+
 model Business {
   id           String         @id @default(cuid())
   name         String
@@ -88,7 +98,7 @@ model Business {
 
   branches           Branch[]
   warehouses         Warehouse[]
-  users              User[]
+  memberships BusinessMembership[]
   roles              Role[]
   productCategories  ProductCategory[]
   products           Product[]
@@ -96,7 +106,7 @@ model Business {
   inventoryMovements InventoryMovement[]
   payments           Payment[]
   exchangeRates      ExchangeRate[]
-
+  referenceCounters BusinessReferenceCounter[]
   events      BusinessEvent[]
   auditEvents AuditEvent[]
 
@@ -173,22 +183,42 @@ model Warehouse {
 }
 
 model User {
-  id         String @id @default(cuid())
-  businessId String
+  id String @id @default(cuid())
 
-  name     String
-  email    String
+  name         String
+  email        String @unique
+  passwordHash String
+  memberships BusinessMembership[]
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   roles    UserRole[]
   branches UserBranch[]
 
-  @@unique([businessId, email])
+  @@index([email])
+}
+
+model BusinessMembership {
+  id String @id @default(cuid())
+
+  businessId String
+  userId     String
+
+  isOwner  Boolean @default(false)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
   @@index([businessId])
+  @@index([userId])
 }
 
 model Role {
@@ -783,6 +813,23 @@ model JournalEntryLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+model BusinessReferenceCounter {
+  id String @id @default(cuid())
+
+  businessId String
+  referenceType BusinessReferenceType
+
+  currentValue Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, referenceType])
+  @@index([businessId])
 }
 
 model BusinessEvent {

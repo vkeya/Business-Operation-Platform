@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 export interface CreatePurchasePaymentInput {
   businessId: string;
   purchaseId: string;
-  reference: string;
+  reference?: string;
   method: string;
   amount: number;
   currency: string;
@@ -15,7 +15,7 @@ export interface CreatePurchasePaymentInput {
 export interface CreateSalePaymentInput {
   businessId: string;
   saleId: string;
-  reference: string;
+  reference?: string;
   method: string;
   amount: number;
   currency: string;
@@ -42,8 +42,10 @@ function serializePayment<
 
 export const paymentRepository = {
   async createPurchasePayment(
-    input: CreatePurchasePaymentInput,
-  ) {
+  input: CreatePurchasePaymentInput & {
+    reference: string;
+  },
+) {
     const payment =
       await prisma.payment.create({
         data: {
@@ -121,8 +123,10 @@ export const paymentRepository = {
   },
 
   async createSalePayment(
-    input: CreateSalePaymentInput,
-  ) {
+  input: CreateSalePaymentInput & {
+    reference: string;
+  },
+) {
     const payment =
       await prisma.payment.create({
         data: {

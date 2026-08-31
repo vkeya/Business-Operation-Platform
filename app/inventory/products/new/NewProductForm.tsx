@@ -16,6 +16,7 @@ import type {
 interface ProductCategory {
   id: string;
   name: string;
+  parentId: string | null;
 }
 
 interface NewProductFormProps {
@@ -41,22 +42,26 @@ const sellingUnitPresets: Record<
     unit: string;
   }
 > = {
-
-  Shot: {
-    quantity: "40",
-    unit: "ml",
-  },
-
-  "Double Shot": {
-    quantity: "80",
-    unit: "ml",
-  },
-
   Glass: {
     quantity: "250",
     unit: "ml",
   },
 };
+
+const productVolumeOptions = [
+  { value: "250", label: "250 ml" },
+  { value: "500", label: "500 ml" },
+  { value: "750", label: "750 ml" },
+  { value: "1000", label: "1 litre" },
+  { value: "1500", label: "1.5 litres" },
+];
+
+const shotSizeOptions = [
+  { value: "25", label: "25 ml" },
+  { value: "30", label: "30 ml" },
+  { value: "35", label: "35 ml" },
+  { value: "40", label: "40 ml" },
+];
 
 
 
@@ -72,11 +77,33 @@ export default function NewProductForm({
   const [barcode, setBarcode] = useState("");
   const [type, setType] = useState<"PRODUCT" | "SERVICE">("PRODUCT");
   const [categoryId, setCategoryId] = useState("");
-  const selectedCategory =
+const [subcategoryId, setSubcategoryId] = useState("");
+
+const parentCategories = categories.filter(
+  (category) => !category.parentId,
+);
+
+const selectedCategory =
   categories.find(
     (category) =>
       category.id === categoryId,
   );
+
+const subcategories = categoryId
+  ? categories.filter(
+      (category) =>
+        category.parentId === categoryId,
+    )
+  : [];
+
+const selectedSubcategory =
+  categories.find(
+    (category) =>
+      category.id === subcategoryId,
+  );
+
+const selectedProductCategory =
+  selectedSubcategory ?? selectedCategory;
 
 const allowedSellingUnits =
   selectedCategory &&
@@ -88,14 +115,49 @@ const allowedSellingUnits =
       ].sellingUnits
     : configuration.sellingUnits;
 
-const visibleAttributes =
-  configuration.attributes.filter((attribute) => {
-    if (attribute.id === "alcoholType") {
-      return selectedCategory?.name === "Spirits";
-    }
+const categoryName =
+  selectedCategory?.name;
 
-    return true;
-  });
+const visibleAttributes =
+  configuration.attributes.filter(
+    (attribute) => {
+      // Existing wines & spirits behaviour.
+      if (attribute.id === "alcoholType") {
+        return categoryName === "Spirits";
+      }
+
+      // Boutique category-aware attributes.
+      if (attribute.id === "clothingSize") {
+        return categoryName === "Clothing";
+      }
+
+      if (attribute.id === "shoeSize") {
+        return categoryName === "Shoes";
+      }
+
+      if (attribute.id === "material") {
+        return [
+          "Clothing",
+          "Handbags & Bags",
+        ].includes(categoryName ?? "");
+      }
+
+      if (
+        attribute.id === "color" ||
+        attribute.id === "brand"
+      ) {
+        return [
+          "Clothing",
+          "Shoes",
+          "Handbags & Bags",
+          "Accessories",
+          "Beauty Products",
+        ].includes(categoryName ?? "");
+      }
+
+      return true;
+    },
+  );
 
   const [description, setDescription] = useState("");
   const [unit, setUnit] = useState("pcs");
@@ -149,26 +211,36 @@ function updateSellingUnit(
       };
 
       if (field === "name") {
-        if (value === "Bottle") {
-          const volume = attributes.volume;
+  if (value === "Bottle") {
+    const volume = attributes.volume;
 
-          if (volume) {
-            updated.quantity = volume;
-            updated.unit = "ml";
-          }
-        } else {
-          const preset =
-            sellingUnitPresets[value];
+    if (volume) {
+      updated.quantity = volume;
+      updated.unit = "ml";
+    }
+  }
 
-          if (preset) {
-            updated.quantity =
-              preset.quantity;
+  if (value === "Shot") {
+    updated.quantity = "40";
+    updated.unit = "ml";
+  }
 
-            updated.unit =
-              preset.unit;
-          }
-        }
-      }
+  if (value === "Double Shot") {
+    updated.quantity = "80";
+    updated.unit = "ml";
+  }
+
+  const preset =
+    sellingUnitPresets[value];
+
+  if (preset) {
+    updated.quantity =
+      preset.quantity;
+
+    updated.unit =
+      preset.unit;
+  }
+}
 
       return updated;
     }),
@@ -211,8 +283,7 @@ useEffect(() => {
     try {
       const product = await createProductAction({
         name,
-        sku,
-		categoryId: categoryId || undefined,
+		categoryId: selectedProductCategory?.id || undefined,
         barcode: barcode || undefined,
         type,
         description: description || undefined,
@@ -327,50 +398,16 @@ useEffect(() => {
     id="categoryId"
     value={categoryId}
     onChange={(event) => {
-  const nextCategoryId = event.target.value;
-
-  setCategoryId(nextCategoryId);
-
-  const nextCategory = categories.find(
-    (category) => category.id === nextCategoryId,
-  );
-
-  if (nextCategory?.name !== "Spirits") {
-  setAttributes((current) => {
-    const {
-      alcoholType: _alcoholType,
-      ...remainingAttributes
-    } = current;
-
-    return remainingAttributes;
-  });
-}
-
-  const nextAllowedSellingUnits =
-  nextCategory &&
-  configuration.categorySellingUnits?.[
-    nextCategory.name
-  ]
-    ? configuration.categorySellingUnits[
-        nextCategory.name
-      ].sellingUnits
-    : configuration.sellingUnits;
-
-  setSellingUnits((current) =>
-    current.filter((sellingUnit) =>
-      nextAllowedSellingUnits.includes(
-        sellingUnit.name,
-      ),
-    ),
-  );
-}}
-    className="w-full rounded-lg border px-3 py-2"
+      setCategoryId(event.target.value);
+      setSubcategoryId("");
+    }}
+    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
   >
     <option value="">
       Select category
     </option>
 
-    {categories.map((category) => (
+    {parentCategories.map((category) => (
       <option
         key={category.id}
         value={category.id}
@@ -380,6 +417,39 @@ useEffect(() => {
     ))}
   </select>
 </div>
+
+{categoryId && subcategories.length > 0 && (
+  <div>
+    <label
+      htmlFor="subcategoryId"
+      className="mb-1 block text-sm font-medium"
+    >
+      Subcategory
+    </label>
+
+    <select
+      id="subcategoryId"
+      value={subcategoryId}
+      onChange={(event) =>
+        setSubcategoryId(event.target.value)
+      }
+      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+    >
+      <option value="">
+        Select subcategory
+      </option>
+
+      {subcategories.map((subcategory) => (
+        <option
+          key={subcategory.id}
+          value={subcategory.id}
+        >
+          {subcategory.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
 
             <div>
               <label
@@ -452,36 +522,7 @@ useEffect(() => {
               </select>
             </div>
 
-			<div>
-  <label
-    htmlFor="category"
-    className="block text-sm font-medium text-slate-900"
-  >
-    Category
-  </label>
 
-  <select
-    id="category"
-    value={categoryId}
-    onChange={(event) =>
-      setCategoryId(event.target.value)
-    }
-    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-  >
-    <option value="">
-      Select category
-    </option>
-
-    {categories.map((category) => (
-      <option
-        key={category.id}
-        value={category.id}
-      >
-        {category.name}
-      </option>
-    ))}
-  </select>
-</div>
 
             <div>
               <label

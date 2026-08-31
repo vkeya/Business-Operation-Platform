@@ -108,9 +108,6 @@ export default function PurchaseForm({
   const [warehouseId, setWarehouseId] =
     useState("");
 
-  const [referenceNumber, setReferenceNumber] =
-    useState("");
-
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] =
     useState("");
 
@@ -206,21 +203,14 @@ export default function PurchaseForm({
     setError("");
 
     if (!supplierId) {
-      setError("Please select a supplier.");
-      return;
-    }
+  setError("Please select a supplier.");
+  return;
+}
 
-    if (!referenceNumber.trim()) {
-      setError(
-        "Please enter a purchase reference.",
-      );
-      return;
-    }
-
-    if (!currency) {
-      setError("Please select a currency.");
-      return;
-    }
+if (!currency) {
+  setError("Please select a currency.");
+  return;
+}
 
     if (items.length === 0) {
       setError(
@@ -273,8 +263,7 @@ export default function PurchaseForm({
         supplierId,
         warehouseId:
           warehouseId || undefined,
-        referenceNumber:
-          referenceNumber.trim(),
+
         supplierInvoiceNumber:
           supplierInvoiceNumber.trim() ||
           undefined,
@@ -423,28 +412,6 @@ export default function PurchaseForm({
                 ),
               )}
             </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="referenceNumber"
-              className="block text-sm font-medium text-slate-700"
-            >
-              Purchase reference
-            </label>
-
-            <input
-              id="referenceNumber"
-              value={referenceNumber}
-              onChange={(event) =>
-                setReferenceNumber(
-                  event.target.value,
-                )
-              }
-              placeholder="e.g. PO-0001"
-              required
-              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
-            />
           </div>
 
           <div>

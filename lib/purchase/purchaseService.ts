@@ -3,10 +3,13 @@ import {
   type CreatePurchaseInput,
 } from "./purchaseRepository";
 import { postPurchaseToAccounting } from "@/lib/accounting/posting/purchasePosting";
+import {
+  generateBusinessReference,
+} from "@/lib/business/reference/referenceGenerator";
 
 export const purchaseService = {
   async createPurchase(
-    input: CreatePurchaseInput,
+    input: Omit<CreatePurchaseInput, "referenceNumber">,
   ) {
     if (!input.businessId) {
       throw new Error(
@@ -17,12 +20,6 @@ export const purchaseService = {
     if (!input.supplierId) {
       throw new Error(
         "Supplier is required.",
-      );
-    }
-
-    if (!input.referenceNumber.trim()) {
-      throw new Error(
-        "Purchase reference is required.",
       );
     }
 
@@ -58,12 +55,18 @@ export const purchaseService = {
       }
     }
 
-    return purchaseRepository.create({
-      ...input,
-      referenceNumber:
-        input.referenceNumber.trim(),
-      currency: input.currency.trim(),
-    });
+    const referenceNumber =
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "PURCHASE",
+    prefix: "PUR",
+  });
+
+return purchaseRepository.create({
+  ...input,
+  referenceNumber,
+  currency: input.currency.trim(),
+});
   },
 
   async listPurchases(
@@ -95,7 +98,7 @@ export const purchaseService = {
       referenceNumber,
     );
   },
-  
+
     async findPurchaseById(
     businessId: string,
     purchaseId: string,
@@ -117,7 +120,7 @@ export const purchaseService = {
       purchaseId,
     );
   },
-  
+
     async orderPurchase(
     businessId: string,
     purchaseId: string,
@@ -133,8 +136,8 @@ export const purchaseService = {
         "Purchase is required.",
       );
     }
-	
-	
+
+
 
     const purchase =
       await purchaseRepository.findById(
@@ -205,7 +208,7 @@ export const purchaseService = {
       purchase.referenceNumber,
 
     totalAmount:
-      purchase.totalAmount.toNumber(),
+  purchase.totalAmount,
 
     currency:
       purchase.currency,
@@ -219,7 +222,7 @@ export const purchaseService = {
     purchaseId,
   );
 },
-  
+
     async cancelPurchase(
     businessId: string,
     purchaseId: string,
@@ -263,6 +266,6 @@ export const purchaseService = {
     );
   },
 
-  
-  
+
+
   };

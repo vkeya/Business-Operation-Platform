@@ -1,6 +1,8 @@
 "use server";
 
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import {
+  getCurrentBusinessContext,
+} from "@/lib/business/currentBusiness";
 import {
   expenseService,
 } from "@/lib/expenses/expenseService";
@@ -14,33 +16,35 @@ export async function createExpenseAction(
     "businessId" | "createdBy"
   >,
 ) {
-  const business =
-    await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return expenseService.createExpense({
     ...input,
-    businessId: business.id,
-    createdBy: business.id,
+    businessId:
+      context.business.id,
+    createdBy:
+      context.user.id,
   });
 }
 
 export async function getExpensesAction() {
-  const business =
-    await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return expenseService.listExpenses(
-    business.id,
+    context.business.id,
   );
 }
 
 export async function getExpenseByReferenceAction(
   reference: string,
 ) {
-  const business =
-    await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return expenseService.findExpenseByReference(
-    business.id,
+    context.business.id,
     reference,
   );
 }
@@ -48,11 +52,11 @@ export async function getExpenseByReferenceAction(
 export async function getExpenseByIdAction(
   expenseId: string,
 ) {
-  const business =
-    await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return expenseService.findExpenseById(
-    business.id,
+    context.business.id,
     expenseId,
   );
 }
@@ -64,11 +68,11 @@ export async function updateExpensePaymentStatusAction(
     | "PARTIAL"
     | "PAID",
 ) {
-  const business =
-    await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return expenseService.updateExpensePaymentStatus(
-    business.id,
+    context.business.id,
     expenseId,
     paymentStatus,
   );

@@ -24,9 +24,6 @@ export default function RecordPaymentForm({
   const router = useRouter();
   const t = translations;
 
-  const [reference, setReference] =
-    useState("");
-
   const [method, setMethod] =
     useState("Cash");
 
@@ -48,13 +45,6 @@ export default function RecordPaymentForm({
     event.preventDefault();
 
     setError("");
-
-    if (!reference.trim()) {
-      setError(
-        t.recordPayment.referenceRequired,
-      );
-      return;
-    }
 
     if (!method.trim()) {
       setError(
@@ -91,7 +81,6 @@ export default function RecordPaymentForm({
     try {
       await createSalePaymentAction({
         saleId,
-        reference: reference.trim(),
         method: method.trim(),
         amount: parsedAmount,
         currency,
@@ -99,7 +88,7 @@ export default function RecordPaymentForm({
           notes.trim() || undefined,
       });
 
-      setReference("");
+
       setAmount("");
       setNotes("");
 
@@ -137,26 +126,7 @@ export default function RecordPaymentForm({
       )}
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="sale-payment-reference"
-            className="block text-sm font-medium text-slate-700"
-          >
-            {t.recordPayment.paymentReference}
-          </label>
 
-          <input
-            id="sale-payment-reference"
-            value={reference}
-            onChange={(event) =>
-              setReference(
-                event.target.value,
-              )
-            }
-            placeholder="e.g. PAY-001"
-            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
-          />
-        </div>
 
         <div>
           <label

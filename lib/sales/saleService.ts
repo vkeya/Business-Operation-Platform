@@ -5,18 +5,21 @@ import {
 import { postSaleToAccounting } from "@/lib/accounting/posting/salesPosting";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
+import {
+  generateBusinessReference,
+} from "@/lib/business/reference/referenceGenerator";
+
+
+export type CreateSaleServiceInput =
+  Omit<CreateSaleInput, "referenceNumber">;
 
 export const saleService = {
-  async create(input: CreateSaleInput) {
+  async create(
+  input: CreateSaleServiceInput,
+) {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
-      );
-    }
-
-    if (!input.referenceNumber.trim()) {
-      throw new Error(
-        "Sale reference number is required.",
       );
     }
 
@@ -82,10 +85,16 @@ export const saleService = {
       }
     }
 
+	const referenceNumber =
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "SALE",
+    prefix: "SALE",
+  });
+
     return saleRepository.create({
       ...input,
-      referenceNumber:
-        input.referenceNumber.trim(),
+      referenceNumber,
     });
   },
 
@@ -370,7 +379,7 @@ export const saleService = {
       status,
     );
   },
-  
+
       async reverse(
     businessId: string,
     saleId: string,

@@ -75,7 +75,7 @@ export const productCategoryService = {
       businessId,
     );
   },
-  
+
     async listAllCategories(
     businessId: string,
   ) {
@@ -89,7 +89,7 @@ export const productCategoryService = {
       businessId,
     );
   },
-  
+
     async updateCategory(
     businessId: string,
     categoryId: string,
@@ -176,7 +176,7 @@ export const productCategoryService = {
       },
     );
   },
-  
+
   async ensureBoutiqueCategories(
   businessId: string,
 ) {
@@ -187,27 +187,72 @@ export const productCategoryService = {
   }
 
   const categories = [];
+  const categoryByName = new Map<
+    string,
+    { id: string }
+  >();
 
+  // First create or find all parent categories.
   for (const category of boutiqueCategoryDefaults) {
+    if (category.parentName) {
+      continue;
+    }
+
     const existing =
       await productCategoryRepository.findByName(
         businessId,
         category.name,
       );
 
-    if (existing) {
-      categories.push(existing);
-      continue;
-    }
-
-    const created =
+    const parent =
+      existing ??
       await productCategoryRepository.create({
         businessId,
         name: category.name,
         description: category.description,
       });
 
-    categories.push(created);
+    categoryByName.set(
+      category.name,
+      parent,
+    );
+
+    categories.push(parent);
+  }
+
+  // Then create or find child categories.
+  for (const category of boutiqueCategoryDefaults) {
+    if (!category.parentName) {
+      continue;
+    }
+
+    const parent =
+      categoryByName.get(
+        category.parentName,
+      );
+
+    if (!parent) {
+      throw new Error(
+        `Parent category "${category.parentName}" was not found.`,
+      );
+    }
+
+    const existing =
+      await productCategoryRepository.findByName(
+        businessId,
+        category.name,
+      );
+
+    const child =
+      existing ??
+      await productCategoryRepository.create({
+        businessId,
+        name: category.name,
+        description: category.description,
+        parentId: parent.id,
+      });
+
+    categories.push(child);
   }
 
   return categories;

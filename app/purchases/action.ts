@@ -1,6 +1,8 @@
 "use server";
 
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import {
+  getCurrentBusinessContext,
+} from "@/lib/business/currentBusiness";
 import { prisma } from "@/lib/database/prisma";
 import { productService } from "@/lib/inventory/productService";
 import { supplierService } from "@/lib/supplier/supplierService";
@@ -10,7 +12,6 @@ import {
 import type {
   CreatePurchaseInput,
 } from "@/lib/purchase/purchaseRepository";
-
 import type {
   CreatePurchasePaymentInput,
 } from "@/lib/payment/paymentRepository";
@@ -21,33 +22,40 @@ import {
 export async function createPurchaseAction(
   input: Omit<
     CreatePurchaseInput,
-    "businessId" | "createdBy"
+    | "businessId"
+    | "createdBy"
+    | "referenceNumber"
   >,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.createPurchase({
     ...input,
-    businessId: business.id,
-    createdBy: business.id,
+    businessId:
+      context.business.id,
+    createdBy:
+      context.user.id,
   });
 }
 
 export async function getPurchasesAction() {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.listPurchases(
-    business.id,
+    context.business.id,
   );
 }
 
 export async function getPurchaseByReferenceAction(
   referenceNumber: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.findPurchaseByReference(
-    business.id,
+    context.business.id,
     referenceNumber,
   );
 }
@@ -55,28 +63,31 @@ export async function getPurchaseByReferenceAction(
 export async function getPurchaseByIdAction(
   purchaseId: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.findPurchaseById(
-    business.id,
+    context.business.id,
     purchaseId,
   );
 }
 
 export async function getPurchaseDefaultsAction() {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   const [suppliers, products, warehouses] =
     await Promise.all([
       supplierService.listSuppliers(
-        business.id,
+        context.business.id,
       ),
       productService.listProducts(
-        business.id,
+        context.business.id,
       ),
       prisma.warehouse.findMany({
         where: {
-          businessId: business.id,
+          businessId:
+            context.business.id,
           isActive: true,
         },
         orderBy: {
@@ -86,7 +97,8 @@ export async function getPurchaseDefaultsAction() {
     ]);
 
   return {
-    currency: business.baseCurrency,
+    currency:
+      context.business.baseCurrency,
     suppliers,
     products,
     warehouses,
@@ -96,10 +108,11 @@ export async function getPurchaseDefaultsAction() {
 export async function orderPurchaseAction(
   purchaseId: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.orderPurchase(
-    business.id,
+    context.business.id,
     purchaseId,
   );
 }
@@ -107,10 +120,11 @@ export async function orderPurchaseAction(
 export async function receivePurchaseAction(
   purchaseId: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.receivePurchase(
-    business.id,
+    context.business.id,
     purchaseId,
   );
 }
@@ -118,21 +132,23 @@ export async function receivePurchaseAction(
 export async function cancelPurchaseAction(
   purchaseId: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return purchaseService.cancelPurchase(
-    business.id,
+    context.business.id,
     purchaseId,
   );
 }
 
- export async function getPurchasePaymentsAction(
+export async function getPurchasePaymentsAction(
   purchaseId: string,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return paymentService.listPurchasePayments(
-    business.id,
+    context.business.id,
     purchaseId,
   );
 }
@@ -143,11 +159,14 @@ export async function createPurchasePaymentAction(
     "businessId" | "createdBy"
   >,
 ) {
-  const business = await getCurrentBusiness();
+  const context =
+    await getCurrentBusinessContext();
 
   return paymentService.createPurchasePayment({
     ...input,
-    businessId: business.id,
-    createdBy: business.id,
+    businessId:
+      context.business.id,
+    createdBy:
+      context.user.id,
   });
 }

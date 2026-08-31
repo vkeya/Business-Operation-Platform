@@ -80,11 +80,7 @@ export default function SaleForm({
   const [warehouseId, setWarehouseId] =
     useState("");
 
-  const [referenceNumber, setReferenceNumber] =
-    useState("");
-
-  const [currency, setCurrency] =
-    useState(defaultCurrency);
+  const currency = defaultCurrency;
 
   const [notes, setNotes] =
     useState("");
@@ -321,20 +317,6 @@ const totalAmount =
 
     setError("");
 
-    if (!referenceNumber.trim()) {
-      setError(
-        t.saleForm.referenceRequired,
-      );
-      return;
-    }
-
-    if (!currency) {
-      setError(
-        t.saleForm.currencyRequired,
-      );
-      return;
-    }
-
     if (!warehouseId) {
       setError(
         t.saleForm.warehouseRequired,
@@ -418,8 +400,7 @@ const totalAmount =
 
       const sale =
         await createSaleAction({
-          referenceNumber:
-            referenceNumber.trim(),
+
           warehouseId,
           currency,
           notes:
@@ -464,46 +445,17 @@ const totalAmount =
         </h2>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="referenceNumber"
-              className="block text-sm font-medium text-slate-700"
-            >
-              {t.saleForm.referenceNumber}
-            </label>
 
-            <input
-              id="referenceNumber"
-              value={referenceNumber}
-              onChange={(event) =>
-                setReferenceNumber(
-                  event.target.value,
-                )
-              }
-              placeholder="SALE-001"
-              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
-            />
-          </div>
 
           <div>
-            <label
-              htmlFor="currency"
-              className="block text-sm font-medium text-slate-700"
-            >
-              {t.saleForm.currency}
-            </label>
+  <p className="block text-sm font-medium text-slate-700">
+    {t.saleForm.currency}
+  </p>
 
-            <input
-              id="currency"
-              value={currency}
-              onChange={(event) =>
-                setCurrency(
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
-            />
-          </div>
+  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
+    {currency}
+  </div>
+</div>
         </div>
 
         <div className="mt-5">

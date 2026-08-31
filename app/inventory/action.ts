@@ -4,12 +4,18 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { prisma } from "@/lib/database/prisma";
 import { productService } from "@/lib/inventory/productService";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
 
 export async function getInventoryBalancesAction(
   productId?: string,
   warehouseId?: string,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
 
   return inventoryService.listBalances(
     business.id,
@@ -35,6 +41,9 @@ export async function getInventoryMovementsAction(
 ) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
   return inventoryService.listMovements(
   business.id,
   productId,
@@ -55,6 +64,9 @@ export async function receiveStockAction(input: {
 }) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
   return inventoryService.receiveStock({
     businessId: business.id,
     productId: input.productId,
@@ -62,13 +74,14 @@ export async function receiveStockAction(input: {
     quantity: input.quantity,
     unitCost: input.unitCost,
     currency: input.currency,
-    createdBy: business.id,
+    createdBy: userId,
     notes: input.notes,
   });
 }
 
 export async function getInventorySetupAction() {
   const business = await getCurrentBusiness();
+
 
   const [products, warehouses] =
     await Promise.all([
@@ -101,6 +114,9 @@ export async function transferStockAction(input: {
   const business =
     await getCurrentBusiness();
 
+	const userId =
+  await getAuthenticatedUserId();
+
   return inventoryService.transferStock({
     businessId: business.id,
     productId: input.productId,
@@ -110,7 +126,7 @@ export async function transferStockAction(input: {
       input.toWarehouseId,
     quantity: input.quantity,
     currency: input.currency,
-    createdBy: business.id,
+    createdBy: userId,
     notes: input.notes,
   });
 }
@@ -125,6 +141,9 @@ export async function adjustStockAction(input: {
 }) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
   return inventoryService.adjustStock({
     businessId: business.id,
     productId: input.productId,
@@ -132,7 +151,7 @@ export async function adjustStockAction(input: {
     quantity: input.quantity,
     unitCost: input.unitCost,
     currency: input.currency,
-    createdBy: business.id,
+    createdBy: userId,
     notes: input.notes,
   });
 }

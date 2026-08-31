@@ -3,18 +3,27 @@ import {
   type CreateProductInput,
   type CreateProductSellingUnitInput,
 } from "./productRepository";
+import {
+  generateBusinessReference,
+} from "@/lib/business/reference/referenceGenerator";
+
+import {
+  productCategoryRepository,
+} from "./productCategoryRepository";
+
+import {
+  getProductSkuPrefix,
+} from "./productSku";
 
 export const productService = {
-  async createProduct(input: CreateProductInput) {
+  async createProduct(
+  input: Omit<CreateProductInput, "sku">,
+) {
     const name = input.name.trim();
-    const sku = input.sku.trim().toUpperCase();
+
 
     if (!name) {
       throw new Error("Product name is required.");
-    }
-
-    if (!sku) {
-      throw new Error("Product SKU is required.");
     }
 
     if (!input.businessId) {
@@ -51,17 +60,31 @@ export const productService = {
       throw new Error("Reorder level cannot be negative.");
     }
 
-    const existingProduct =
-      await productRepository.findBySku(
-        input.businessId,
-        sku,
-      );
+    let categoryName: string | undefined;
 
-    if (existingProduct) {
-      throw new Error(
-        `A product with SKU "${sku}" already exists.`,
-      );
-    }
+if (input.categoryId) {
+  const category =
+    await productCategoryRepository.findById(
+      input.businessId,
+      input.categoryId,
+    );
+
+  if (!category) {
+    throw new Error("Product category not found.");
+  }
+
+  categoryName = category.name;
+}
+
+const prefix =
+  getProductSkuPrefix(categoryName);
+
+const sku =
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "PRODUCT_SKU",
+    prefix,
+  });
 
     return productRepository.create({
       ...input,

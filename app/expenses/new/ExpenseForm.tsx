@@ -16,8 +16,6 @@ export default function ExpenseForm({
 }: ExpenseFormProps) {
   const router = useRouter();
   const t = translations;
-
-  const [reference, setReference] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -43,7 +41,7 @@ export default function ExpenseForm({
 
     try {
       await createExpenseAction({
-        reference,
+
         category,
         description,
         amount: Number(amount),
@@ -83,27 +81,7 @@ export default function ExpenseForm({
       )}
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="expense-reference"
-            className="block text-sm font-semibold text-slate-900"
-          >
-            {t.expenses.reference}
-          </label>
 
-          <input
-            id="expense-reference"
-            value={reference}
-            onChange={(event) =>
-              setReference(event.target.value)
-            }
-            placeholder={
-              t.expenses.referencePlaceholder
-            }
-            required
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-          />
-        </div>
 
         <div>
           <label

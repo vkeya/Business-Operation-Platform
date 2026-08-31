@@ -4,7 +4,7 @@ export interface CreateExpenseInput {
   businessId: string;
   branchId?: string;
 
-  reference: string;
+  reference?: string;
   category: string;
   description: string;
 
@@ -44,7 +44,10 @@ function serializeExpense<
 }
 
 export const expenseRepository = {
-  async create(input: CreateExpenseInput) {
+  async create(input: CreateExpenseInput & {
+  reference: string;
+  },
+  ){
     const expense =
       await prisma.expense.create({
         data: {

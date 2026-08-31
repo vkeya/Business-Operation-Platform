@@ -12,6 +12,9 @@ import type {
   CreateRecipeInput,
   CreateRecipeIngredientInput,
 } from "@/lib/restaurant/recipeRepository";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
 
 export async function createRestaurantMenuAction(
   input: Omit<
@@ -153,6 +156,9 @@ export async function consumeRestaurantRecipeStockAction(
   const business =
     await getCurrentBusiness();
 
+  const userId =
+    await getAuthenticatedUserId();
+
   if (business.type !== "restaurant") {
     throw new Error(
       "Recipe consumption is only available for restaurants.",
@@ -162,7 +168,7 @@ export async function consumeRestaurantRecipeStockAction(
   return recipeService.consumeRecipeStock({
     ...input,
     businessId: business.id,
-    createdBy: business.id,
+    createdBy: userId,
   });
 }
 
