@@ -317,7 +317,7 @@ const businessAlertPriority =
         : t.dashboard.allClear;
 
   return (
-  <div className="mx-auto max-w-7xl space-y-8 pb-8">
+  <div className="space-y-6">
     {/* Premium workspace hero */}
     <section className="relative overflow-hidden rounded-[32px] bg-slate-950 px-6 py-8 shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-8 lg:px-10 lg:py-10">
       <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-slate-950 to-slate-950" />

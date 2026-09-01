@@ -1,272 +1,341 @@
 import {
-  ArrowUpRight,
-  BarChart3,
-  Boxes,
-  CreditCard,
-  ReceiptText,
-  TrendingUp,
+BarChart3,
+Boxes,
+CreditCard,
+ReceiptText,
+TrendingUp,
 } from "lucide-react";
 
 import {
-  getBusinessReportAction,
+getBusinessReportAction,
 } from "@/lib/reports/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const report =
-    await getBusinessReportAction();
+const report =
+await getBusinessReportAction();
 
-  return (
-    <div className="mx-auto max-w-[1600px]">
-      {/* Page header */}
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-violet-600">
-            <BarChart3 className="h-4 w-4" />
+return ( <div className="space-y-6">
+{/* Reports hero */} <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-slate-950 to-cyan-950 px-6 py-7 text-white shadow-xl shadow-slate-950/10 sm:px-8 sm:py-8"> <div className="pointer-events-none absolute inset-0"> <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" /> <div className="absolute bottom-0 left-1/3 h-40 w-80 rounded-full bg-violet-500/10 blur-3xl" /> </div>
 
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em]">
-              Business intelligence
-            </span>
-          </div>
 
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Reports & insights
-          </h1>
+    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+            Reports
+          </span>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-            Understand how your business is performing across
-            revenue, purchases, expenses and inventory.
-          </p>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-slate-300">
+            Business overview
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border border-violet-100 bg-white px-4 py-3 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Reports & insights
+        </h1>
+
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+          Understand how your business is performing across
+          revenue, purchases, expenses and inventory.
+        </p>
+      </div>
+
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white">
+        <BarChart3 className="h-6 w-6" />
+      </div>
+    </div>
+  </section>
+
+  {/* Business performance overview */}
+  <section>
+    <div className="mb-4">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+        Business performance
+      </p>
+
+      <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">
+        Performance overview
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-500">
+        A consolidated view of revenue, purchasing,
+        expenses and estimated profitability.
+      </p>
+    </div>
+
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ReportCard
+        label="Revenue"
+        value={report.sales.amount}
+        description={`${report.sales.count} completed sales`}
+        icon={
+          <TrendingUp className="h-5 w-5" />
+        }
+        borderTone="border-emerald-200"
+        iconTone="text-emerald-700"
+        valueTone="text-emerald-900"
+      />
+
+      <ReportCard
+        label="Purchases"
+        value={report.purchases.amount}
+        description={`${report.purchases.count} received purchases`}
+        icon={
+          <ReceiptText className="h-5 w-5" />
+        }
+        borderTone="border-blue-200"
+        iconTone="text-blue-700"
+        valueTone="text-blue-900"
+      />
+
+      <ReportCard
+        label="Expenses"
+        value={report.expenses.amount}
+        description={`${report.expenses.count} expenses recorded`}
+        icon={
+          <CreditCard className="h-5 w-5" />
+        }
+        borderTone="border-amber-200"
+        iconTone="text-amber-700"
+        valueTone="text-amber-900"
+      />
+
+      <ReportCard
+        label="Profit estimate"
+        value={report.profit}
+        description="Revenue minus purchases and expenses"
+        icon={
+          <BarChart3 className="h-5 w-5" />
+        }
+        borderTone="border-violet-200"
+        iconTone="text-violet-700"
+        valueTone="text-violet-900"
+      />
+    </div>
+  </section>
+
+  {/* Operational performance */}
+  <section className="grid gap-6 lg:grid-cols-2">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-emerald-700">
             <TrendingUp className="h-5 w-5" />
           </div>
 
           <div>
-            <p className="text-xs font-medium text-slate-400">
-              Business overview
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+              Sales performance
             </p>
 
-            <p className="mt-0.5 text-sm font-semibold text-slate-900">
-              Performance snapshot
+            <h2 className="mt-1 font-semibold tracking-tight text-slate-900">
+              Revenue performance
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Revenue generated by completed sales.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Metrics */}
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <ReportCard
-          title="Revenue"
-          value={report.sales.amount}
-          description={`${report.sales.count} completed sales`}
-          icon={
-            <CreditCard className="h-5 w-5" />
-          }
-        />
+      <div className="p-5 sm:p-6">
+        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Total revenue
+          </p>
 
-        <ReportCard
-          title="Purchases"
-          value={report.purchases.amount}
-          description={`${report.purchases.count} received purchases`}
-          icon={
-            <ReceiptText className="h-5 w-5" />
-          }
-        />
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+            {report.sales.amount.toLocaleString()}
+          </p>
 
-        <ReportCard
-          title="Expenses"
-          value={report.expenses.amount}
-          description={`${report.expenses.count} expenses recorded`}
-          icon={
-            <ArrowUpRight className="h-5 w-5" />
-          }
-        />
-
-        <ReportCard
-          title="Profit estimate"
-          value={report.profit}
-          description="Revenue − purchases − expenses"
-          icon={
-            <TrendingUp className="h-5 w-5" />
-          }
-        />
-      </section>
-
-      {/* Analytics */}
-      <section className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        {/* Sales */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-7">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-
-                <div>
-                  <p className="text-sm font-bold text-slate-900">
-                    Sales performance
-                  </p>
-
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    Revenue generated by completed sales
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-7 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6">
-            <p className="text-sm font-medium text-slate-500">
-              Total revenue
-            </p>
-
-            <p className="mt-3 text-4xl font-bold tracking-tight text-slate-950">
-              {report.sales.amount.toLocaleString()}
-            </p>
-
-            <div className="mt-5 flex items-center gap-2 text-sm">
-              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-violet-700 shadow-sm">
-                {report.sales.count.toLocaleString()} sales
-              </span>
-
-              <span className="text-xs text-slate-400">
-                completed transactions
-              </span>
-            </div>
-          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            {report.sales.count.toLocaleString()} completed sales
+          </p>
         </div>
+      </div>
+    </div>
 
-        {/* Inventory */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-7">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Boxes className="h-4 w-4" />
-            </div>
-
-            <div>
-              <p className="text-sm font-bold text-slate-900">
-                Inventory position
-              </p>
-
-              <p className="mt-0.5 text-xs text-slate-400">
-                Current stock across your business
-              </p>
-            </div>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-violet-700">
+            <Boxes className="h-5 w-5" />
           </div>
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <InventoryMetric
-              label="Units in stock"
-              value={report.inventory.units}
-              description="Available inventory units"
-            />
-
-            <InventoryMetric
-              label="Stock value"
-              value={report.inventory.value}
-              description="Current inventory valuation"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Summary */}
-      <section className="mt-8 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Financial summary
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+              Inventory
             </p>
 
-            <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
-              Estimated business performance
+            <h2 className="mt-1 font-semibold tracking-tight text-slate-900">
+              Inventory position
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
-              A consolidated view of your current operational data.
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white">
-            <p className="text-xs font-medium text-slate-400">
-              Estimated profit
-            </p>
-
-            <p className="mt-1 text-2xl font-bold">
-              {report.profit.toLocaleString()}
+            <p className="mt-1 text-sm text-slate-500">
+              Current stock across your business.
             </p>
           </div>
         </div>
-      </section>
+      </div>
+
+      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Units
+          </p>
+
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+            {report.inventory.units.toLocaleString()}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Available inventory units
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Stock value
+          </p>
+
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+            {report.inventory.value.toLocaleString()}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Current inventory valuation
+          </p>
+        </div>
+      </div>
     </div>
-  );
+  </section>
+
+  {/* Financial summary */}
+  <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex flex-col gap-5 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-6">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          Financial summary
+        </p>
+
+        <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+          Estimated business performance
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-500">
+          A consolidated view of your current operational data.
+        </p>
+      </div>
+
+      <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white">
+        <p className="text-xs text-slate-400">
+          Estimated profit
+        </p>
+
+        <p className="mt-1 text-2xl font-semibold">
+          {report.profit.toLocaleString()}
+        </p>
+      </div>
+    </div>
+
+    <div className="grid gap-4 p-5 sm:grid-cols-3 sm:p-6">
+      <SummaryItem
+        label="Revenue"
+        value={report.sales.amount}
+      />
+
+      <SummaryItem
+        label="Purchases"
+        value={report.purchases.amount}
+      />
+
+      <SummaryItem
+        label="Expenses"
+        value={report.expenses.amount}
+      />
+    </div>
+  </section>
+</div>
+
+
+);
 }
 
 function ReportCard({
-  title,
-  value,
-  description,
-  icon,
+label,
+value,
+description,
+icon,
+borderTone = "border-slate-200",
+iconTone = "text-violet-700",
+valueTone = "text-slate-950",
 }: {
-  title: string;
-  value: number;
-  description: string;
-  icon: React.ReactNode;
+label: string;
+value: number;
+description: string;
+icon: React.ReactNode;
+borderTone?: string;
+iconTone?: string;
+valueTone?: string;
 }) {
-  return (
-    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-violet-50/70 blur-2xl" />
+return (
+<div
+className={[
+"rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md",
+borderTone,
+].join(" ")}
+> <div className="flex items-start justify-between gap-4"> <div> <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+{label} </p>
 
-      <div className="relative">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm font-semibold text-slate-500">
-            {title}
-          </p>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-violet-600 transition group-hover:bg-violet-50">
-            {icon}
-          </div>
-        </div>
-
-        <p className="mt-7 text-3xl font-bold tracking-tight text-slate-950">
-          {value.toLocaleString()}
-        </p>
-
-        <p className="mt-2 text-xs leading-5 text-slate-400">
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function InventoryMetric({
-  label,
-  value,
-  description,
-}: {
-  label: string;
-  value: number;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
+      <p
+        className={[
+          "mt-3 text-3xl font-semibold tracking-tight",
+          valueTone,
+        ].join(" ")}
+      >
         {value.toLocaleString()}
       </p>
-
-      <p className="mt-2 text-xs text-slate-400">
-        {description}
-      </p>
     </div>
-  );
+
+    <div
+      className={[
+        "flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50",
+        iconTone,
+      ].join(" ")}
+    >
+      {icon}
+    </div>
+  </div>
+
+  <p className="mt-4 text-xs leading-5 text-slate-500">
+    {description}
+  </p>
+</div>
+
+
+);
+}
+
+function SummaryItem({
+label,
+value,
+}: {
+label: string;
+value: number;
+}) {
+return ( <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-5"> <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+{label} </p>
+
+
+  <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+    {value.toLocaleString()}
+  </p>
+</div>
+
+
+);
 }
