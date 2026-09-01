@@ -11,51 +11,33 @@ invitation?: string;
 }>;
 }
 
-export default async function AuthContinuePage({
-searchParams,
-}: AuthContinuePageProps) {
-const user =
-await getAuthenticatedUser();
+export default async function AuthContinuePage() {
+  let user;
 
-const {
-invitation: invitationToken,
-} = await searchParams;
+  try {
+    user =
+      await getAuthenticatedUser();
+  } catch {
+    redirect("/login");
+  }
 
-if (invitationToken) {
-try {
-await businessInvitationService.acceptInvitation({
-token: invitationToken,
-userId: user.id,
-email: user.email,
-});
-} catch (error) {
-console.error(
-"Unable to accept business invitation:",
-error,
-);
-}
-}
+  const membership =
+    await prisma.businessMembership.findFirst({
+      where: {
+        userId: user.id,
+        isActive: true,
+        business: {
+          status: "ACTIVE",
+        },
+      },
+      select: {
+        businessId: true,
+      },
+    });
 
-const membership =
-await prisma.businessMembership.findFirst({
-where: {
-userId: user.id,
-isActive: true,
-business: {
-status: "ACTIVE",
-},
-},
-select: {
-businessId: true,
-},
-orderBy: {
-createdAt: "asc",
-},
-});
+  if (!membership) {
+    redirect("/setup");
+  }
 
-if (!membership) {
-redirect("/setup");
-}
-
-redirect("/dashboard");
+  redirect("/dashboard");
 }

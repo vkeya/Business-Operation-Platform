@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { Nunito } from "next/font/google";
 import "./globals.css";
-import AppShell from "@/components/layout/AppShell";
-import { getLocale } from "@/lib/i18n/locale";
-import {
-  getTranslations,
-} from "@/lib/i18n";
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+});
 
 export const dynamic = "force-dynamic";
 
@@ -14,25 +15,15 @@ export const metadata: Metadata = {
     "Business operations, tailored to your business.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
-
-  const translationSet =
-    getTranslations(locale);
-
   return (
     <html lang="en">
-      <body>
-        <AppShell
-          currentLocale={locale}
-          translations={translationSet}
-        >
-          {children}
-        </AppShell>
+      <body className={nunito.variable}>
+        {children}
       </body>
     </html>
   );

@@ -8,8 +8,7 @@ import {
   getRestaurantMenuItemAction,
   getRestaurantRecipeAction,
 } from "@/app/restaurant/actions";
-import { getProductsAction } from "@/app/inventory/products/listActions";
-import { recipeService } from "@/lib/restaurant/recipeService";
+import { getProductsAction } from "@/app/(workspace)/inventory/products/listActions";import { recipeService } from "@/lib/restaurant/recipeService";
 import AddIngredientForm from "./AddIngredientForm";
 
 interface RecipePageProps {
