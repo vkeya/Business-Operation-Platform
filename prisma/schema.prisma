@@ -92,6 +92,7 @@ model Business {
   language     String
   timezone     String
   status       BusinessStatus @default(ACTIVE)
+  invitations BusinessUserInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,10 +188,12 @@ model User {
 
   name         String
   email        String @unique
-  passwordHash String
+  passwordHash String?
   memberships BusinessMembership[]
 
   isActive Boolean @default(true)
+
+  authIdentities AuthIdentity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,6 +202,24 @@ model User {
   branches UserBranch[]
 
   @@index([email])
+}
+
+model AuthIdentity {
+  id String @id @default(cuid())
+
+  userId String
+
+  provider String
+  providerAccountId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 model BusinessMembership {
@@ -221,6 +242,33 @@ model BusinessMembership {
   @@index([userId])
 }
 
+model BusinessUserInvitation {
+  id String @id @default(cuid())
+
+  businessId String
+  email      String
+  name       String?
+
+  roleId String
+
+  token String @unique
+
+  expiresAt DateTime
+
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([email])
+  @@index([roleId])
+}
+
 model Role {
   id         String @id @default(cuid())
   businessId String
@@ -229,6 +277,7 @@ model Role {
   description  String?
   permissions  String[]
   isSystemRole Boolean  @default(false)
+  invitations BusinessUserInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

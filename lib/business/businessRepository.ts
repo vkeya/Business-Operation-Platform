@@ -31,7 +31,9 @@ export interface BusinessRepository {
   updatedAt: Date;
 }>;
 
-  listBusinesses(): Promise<Business[]>;
+  listBusinesses(
+  userId: string,
+): Promise<Business[]>;
 
   getBusiness(
     businessId: string,

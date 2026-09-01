@@ -10,6 +10,9 @@ import {
 import {
   accountService,
 } from "@/lib/accounting/accountService";
+import {
+  assignBusinessOwnerRole,
+} from "./businessRoleService";
 
 export function createBusinessService(
   repository: BusinessRepository,
@@ -45,6 +48,11 @@ export function createBusinessService(
     userId,
   );
 
+  await assignBusinessOwnerRole(
+  userId,
+  result.business.id,
+);
+
 	  await accountService.createDefaultAccounts(
   result.business.id,
 );
@@ -76,9 +84,19 @@ for (const category of defaultCategories) {
       };
     },
 
-    async listBusinesses() {
-      return repository.listBusinesses();
-    },
+    async listBusinesses(
+  userId: string,
+) {
+  if (!userId) {
+    throw new Error(
+      "User context is required.",
+    );
+  }
+
+  return repository.listBusinesses(
+    userId,
+  );
+},
 
     async getBusiness(
       businessId: string,

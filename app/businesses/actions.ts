@@ -3,6 +3,7 @@
 import { createBusinessService } from "@/lib/business/businessService";
 import { postgresBusinessRepository } from "@/lib/business/postgresBusinessRepository";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getAuthenticatedUser } from "@/lib/auth/auth";
 import { productCategoryService } from "@/lib/inventory/productCategoryService";
 
 const businessService = createBusinessService(
@@ -10,7 +11,12 @@ const businessService = createBusinessService(
 );
 
 export async function getBusinessesAction() {
-  return businessService.listBusinesses();
+  const user =
+    await getAuthenticatedUser();
+
+  return businessService.listBusinesses(
+    user.id,
+  );
 }
 
 export async function ensureCurrentBoutiqueCategoriesAction() {

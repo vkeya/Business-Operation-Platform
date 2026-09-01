@@ -165,29 +165,46 @@ export const postgresBusinessRepository: BusinessRepository = {
   });
 },
 
-  async listBusinesses() {
-  const businesses = await prisma.business.findMany({
-    where: {
-      status: "ACTIVE",
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  async listBusinesses(
+  userId: string,
+) {
+  const businesses =
+    await prisma.business.findMany({
+      where: {
+        status: "ACTIVE",
+
+        memberships: {
+          some: {
+            userId,
+            isActive: true,
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
   return businesses.map((business) => ({
     id: business.id,
     name: business.name,
-    legalName: business.legalName ?? undefined,
-    type: business.type as Business["type"],
+    legalName:
+      business.legalName ?? undefined,
+    type:
+      business.type as Business["type"],
     country: business.country,
-    baseCurrency: business.baseCurrency,
+    baseCurrency:
+      business.baseCurrency,
     language: business.language,
     timezone: business.timezone,
     status:
-      business.status.toLowerCase() as Business["status"],
-    createdAt: business.createdAt.toISOString(),
-    updatedAt: business.updatedAt.toISOString(),
+      business.status.toLowerCase() as
+        Business["status"],
+    createdAt:
+      business.createdAt.toISOString(),
+    updatedAt:
+      business.updatedAt.toISOString(),
   }));
 },
 

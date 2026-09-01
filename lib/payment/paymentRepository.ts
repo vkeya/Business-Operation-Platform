@@ -3,7 +3,9 @@ import { prisma } from "@/lib/database/prisma";
 export interface CreatePurchasePaymentInput {
   businessId: string;
   purchaseId: string;
+
   reference?: string;
+
   method: string;
   amount: number;
   currency: string;
@@ -15,7 +17,9 @@ export interface CreatePurchasePaymentInput {
 export interface CreateSalePaymentInput {
   businessId: string;
   saleId: string;
+
   reference?: string;
+
   method: string;
   amount: number;
   currency: string;
