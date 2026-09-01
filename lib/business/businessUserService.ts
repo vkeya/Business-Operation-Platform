@@ -3,6 +3,9 @@ import {
   getCurrentBusinessContext,
 } from "./currentBusiness";
 import { randomBytes } from "crypto";
+import {
+  createDefaultBusinessRoles,
+} from "./businessRoleService";
 
 const USER_MANAGEMENT_PERMISSIONS = [
   "users.read",
@@ -136,25 +139,29 @@ export const businessUserService = {
   },
 
   async listRoles() {
-    const context =
-      await requireUserManagementAccess();
+  const context =
+    await requireUserManagementAccess();
 
-    return prisma.role.findMany({
-      where: {
-        businessId: context.business.id,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        permissions: true,
-        isSystemRole: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
-  },
+  await createDefaultBusinessRoles(
+    context.business.id,
+  );
+
+  return prisma.role.findMany({
+    where: {
+      businessId: context.business.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      permissions: true,
+      isSystemRole: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+},
   
     async listInvitations() {
     const context =
