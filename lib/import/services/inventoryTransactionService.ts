@@ -405,33 +405,27 @@ export async function executeInventoryImportTransaction(
           record.quantity > 0
         ) {
           const warehouse =
-            warehouses.find(
-              (candidate) =>
-                candidate.name
-                  .trim()
-                  .toLowerCase() ===
-                  record.warehouseName
-                    .trim()
-                    .toLowerCase(),
-            ) ??
-            warehouses.find(
-              (candidate) =>
-                candidate.code
-                  .trim()
-                  .toLowerCase() ===
-                  record.warehouseName
-                    .trim()
-                    .toLowerCase(),
-            ) ??
-            (record.warehouseName
-              ? undefined
-              : defaultWarehouse);
+  warehouses.find(
+    (candidate) =>
+      candidate.name.trim().toLowerCase() ===
+      record.warehouseName.trim().toLowerCase(),
+  ) ??
+  warehouses.find(
+    (candidate) =>
+      candidate.code.trim().toLowerCase() ===
+      record.warehouseName.trim().toLowerCase(),
+  ) ??
+  (!record.warehouseName
+    ? defaultWarehouse
+    : warehouses.length === 1
+      ? warehouses[0]
+      : undefined);
 
-          if (!warehouse) {
-            throw new Error(
-              `Row ${record.rowNumber}: Warehouse "${record.warehouseName}" was not found for this business.`,
-            );
-          }
+if (!warehouse) {
+  throw new Error(
+    `Row ${record.rowNumber}: Warehouse "${record.warehouseName}" was not found for this business. Select a valid warehouse mapping before importing.`,
+  );
+}
 
           inventoryOpeningBalances.push({
             productId: product.id,
