@@ -47,14 +47,24 @@ export const importFieldAliases: Record<
     "opening quantity",
     "balance",
   ],
+  
+  unit: [
+  "unit",
+  "purchase unit",
+  "sales unit",
+  "selling unit",
+  "unit of measure",
+  "uom",
+],
 
   unitCost: [
-    "unit cost",
-    "cost",
-    "cost price",
-    "purchase price",
-    "buying price",
-    "unit purchase price",
+  "unit cost",
+  "cost",
+  "cost price",
+  "purchase cost",
+  "purchase price",
+  "buying price",
+  "unit purchase price",
   ],
 
   sellingPrice: [
@@ -88,6 +98,42 @@ export const importFieldAliases: Record<
     "item description",
     "notes",
     "remarks",
+  ],
+  
+    retailPrice: [
+    "retail price",
+    "retail cost",
+  ],
+
+  wholesalePrice: [
+    "wholesale price",
+    "wholesale cost",
+  ],
+
+  minimumPrice: [
+    "minimum price",
+    "minimum sales cost",
+    "minimum selling price",
+  ],
+
+  rate1Price: [
+    "rate 1",
+    "rate 1 price",
+  ],
+
+  rate2Price: [
+    "rate 2",
+    "rate 2 price",
+  ],
+
+  rate3Price: [
+    "rate 3",
+    "rate 3 price",
+  ],
+
+  rate4Price: [
+    "rate 4",
+    "rate 4 price",
   ],
 };
 

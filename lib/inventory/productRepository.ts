@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export type ProductAttributes =
   Record<string, string | number>;
 
@@ -31,6 +38,20 @@ export interface CreateProductInput {
   quantity: number;
   unit: string;
   sellingPrice: number;
+}
+
+export interface CreateProductPriceInput {
+  productId: string;
+  type:
+    | "RETAIL"
+    | "WHOLESALE"
+    | "MINIMUM"
+    | "RATE_1"
+    | "RATE_2"
+    | "RATE_3"
+    | "RATE_4";
+  price: number;
+  currency: string;
 }
 
 function serializeProduct<
@@ -109,6 +130,81 @@ export const productRepository = {
     return serializeProduct(product);
   },
 
+  async createPrice(
+  input: CreateProductPriceInput,
+  client: PrismaTransactionClient = prisma,
+) {
+  const price =
+    await client.productPrice.create({
+        data: {
+          productId: input.productId,
+          type: input.type,
+          price: input.price,
+          currency: input.currency,
+        },
+      });
+
+    return {
+      ...price,
+      price: price.price.toNumber(),
+    };
+  },
+
+  async listPrices(
+    productId: string,
+  ) {
+    const prices =
+      await prisma.productPrice.findMany({
+        where: {
+          productId,
+          isActive: true,
+        },
+        orderBy: {
+          type: "asc",
+        },
+      });
+
+    return prices.map((price) => ({
+      ...price,
+      price: price.price.toNumber(),
+    }));
+  },
+
+  async updatePrice(
+    productId: string,
+    type:
+      | "RETAIL"
+      | "WHOLESALE"
+      | "MINIMUM"
+      | "RATE_1"
+      | "RATE_2"
+      | "RATE_3"
+      | "RATE_4",
+    input: {
+      price: number;
+      currency: string;
+    },
+  ) {
+    const price =
+      await prisma.productPrice.update({
+        where: {
+          productId_type: {
+            productId,
+            type,
+          },
+        },
+        data: {
+          price: input.price,
+          currency: input.currency,
+          isActive: true,
+        },
+      });
+
+    return {
+      ...price,
+      price: price.price.toNumber(),
+    };
+  },
 
 
     async update(

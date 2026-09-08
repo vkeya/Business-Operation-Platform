@@ -12,6 +12,13 @@ export interface InventoryDatabaseImportRecord {
   unit: string;
   costPrice: number;
   sellingPrice: number;
+    retailPrice?: number;
+  wholesalePrice?: number;
+  minimumPrice?: number;
+  rate1Price?: number;
+  rate2Price?: number;
+  rate3Price?: number;
+  rate4Price?: number;
   currency: string;
   taxRate?: number;
   taxCode?: string;
@@ -72,9 +79,15 @@ export function prepareInventoryDatabaseImport(
       const values =
         row.values;
 
-      const sku =
-        readString(values.sku)
-          .toUpperCase();
+      const sourceProductId =
+  readString(values.productId);
+
+const sku =
+  readString(values.sku)
+    .toUpperCase() ||
+  (sourceProductId
+    ? `PROD-${sourceProductId}`.toUpperCase()
+    : "");
 
       if (seenSkus.has(sku)) {
         duplicateSkus.add(sku);
@@ -115,6 +128,55 @@ export function prepareInventoryDatabaseImport(
           readNumber(
             values.sellingPrice,
           ),
+		          retailPrice:
+          values.retailPrice ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.retailPrice,
+              ),
+        wholesalePrice:
+          values.wholesalePrice ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.wholesalePrice,
+              ),
+        minimumPrice:
+          values.minimumPrice ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.minimumPrice,
+              ),
+        rate1Price:
+          values.rate1Price ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.rate1Price,
+              ),
+        rate2Price:
+          values.rate2Price ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.rate2Price,
+              ),
+        rate3Price:
+          values.rate3Price ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.rate3Price,
+              ),
+        rate4Price:
+          values.rate4Price ===
+          undefined
+            ? undefined
+            : readNumber(
+                values.rate4Price,
+              ),
         currency:
           readString(
             values.currency,

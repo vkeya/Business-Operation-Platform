@@ -85,21 +85,31 @@ export function findSuggestedFieldMatch(
     return aliasMatch;
   }
 
+  // Only suggest a fallback when the source and target
+  // share a meaningful multi-word phrase. A single shared
+  // word is too weak and can produce incorrect mappings such
+  // as "Purchase Unit" -> "Unit Cost".
   const sourceWords =
     getWords(sourceColumn.label);
 
-  return fields.find((field) => {
-    const fieldWords = [
-      ...getWords(field.key),
-      ...getWords(field.label),
-    ];
+  if (sourceWords.length < 2) {
+    return undefined;
+  }
 
-    return sourceWords.some(
-      (sourceWord) =>
-        fieldWords.includes(
-          sourceWord,
-        ),
+  return fields.find((field) => {
+    const fieldWords = Array.from(
+      new Set([
+        ...getWords(field.key),
+        ...getWords(field.label),
+      ]),
     );
+
+    const sharedWords =
+      sourceWords.filter((word) =>
+        fieldWords.includes(word),
+      );
+
+    return sharedWords.length >= 2;
   });
 }
 

@@ -7,10 +7,14 @@ import {
   useState,
 } from "react";
 import ProductSearch from "./ProductSearch";
-import { getAllInventoryBalancesAction } from "./listActions";
+import {
+  getAllInventoryBalancesAction,
+} from "./listActions";
+import {
+  deleteProductsAction,
+} from "./actions";
 import { getTranslations } from "@/lib/i18n";
 import type { ProductConfiguration } from "@/lib/business/productConfiguration";
-
 
 interface Product {
   id: string;
@@ -66,9 +70,19 @@ export default function ProductList({
   const [stockTotals, setStockTotals] =
     useState<Record<string, number>>({});
 
+  const [selectedIds, setSelectedIds] =
+    useState<string[]>([]);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [deleteError, setDeleteError] =
+    useState("");
+
   const handleResults = useCallback(
     (results: Product[]) => {
       setProducts(results);
+      setSelectedIds([]);
     },
     [],
   );
@@ -100,6 +114,67 @@ export default function ProductList({
     };
   }, []);
 
+  const allSelected =
+    products.length > 0 &&
+    products.every((product) =>
+      selectedIds.includes(product.id),
+    );
+
+  const someSelected =
+    selectedIds.length > 0 && !allSelected;
+
+  function toggleProduct(productId: string) {
+    setSelectedIds((current) =>
+      current.includes(productId)
+        ? current.filter((id) => id !== productId)
+        : [...current, productId],
+    );
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds([]);
+      return;
+    }
+
+    setSelectedIds(
+      products.map((product) => product.id),
+    );
+  }
+
+  async function handleDeleteSelected() {
+    if (selectedIds.length === 0 || deleting) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} selected product${
+        selectedIds.length === 1 ? "" : "s"
+      }? This action cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      await deleteProductsAction(selectedIds);
+
+      window.location.reload();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete selected products.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <>
       {/* List header */}
@@ -113,6 +188,12 @@ export default function ProductList({
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
               {products.length}
             </span>
+
+            {selectedIds.length > 0 && (
+              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700">
+                {selectedIds.length} selected
+              </span>
+            )}
           </div>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -120,15 +201,37 @@ export default function ProductList({
           </p>
         </div>
 
-        <div className="w-full lg:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <ProductSearch
             onResults={handleResults}
-            onClear={() =>
-              setProducts(initialProducts)
-            }
+            onClear={() => {
+              setProducts(initialProducts);
+              setSelectedIds([]);
+            }}
           />
+
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={deleting}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting
+                ? "Deleting..."
+                : `Delete Selected (${selectedIds.length})`}
+            </button>
+          )}
         </div>
       </div>
+
+      {deleteError && (
+        <div className="border-b border-rose-100 bg-rose-50 px-5 py-4 sm:px-6">
+          <p className="text-sm font-medium text-rose-700">
+            {deleteError}
+          </p>
+        </div>
+      )}
 
       {/* Empty state */}
       {products.length === 0 ? (
@@ -147,9 +250,25 @@ export default function ProductList({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px]">
+          <table className="w-full min-w-[1100px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-left">
+                <th className="w-12 px-4 py-3.5">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all products"
+                    checked={allSelected}
+                    ref={(element) => {
+                      if (element) {
+                        element.indeterminate =
+                          someSelected;
+                      }
+                    }}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                </th>
+
                 <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                   {t.inventory.product}
                 </th>
@@ -197,23 +316,43 @@ export default function ProductList({
                   stock <= 0;
 
                 const visibleAttributes =
-  configuration.attributes.filter(
-    (attribute) => {
-      const value =
-        getProductAttributeValue(
-          product.attributes,
-          attribute.id,
-        );
+                  configuration.attributes.filter(
+                    (attribute) => {
+                      const value =
+                        getProductAttributeValue(
+                          product.attributes,
+                          attribute.id,
+                        );
 
-      return Boolean(value?.trim());
-    },
-  );
+                      return Boolean(value?.trim());
+                    },
+                  );
+
+                const isSelected =
+                  selectedIds.includes(product.id);
 
                 return (
                   <tr
                     key={product.id}
-                    className="group border-b border-slate-100 last:border-0 transition hover:bg-slate-50/70"
+                    className={`group border-b border-slate-100 last:border-0 transition ${
+                      isSelected
+                        ? "bg-violet-50/50"
+                        : "hover:bg-slate-50/70"
+                    }`}
                   >
+                    {/* Select */}
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${product.name}`}
+                        checked={isSelected}
+                        onChange={() =>
+                          toggleProduct(product.id)
+                        }
+                        className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                      />
+                    </td>
+
                     {/* Product */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -256,12 +395,10 @@ export default function ProductList({
                                 className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
                               >
                                 {attribute.label}:{" "}
-                                {
-  getProductAttributeValue(
-    product.attributes,
-    attribute.id,
-  )
-}
+                                {getProductAttributeValue(
+                                  product.attributes,
+                                  attribute.id,
+                                )}
                               </span>
                             ),
                           )}
@@ -286,9 +423,7 @@ export default function ProductList({
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-slate-900">
                         {product.currency}{" "}
-                        {product.sellingPrice.toFixed(
-                          2,
-                        )}
+                        {product.sellingPrice.toFixed(2)}
                       </p>
                     </td>
 

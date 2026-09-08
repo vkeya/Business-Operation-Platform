@@ -23,6 +23,15 @@ export const inventoryImportDefinition: ImportDefinition =
       },
 
       {
+        key: "productId",
+        label: "Product ID",
+        type: "reference",
+
+        description:
+          "The source system product identifier, used as a fallback when no SKU is provided.",
+      },
+
+      {
         key: "sku",
         label: "SKU",
         type: "reference",
@@ -38,6 +47,16 @@ export const inventoryImportDefinition: ImportDefinition =
 
         description:
           "The product barcode, if available.",
+      },
+
+      {
+        key: "unit",
+        label: "Unit",
+        type: "string",
+        required: true,
+
+        description:
+          "The unit used to measure or sell the product, such as piece, kg, litre, or box.",
       },
 
       {
@@ -59,6 +78,15 @@ export const inventoryImportDefinition: ImportDefinition =
       },
 
       {
+        key: "warehouse",
+        label: "Warehouse / Store",
+        type: "string",
+
+        description:
+          "The warehouse or store where the opening inventory quantity is held.",
+      },
+
+      {
         key: "unitCost",
         label: "Unit Cost",
         type: "currency",
@@ -74,6 +102,78 @@ export const inventoryImportDefinition: ImportDefinition =
 
         description:
           "The selling price of one unit.",
+      },
+
+      {
+        key: "retailPrice",
+        label: "Retail Price",
+        type: "currency",
+
+        description:
+          "The standard retail selling price.",
+      },
+
+      {
+        key: "wholesalePrice",
+        label: "Wholesale Price",
+        type: "currency",
+
+        description:
+          "The wholesale selling price.",
+      },
+
+      {
+        key: "minimumPrice",
+        label: "Minimum Sales Price",
+        type: "currency",
+
+        description:
+          "The lowest permitted selling price.",
+      },
+
+      {
+        key: "rate1Price",
+        label: "Rate 1",
+        type: "currency",
+
+        description:
+          "Additional price rate 1.",
+      },
+
+      {
+        key: "rate2Price",
+        label: "Rate 2",
+        type: "currency",
+
+        description:
+          "Additional price rate 2.",
+      },
+
+      {
+        key: "rate3Price",
+        label: "Rate 3",
+        type: "currency",
+
+        description:
+          "Additional price rate 3.",
+      },
+
+      {
+        key: "rate4Price",
+        label: "Rate 4",
+        type: "currency",
+
+        description:
+          "Additional price rate 4.",
+      },
+
+      {
+        key: "currency",
+        label: "Currency",
+        type: "string",
+
+        description:
+          "Optional currency for the imported prices. If not provided, Teketeke uses the active business's base currency.",
       },
 
       {
