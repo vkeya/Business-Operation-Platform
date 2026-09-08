@@ -47,11 +47,20 @@ export async function getDashboardMetrics(
     );
 
 
-  const lowStockItems =
+    const lowStockItems =
     inventory.filter(
       (item) =>
         item.quantity <=
         item.reservedQuantity,
+    );
+
+    const inventoryValue =
+    inventory.reduce(
+      (total, item) =>
+        total +
+        item.quantity *
+          item.averageCost,
+      0,
     );
 
 const cashInsight =
@@ -66,8 +75,10 @@ const cashInsight =
       accounting.payables,
   });
 
-  return {
+    return {
     ...accounting,
+
+    inventoryValue,
 
     salesCount:
       completedSales.length,
