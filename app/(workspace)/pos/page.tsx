@@ -141,8 +141,8 @@ export default function PosPage() {
     async function loadWarehouses() {
       try {
         const response = await fetch(
-          "/api/inventory/warehouses",
-        );
+  "/api/pos/warehouses",
+);
 
         const result = await response.json();
 
