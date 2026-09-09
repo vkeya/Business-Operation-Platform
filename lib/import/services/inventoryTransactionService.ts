@@ -337,7 +337,7 @@ export async function executeInventoryImportTransaction(
             description: record.description,
             unit: record.unit,
             costPrice: record.costPrice,
-            sellingPrice: record.sellingPrice,
+            sellingPrice: record.retailPrice ?? record.sellingPrice,
             currency: record.currency,
             taxRate: record.taxRate,
             taxCode: record.taxCode,

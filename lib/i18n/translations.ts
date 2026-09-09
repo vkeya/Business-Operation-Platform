@@ -21,6 +21,7 @@ export interface TranslationSet {
     reports: string;
     settings: string;
 	services: string;
+	pos: string;
   };
 
   common: {
@@ -901,6 +902,7 @@ export const translations: Record<Locale, TranslationSet> = {
       reports: "Reports",
       settings: "Settings",
 	  services: "services",
+	  pos: "POS",
     },
     common: {
       add: "Add",
@@ -1889,6 +1891,7 @@ categoryName: "Category Name",
       reports: "Rapports",
       settings: "Paramètres",
 	  services: "Services",
+	  pos: "POS",
     },
     common: {
       add: "Ajouter",
@@ -2899,6 +2902,7 @@ categoryName: "Nom de la catégorie",
       reports: "ሪፖርቶች",
       settings: "ቅንብሮች",
 	  services: "አገልግሎቶች",
+	  pos: "POS",
     },
     common: {
       add: "አክል",

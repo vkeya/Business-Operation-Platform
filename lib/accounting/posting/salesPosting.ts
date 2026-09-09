@@ -1,6 +1,13 @@
 import { accountRepository } from "@/lib/accounting/accountRepository";
 import { journalService } from "@/lib/accounting/journalService";
+import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 interface PostSaleInput {
   businessId: string;
@@ -10,6 +17,7 @@ interface PostSaleInput {
   currency: string;
   customerId?: string | null;
   createdBy: string;
+client?: PrismaTransactionClient;
 }
 
 
@@ -42,53 +50,56 @@ export async function postSaleToAccounting(
   }
 
 
-  return journalService.create({
-    businessId:
-      input.businessId,
+   return journalService.create(
+    {
+      businessId:
+        input.businessId,
 
-    reference:
-      `SALE-${input.referenceNumber}`,
+      reference:
+        `SALE-${input.referenceNumber}`,
 
-    description:
-      `Sale ${input.referenceNumber}`,
+      description:
+        `Sale ${input.referenceNumber}`,
 
-    entryDate:
-      new Date(),
+      entryDate:
+        new Date(),
 
-    createdBy:
-      input.createdBy,
+      createdBy:
+        input.createdBy,
 
-    currency:
-      input.currency,
+      currency:
+        input.currency,
 
-    lines: [
-      {
-        accountId:
-          receivableAccount.id,
+      lines: [
+        {
+          accountId:
+            receivableAccount.id,
 
-        description:
-          "Customer receivable",
+          description:
+            "Customer receivable",
 
-        debit:
-          input.totalAmount,
+          debit:
+            input.totalAmount,
 
-        credit:
-          0,
-      },
+          credit:
+            0,
+        },
 
-      {
-        accountId:
-          revenueAccount.id,
+        {
+          accountId:
+            revenueAccount.id,
 
-        description:
-          "Sales revenue",
+          description:
+            "Sales revenue",
 
-        debit:
-          0,
+          debit:
+            0,
 
-        credit:
-          input.totalAmount,
-      },
-    ],
-  });
+          credit:
+            input.totalAmount,
+        },
+      ],
+    },
+    input.client,
+  );
 }

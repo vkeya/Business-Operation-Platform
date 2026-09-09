@@ -17,6 +17,7 @@ const capabilityToNavigationModule:
   inventory: "inventory",
   purchases: "purchases",
   sales: "sales",
+  pos: "pos",
   customers: "customers",
   suppliers: "suppliers",
   payments: null,

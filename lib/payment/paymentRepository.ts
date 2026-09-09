@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export interface CreatePurchasePaymentInput {
   businessId: string;
   purchaseId: string;
@@ -46,10 +53,10 @@ function serializePayment<
 
 export const paymentRepository = {
   async createPurchasePayment(
-  input: CreatePurchasePaymentInput & {
-    reference: string;
-  },
-) {
+    input: CreatePurchasePaymentInput & {
+      reference: string;
+    },
+  ) {
     const payment =
       await prisma.payment.create({
         data: {
@@ -127,12 +134,13 @@ export const paymentRepository = {
   },
 
   async createSalePayment(
-  input: CreateSalePaymentInput & {
-    reference: string;
-  },
-) {
+    input: CreateSalePaymentInput & {
+      reference: string;
+    },
+    client: PrismaTransactionClient = prisma,
+  ) {
     const payment =
-      await prisma.payment.create({
+      await client.payment.create({
         data: {
           businessId: input.businessId,
           saleId: input.saleId,
@@ -158,8 +166,9 @@ export const paymentRepository = {
   async findSaleWithPayments(
     businessId: string,
     saleId: string,
+    client: PrismaTransactionClient = prisma,
   ) {
-    return prisma.sale.findFirst({
+    return client.sale.findFirst({
       where: {
         id: saleId,
         businessId,
@@ -179,8 +188,9 @@ export const paymentRepository = {
       | "PAID"
       | "FAILED"
       | "REFUNDED",
+    client: PrismaTransactionClient = prisma,
   ) {
-    return prisma.sale.update({
+    return client.sale.update({
       where: {
         id: saleId,
         businessId,

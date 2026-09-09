@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/database/prisma";
 
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export interface CreateJournalEntryInput {
   businessId: string;
   branchId?: string;
@@ -20,44 +28,36 @@ export interface CreateJournalEntryInput {
 
 export const journalRepository = {
   async create(
-    input: CreateJournalEntryInput,
-  ) {
-    return prisma.journalEntry.create({
-      data: {
-        businessId: input.businessId,
-        branchId: input.branchId,
-        reference: input.reference,
-        description: input.description,
-        entryDate: input.entryDate,
-        createdBy: input.createdBy,
+  input: CreateJournalEntryInput,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.journalEntry.create({
+    data: {
+      businessId: input.businessId,
+      branchId: input.branchId,
+      reference: input.reference,
+      description: input.description,
+      entryDate: input.entryDate,
+      createdBy: input.createdBy,
 
-        lines: {
-          create: input.lines.map(
-            (line) => ({
-              accountId:
-                line.accountId,
-
-              description:
-                line.description,
-
-              debit:
-                line.debit,
-
-              credit:
-                line.credit,
-
-              currency:
-                input.currency,
-            }),
-          ),
-        },
+      lines: {
+        create: input.lines.map(
+          (line) => ({
+            accountId: line.accountId,
+            description: line.description,
+            debit: line.debit,
+            credit: line.credit,
+            currency: input.currency,
+          }),
+        ),
       },
+    },
 
-      include: {
-        lines: true,
-      },
-    });
-  },
+    include: {
+      lines: true,
+    },
+  });
+},
 
 
   async list(

@@ -1,6 +1,13 @@
 import { accountRepository } from "@/lib/accounting/accountRepository";
 import { journalService } from "@/lib/accounting/journalService";
+import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 interface PostPaymentInput {
   businessId: string;
@@ -10,6 +17,7 @@ interface PostPaymentInput {
   currency: string;
   createdBy: string;
   type: "SALE" | "PURCHASE";
+  client?: PrismaTransactionClient;
 }
 
 
@@ -17,10 +25,11 @@ export async function postPaymentToAccounting(
   input: PostPaymentInput,
 ) {
   const cashAccount =
-    await accountRepository.findByCode(
-      input.businessId,
-      "1000",
-    );
+  await accountRepository.findByCode(
+    input.businessId,
+    "1000",
+    input.client,
+  );
 
   if (!cashAccount) {
     throw new Error(
@@ -30,16 +39,18 @@ export async function postPaymentToAccounting(
 
 
   const receivableAccount =
-    await accountRepository.findByCode(
-      input.businessId,
-      "1200",
-    );
+  await accountRepository.findByCode(
+    input.businessId,
+    "1200",
+    input.client,
+  );
 
   const payableAccount =
-    await accountRepository.findByCode(
-      input.businessId,
-      "2000",
-    );
+  await accountRepository.findByCode(
+    input.businessId,
+    "2000",
+    input.client,
+  );
 
 
   if (
@@ -62,7 +73,8 @@ export async function postPaymentToAccounting(
   }
 
 
-  return journalService.create({
+  return journalService.create(
+  {
     businessId:
       input.businessId,
 
@@ -127,5 +139,7 @@ export async function postPaymentToAccounting(
                 input.amount,
             },
           ],
-  });
+  },
+  input.client,
+  );
 }

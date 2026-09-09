@@ -13,6 +13,15 @@ import {
   calculateRecipeConsumption,
 } from "./recipeConsumption";
 import { inventoryService } from "@/lib/inventory/inventoryService";
+import { prisma } from "@/lib/database/prisma";
+import { inventoryRepository } from "@/lib/inventory/inventoryRepository";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export const recipeService = {
   async createRecipe(
@@ -249,6 +258,7 @@ export const recipeService = {
     businessId: string;
     menuItemId: string;
     saleQuantity: number;
+	client?: PrismaTransactionClient;
   }) {
     if (!input.businessId) {
       throw new Error(
@@ -269,10 +279,11 @@ export const recipeService = {
     }
 
     const recipe =
-      await recipeRepository.findRecipeByMenuItemId(
-        input.businessId,
-        input.menuItemId,
-      );
+  await recipeRepository.findRecipeByMenuItemId(
+    input.businessId,
+    input.menuItemId,
+    input.client,
+  );
 
     if (!recipe) {
       throw new Error(
@@ -416,9 +427,11 @@ export const recipeService = {
     currency: string;
     createdBy: string;
     referenceId: string;
+	client?: PrismaTransactionClient;
     items: Array<{
       menuItemId: string;
       quantity: number;
+
     }>;
   }) {
     if (!input.businessId) {
@@ -462,11 +475,12 @@ export const recipeService = {
       }
 
       const result =
-        await this.calculateConsumption({
-          businessId: input.businessId,
-          menuItemId: item.menuItemId,
-          saleQuantity: item.quantity,
-        });
+  await this.calculateConsumption({
+    businessId: input.businessId,
+    menuItemId: item.menuItemId,
+    saleQuantity: item.quantity,
+    client: input.client,
+  });
 
       for (const consumption of result.consumption) {
         const existing =
@@ -485,7 +499,27 @@ export const recipeService = {
       return [];
     }
 
-    return inventoryService.consumeStockBatch({
+    if (input.client) {
+  return inventoryRepository.consumeStockBatchWithTx(
+    input.client,
+    {
+      businessId: input.businessId,
+      warehouseId: input.warehouseId,
+      currency: input.currency,
+      createdBy: input.createdBy,
+      referenceType: "SALE",
+      referenceId: input.referenceId,
+      items: Array.from(
+        consumptionByProduct.entries(),
+      ).map(([productId, quantity]) => ({
+        productId,
+        quantity,
+      })),
+    },
+  );
+}
+
+return inventoryService.consumeStockBatch({
       businessId: input.businessId,
       warehouseId: input.warehouseId,
       currency: input.currency,

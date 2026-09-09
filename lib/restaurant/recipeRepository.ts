@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/database/prisma";
 
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export interface CreateRecipeInput {
   businessId: string;
   menuItemId: string;
@@ -28,26 +36,27 @@ export const recipeRepository = {
   },
 
   async findRecipeByMenuItemId(
-    businessId: string,
-    menuItemId: string,
-  ) {
-    return prisma.recipe.findFirst({
-      where: {
-        businessId,
-        menuItemId,
-      },
-      include: {
-        ingredients: {
-          orderBy: {
-            createdAt: "asc",
-          },
-          include: {
-            product: true,
-          },
+  businessId: string,
+  menuItemId: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.recipe.findFirst({
+    where: {
+      businessId,
+      menuItemId,
+    },
+    include: {
+      ingredients: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          product: true,
         },
       },
-    });
-  },
+    },
+  });
+},
 
   async addIngredient(
     input: CreateRecipeIngredientInput,

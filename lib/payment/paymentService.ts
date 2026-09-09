@@ -7,6 +7,14 @@ import { postPaymentToAccounting } from "@/lib/accounting/posting/paymentPosting
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
+import { prisma } from "@/lib/database/prisma";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export const paymentService = {
   async createPurchasePayment(
@@ -162,9 +170,10 @@ return payment;
     );
   },
 
-  async createSalePayment(
-    input: CreateSalePaymentInput,
-  ) {
+ async createSalePayment(
+  input: CreateSalePaymentInput,
+  client: PrismaTransactionClient = prisma,
+) {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
@@ -202,10 +211,11 @@ return payment;
     }
 
     const sale =
-      await paymentRepository.findSaleWithPayments(
-        input.businessId,
-        input.saleId,
-      );
+  await paymentRepository.findSaleWithPayments(
+    input.businessId,
+    input.saleId,
+    client,
+  );
 
     if (!sale) {
       throw new Error(
@@ -254,31 +264,34 @@ return payment;
   });
 
     const payment =
-      await paymentRepository.createSalePayment(
-        {
-          ...input,
-          reference,
-          method:
-            input.method.trim(),
-          currency:
-            input.currency.trim(),
-        },
-      );
+  await paymentRepository.createSalePayment(
+    {
+      ...input,
+      reference,
+      method:
+        input.method.trim(),
+      currency:
+        input.currency.trim(),
+    },
+    client,
+  );
 
     await paymentRepository.updateSalePaymentStatus(
-      input.businessId,
-      input.saleId,
-      paymentStatus,
-    );
+  input.businessId,
+  input.saleId,
+  paymentStatus,
+  client,
+);
 
 	await postPaymentToAccounting({
   businessId: payment.businessId,
   paymentId: payment.id,
   reference: payment.reference,
-  amount: payment.amount.toNumber(),
+  amount: Number(payment.amount),
   currency: payment.currency,
   createdBy: payment.createdBy,
   type: "SALE",
+  client,
 });
 
     return payment;

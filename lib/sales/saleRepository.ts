@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 export interface CreateSaleInput {
   businessId: string;
   branchId?: string;
@@ -113,9 +120,12 @@ function serializeSale<
 }
 
 export const saleRepository = {
-  async create(input: CreateSaleInput) {
+  async create(
+  input: CreateSaleInput,
+  client: PrismaTransactionClient = prisma,
+) {
     const sale =
-      await prisma.sale.create({
+      await client.sale.create({
         data: {
           businessId: input.businessId,
           branchId: input.branchId,
@@ -243,16 +253,17 @@ export const saleRepository = {
   },
 
   async updateStatus(
-    businessId: string,
-    saleId: string,
-    status:
-      | "DRAFT"
-      | "COMPLETED"
-      | "CANCELLED"
-	  | "REVERSED",
-  ) {
+  businessId: string,
+  saleId: string,
+  status:
+    | "DRAFT"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "REVERSED",
+  client: PrismaTransactionClient = prisma,
+) {
     const sale =
-      await prisma.sale.update({
+      await client.sale.update({
         where: {
           id: saleId,
           businessId,

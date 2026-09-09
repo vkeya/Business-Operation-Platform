@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export const accountRepository = {
   async list(
     businessId: string,
@@ -21,18 +28,19 @@ export const accountRepository = {
 
 
   async findByCode(
-    businessId: string,
-    code: string,
-  ) {
-    return prisma.account.findUnique({
-      where: {
-        businessId_code: {
-          businessId,
-          code,
-        },
+  businessId: string,
+  code: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.account.findUnique({
+    where: {
+      businessId_code: {
+        businessId,
+        code,
       },
-    });
-  },
+    },
+  });
+},
 
 
   async create(

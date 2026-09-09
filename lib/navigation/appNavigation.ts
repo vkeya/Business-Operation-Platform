@@ -11,7 +11,8 @@ export type NavigationModule =
   | "settings"
   | "menu"
   | "expenses"
-  | "services";
+  | "services"
+  | "pos";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -32,6 +33,13 @@ export const appNavigation: NavigationItem[] = [
     labelKey: "dashboard",
     descriptionKey: "navigationDescriptions.dashboard",
     href: "/dashboard",
+  },
+
+    {
+    id: "pos",
+    labelKey: "pos",
+    descriptionKey: "navigationDescriptions.pos",
+    href: "/pos",
   },
   {
     id: "menu",

@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export type BusinessReferenceType =
   | "PRODUCT_SKU"
   | "SALE"
@@ -14,6 +21,7 @@ export interface GenerateReferenceInput {
   referenceType: BusinessReferenceType;
   prefix: string;
   padLength?: number;
+  client?: PrismaTransactionClient;
 }
 
 export async function generateBusinessReference(
@@ -24,10 +32,11 @@ export async function generateBusinessReference(
     referenceType,
     prefix,
     padLength = 6,
+    client = prisma,
   } = input;
 
   const counter =
-    await prisma.businessReferenceCounter.upsert({
+    await client.businessReferenceCounter.upsert({
       where: {
         businessId_referenceType: {
           businessId,

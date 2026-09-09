@@ -10,6 +10,7 @@ import {
   HandCoins,
   LayoutDashboard,
   Package,
+  Monitor,
   ReceiptText,
   Settings,
   ShoppingBag,
@@ -54,6 +55,7 @@ const navigationIcons: Record<
   menu: ClipboardList,
   expenses: HandCoins,
   services: Boxes,
+  pos: Monitor,
 };
 
 function isActiveRoute(

@@ -53,11 +53,13 @@ function getNavigationSections(
       label: t.navigation.purchasing,
       items: navigation.filter((item) =>
         [
+		  "pos",
           "sales",
           "inventory",
           "purchases",
           "suppliers",
           "customers",
+
         ].includes(item.id),
       ),
     },

@@ -2,12 +2,20 @@ import {
   journalRepository,
   type CreateJournalEntryInput,
 } from "./journalRepository";
+import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export const journalService = {
   async create(
-    input: CreateJournalEntryInput,
-  ) {
+  input: CreateJournalEntryInput,
+  client: PrismaTransactionClient = prisma,
+) {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
@@ -96,13 +104,16 @@ export const journalService = {
     }
 
 
-    return journalRepository.create({
-      ...input,
-      reference:
-        input.reference.trim(),
-      description:
-        input.description.trim(),
-    });
+    return journalRepository.create(
+  {
+    ...input,
+    reference:
+      input.reference.trim(),
+    description:
+      input.description.trim(),
+  },
+  client,
+);
   },
 
 

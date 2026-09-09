@@ -5,6 +5,7 @@ export type BusinessCapability =
   | "inventory"
   | "purchases"
   | "sales"
+  | "pos"
   | "customers"
   | "suppliers"
   | "payments"
@@ -19,6 +20,7 @@ export const coreBusinessCapabilities: BusinessCapability[] = [
   "inventory",
   "purchases",
   "sales",
+  "pos",
   "customers",
   "suppliers",
   "payments",
