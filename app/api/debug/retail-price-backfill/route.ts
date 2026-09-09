@@ -5,10 +5,23 @@ import { prisma } from "@/lib/database/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { business } =
       await getCurrentBusinessContext();
+
+    const url = new URL(request.url);
+    const mode = url.searchParams.get("mode") || "dry-run";
+
+    if (mode !== "dry-run" && mode !== "apply") {
+      return NextResponse.json(
+        {
+          error:
+            'Invalid mode. Use "dry-run" or "apply".',
+        },
+        { status: 400 },
+      );
+    }
 
     const products =
       await prisma.product.findMany({
@@ -34,6 +47,7 @@ export async function GET() {
     let matched = 0;
     let changed = 0;
     let unchanged = 0;
+    let updated = 0;
 
     for (const product of products) {
       const retailPrice =
@@ -53,23 +67,38 @@ export async function GET() {
 
       if (currentPrice === newPrice) {
         unchanged++;
-      } else {
-        changed++;
+        continue;
+      }
+
+      changed++;
+
+      if (mode === "apply") {
+        await prisma.product.update({
+          where: {
+            id: product.id,
+          },
+          data: {
+            sellingPrice: newPrice,
+          },
+        });
+
+        updated++;
       }
     }
 
     return NextResponse.json({
-      mode: "dry-run",
+      mode,
       businessId: business.id,
       businessName: business.name,
       productsScanned: products.length,
       retailPricesFound: matched,
       productsToChange: changed,
       alreadyCorrect: unchanged,
+      productsUpdated: updated,
     });
   } catch (error) {
     console.error(
-      "Retail price backfill debug failed:",
+      "Retail price backfill failed:",
       error,
     );
 
