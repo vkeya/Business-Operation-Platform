@@ -137,7 +137,7 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center">
   <Image
-    src="/smatpic.png"
+    src="/smatpic-icon.png"
     alt="SmatPic"
     width={44}
     height={44}
