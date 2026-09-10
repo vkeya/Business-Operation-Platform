@@ -92,7 +92,7 @@ export default function ImportMappingReview({
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Teketeke suggested these mappings based on your
+          SmatPic suggested these mappings based on your
           spreadsheet headers. Review and adjust them before
           continuing.
         </p>

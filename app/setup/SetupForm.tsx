@@ -269,7 +269,7 @@ export default function SetupForm({
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Teketeke setup
+              SmatPic setup
             </p>
 
             <p className="mt-1 text-sm font-medium text-slate-900">
@@ -923,7 +923,7 @@ export default function SetupForm({
           </p>
 
           <p className="mt-1 text-xs text-slate-500">
-            Teketeke will create your business,
+            SmatPic will create your business,
             main branch and inventory location.
           </p>
         </div>

@@ -173,7 +173,7 @@ export const inventoryImportDefinition: ImportDefinition =
         type: "string",
 
         description:
-          "Optional currency for the imported prices. If not provided, Teketeke uses the active business's base currency.",
+          "Optional currency for the imported prices. If not provided, SmatPic uses the active business's base currency.",
       },
 
       {

@@ -115,7 +115,7 @@ export default function ImportDataPage() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Bring your existing business data into Teketeke from
+              Bring your existing business data into SmatPic from
               spreadsheets and exports from your current software.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function ImportDataPage() {
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Select a data type to start importing. Teketeke will
+            Select a data type to start importing. SmatPic will
             analyze your file, suggest column mappings, validate
             your data, and let you review everything before importing.
           </p>
@@ -202,7 +202,7 @@ export default function ImportDataPage() {
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Teketeke will guide you through column mapping and
+              SmatPic will guide you through column mapping and
               validation so you can identify and correct issues
               before confirming an import.
             </p>

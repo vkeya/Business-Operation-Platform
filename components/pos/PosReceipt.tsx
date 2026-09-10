@@ -49,7 +49,7 @@ export default function PosReceipt({
       <div className="p-6 print:p-4">
         <div className="text-center">
           <p className="text-lg font-black tracking-tight text-slate-950">
-            TEKETEKE
+            SMATPIC
           </p>
 
           <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -301,7 +301,7 @@ export default function PosReceipt({
           </p>
 
           <p className="mt-1 text-[10px] text-slate-400">
-            Powered by Teketeke
+            Powered by SmatPic
           </p>
         </div>
 

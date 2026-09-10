@@ -10,7 +10,7 @@ const nunito = Nunito({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Teketeke",
+  title: "SmatPic",
   description:
     "Business operations, tailored to your business.",
 };

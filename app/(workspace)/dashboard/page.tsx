@@ -1034,7 +1034,7 @@ const businessAlertPriority =
       </div>
     </section>
 
-    {/* Teketeke intelligence */}
+    {/* SmatPic intelligence */}
     <section className="relative overflow-hidden rounded-[32px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-purple-50 p-7 sm:p-8">
       <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-violet-200/30 blur-3xl" />
 
@@ -1044,7 +1044,7 @@ const businessAlertPriority =
             <Sparkles className="h-4 w-4 text-violet-600" />
 
             <p className="eyebrow text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600">
-              Teketeke Intelligence
+              SmatPic Intelligence
             </p>
           </div>
 

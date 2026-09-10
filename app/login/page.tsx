@@ -8,6 +8,7 @@ Mail,
 ShieldCheck,
 Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import {
 FormEvent,
 useState,
@@ -134,13 +135,19 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
 
       <div className="relative">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
-            <Building2 className="h-5 w-5" />
-          </div>
+          <div className="flex h-11 w-11 items-center justify-center">
+  <Image
+    src="/smatpic.png"
+    alt="SmatPic"
+    width={44}
+    height={44}
+    className="h-11 w-11 object-contain"
+  />
+</div>
 
           <div>
             <p className="text-base font-semibold tracking-tight text-white">
-  Teketeke
+  SmatPic
 </p>
 
 <p className="mt-0.5 text-xs text-slate-400">
@@ -154,7 +161,7 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
   <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
 
-  Teketeke Business Platform
+  SmatPic Business Platform
 </div>
 
         <h1 className="mt-6 text-4xl font-semibold tracking-tight xl:text-5xl">
@@ -190,7 +197,7 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
       </div>
 
       <p className="relative text-xs text-slate-500">
-  Teketeke · Business Operations Platform
+  SmatPic · Business Operations Platform
 </p>
     </section>
 
@@ -205,13 +212,19 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
       <div className="relative w-full max-w-md">
         {/* Mobile brand */}
         <div className="mb-10 flex items-center gap-3 lg:hidden">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-            <Building2 className="h-5 w-5" />
-          </div>
+          <div className="flex h-11 w-11 items-center justify-center">
+  <Image
+    src="/smatpic.png"
+    alt="SmatPic"
+    width={44}
+    height={44}
+    className="h-11 w-11 object-contain"
+  />
+</div>
 
           <div>
            <p className="text-base font-semibold tracking-tight text-slate-950">
-  Teketeke
+  SmatPic
 </p>
 
 <p className="text-xs text-slate-500">

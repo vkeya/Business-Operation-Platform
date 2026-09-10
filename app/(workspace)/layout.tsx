@@ -26,6 +26,7 @@ import LanguageSelector from "@/components/layout/LanguageSelector";
 import { getBusinessesAction } from "@/app/businesses/actions";
 import BusinessSwitcher from "@/components/business/BusinessSwitcher";
 import LogoutButton from "@/components/auth/LogoutButton";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -156,9 +157,15 @@ export default async function WorkspaceLayout({
                 href="/dashboard"
                 className="flex shrink-0 items-center gap-3"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-sm font-bold text-white shadow-lg shadow-violet-500/20">
-                  {businessInitial}
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center">
+  <Image
+    src="/smatpic-icon.png"
+    alt="SmatPic"
+    width={44}
+    height={44}
+    className="h-11 w-11 object-contain"
+  />
+</div>
 
                 <div className="hidden min-w-0 sm:block">
                   <p className="truncate text-sm font-bold tracking-tight text-slate-900">

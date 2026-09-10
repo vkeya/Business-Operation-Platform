@@ -271,7 +271,7 @@ const [importResult, setImportResult] =
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Upload an inventory export and Teketeke will
+              Upload an inventory export and SmatPic will
               analyze the columns, suggest field mappings,
               and validate your records before anything is
               imported.
@@ -296,7 +296,7 @@ const [importResult, setImportResult] =
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Start with a CSV export from your existing
-            business software. Teketeke will analyze the
+            business software. SmatPic will analyze the
             file before any data is imported.
           </p>
         </div>

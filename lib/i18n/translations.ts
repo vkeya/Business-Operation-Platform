@@ -1288,7 +1288,7 @@ addAnotherProduct: "Add another product",
 productCatalogueEmpty:
   "Your product catalogue is empty",
 addFirstProductDescription:
-  "Add your first product or service to start managing pricing, sales and inventory from Teketeke.",
+  "Add your first product or service to start managing pricing, sales and inventory from SmatPic.",
 addYourFirstProduct:
   "Add your first product",
 keepCatalogueAccurate:
@@ -2295,7 +2295,7 @@ addAnotherProduct: "Ajouter un autre produit",
 productCatalogueEmpty:
   "Votre catalogue de produits est vide",
 addFirstProductDescription:
-  "Ajoutez votre premier produit ou service pour commencer à gérer les prix, les ventes et les stocks dans Teketeke.",
+  "Ajoutez votre premier produit ou service pour commencer à gérer les prix, les ventes et les stocks dans SmatPic.",
 addYourFirstProduct:
   "Ajouter votre premier produit",
 keepCatalogueAccurate:
@@ -3308,7 +3308,7 @@ addAnotherProduct: "ሌላ ምርት ያክሉ",
 productCatalogueEmpty:
   "የምርት ካታሎግዎ ባዶ ነው",
 addFirstProductDescription:
-  "የመጀመሪያዎን ምርት ወይም አገልግሎት በመጨመር ዋጋ፣ ሽያጭ እና ክምችትን በTeketeke ማስተዳደር ይጀምሩ።",
+  "የመጀመሪያዎን ምርት ወይም አገልግሎት በመጨመር ዋጋ፣ ሽያጭ እና ክምችትን በSmatPic ማስተዳደር ይጀምሩ።",
 addYourFirstProduct:
   "የመጀመሪያዎን ምርት ያክሉ",
 keepCatalogueAccurate:

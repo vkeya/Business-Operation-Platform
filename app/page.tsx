@@ -12,6 +12,7 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
+import Image from "next/image";
 import { prisma } from "@/lib/database/prisma";
 import {
   getAuthenticatedUser,
@@ -48,7 +49,7 @@ export default async function HomePage() {
       redirect("/setup");
     }
 
-    redirect("/dashboard");
+
   }
 
   return (
@@ -69,13 +70,19 @@ export default async function HomePage() {
             href="/"
             className="flex items-center gap-3"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-600/20">
-              <Workflow size={20} />
-            </span>
+            <span className="flex h-10 w-10 items-center justify-center">
+  <Image
+    src="/smatpic-icon.png"
+    alt="SmatPic"
+    width={40}
+    height={40}
+    className="h-10 w-10 object-contain"
+  />
+</span>
 
             <div>
               <p className="text-lg font-extrabold tracking-tight text-slate-950">
-                Teketeke
+                SmatPic
               </p>
 
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -126,7 +133,7 @@ export default async function HomePage() {
             </h1>
 
             <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-              Teketeke brings your business operations
+              SmatPic brings your business operations
               into one connected workspace. Manage the
               moving parts, understand what is happening,
               and build a stronger foundation for growth.
@@ -145,7 +152,7 @@ export default async function HomePage() {
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-7 py-4 text-sm font-extrabold text-white shadow-xl shadow-violet-600/20 transition hover:-translate-y-0.5 hover:bg-violet-700"
               >
-                Start with Teketeke
+                Start with SmatPic
                 <ArrowRight size={18} />
               </Link>
 
@@ -209,7 +216,7 @@ export default async function HomePage() {
 
               <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-300">
-                  Teketeke intelligence
+                  SmatPic intelligence
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-slate-300">
@@ -227,7 +234,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
           <div className="max-w-2xl">
             <p className="eyebrow">
-              What Teketeke brings together
+              What SmatPic brings together
             </p>
 
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
@@ -237,7 +244,7 @@ export default async function HomePage() {
 
             <p className="mt-5 text-base leading-7 text-slate-600">
               Stop working across disconnected tools and
-              processes. Teketeke gives your business a
+              processes. SmatPic gives your business a
               connected operational foundation.
             </p>
           </div>
@@ -248,6 +255,12 @@ export default async function HomePage() {
               title="Business Operations"
               description="Organize the essential activities that keep your business moving."
             />
+
+			<FeatureCard
+  icon={<ShoppingCart size={22} />}
+  title="Point of Sale"
+  description="Sell from your connected workspace with product search, barcode scanning, payments, inventory updates, and receipts."
+/>
 
             <FeatureCard
               icon={<Boxes size={22} />}
@@ -262,10 +275,12 @@ export default async function HomePage() {
             />
 
             <FeatureCard
-              icon={<CircleDollarSign size={22} />}
-              title="Sales & Payments"
-              description="Understand sales activity and the money moving through your business."
-            />
+  icon={<CircleDollarSign size={22} />}
+  title="Sales & Payments"
+  description="Track sales activity and the money moving through your business across your connected operations."
+/>
+
+
 
             <FeatureCard
               icon={<Users size={22} />}
@@ -298,13 +313,13 @@ export default async function HomePage() {
           <Step
             number="01"
             title="Create your account"
-            description="Start with your Teketeke account and create your secure access."
+            description="Start with your SmatPic account and create your secure access."
           />
 
           <Step
             number="02"
             title="Set up your business"
-            description="Tell Teketeke about your business and create the foundation for your workspace."
+            description="Tell SmatPic about your business and create the foundation for your workspace."
           />
 
           <Step
@@ -333,7 +348,7 @@ export default async function HomePage() {
             </h2>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              Teketeke gives you a strong operational
+              SmatPic gives you a strong operational
               foundation today while creating room for your
               business to evolve as it grows.
             </p>
@@ -352,7 +367,7 @@ export default async function HomePage() {
       <footer className="relative z-10 border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10">
           <p className="font-semibold text-slate-700">
-            © {new Date().getFullYear()} Teketeke.
+            © {new Date().getFullYear()} SmatPic.
           </p>
 
           <p>

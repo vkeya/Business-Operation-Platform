@@ -48,7 +48,7 @@ export default async function SetupPage() {
             <div className="max-w-2xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
-                  Teketeke
+                  SmatPic
                 </span>
 
                 <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-slate-300">
@@ -86,7 +86,7 @@ export default async function SetupPage() {
             </h2>
 
             <p className="mt-2 text-sm text-slate-500">
-              Complete the details below to get your Teketeke
+              Complete the details below to get your SmatPic
               business workspace ready.
             </p>
           </div>

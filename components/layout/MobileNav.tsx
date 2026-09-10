@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Image from "next/image";
 import {
   Menu,
   X,
@@ -49,13 +50,19 @@ export default function MobileNav({
           onClick={() => setIsOpen(false)}
           className="flex items-center gap-3"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-sm font-bold text-white shadow-lg shadow-violet-500/20">
-            T
-          </div>
+          <div className="flex h-10 w-10 items-center justify-center">
+  <Image
+    src="/smatpic-icon.png"
+    alt="SmatPic"
+    width={40}
+    height={40}
+    className="h-10 w-10 object-contain"
+  />
+</div>
 
           <div>
             <p className="text-sm font-bold tracking-tight text-slate-900">
-              Teketeke
+              SmatPic
             </p>
 
             <p className="eyebrow mt-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -134,7 +141,7 @@ export default function MobileNav({
 
             <div className="mt-5 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 p-4 text-white">
               <p className="eyebrow text-[9px] font-bold uppercase tracking-[0.18em] text-violet-300">
-                Teketeke
+                SmatPic
               </p>
 
               <p className="mt-2 text-sm font-semibold">

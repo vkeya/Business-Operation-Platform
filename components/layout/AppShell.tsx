@@ -8,6 +8,7 @@ import { translations } from "@/lib/i18n/translations";
 import { getBusinessNavigation } from "@/lib/navigation/businessNavigation";
 import type { NavigationItem } from "@/lib/navigation/appNavigation";
 import type { BusinessType } from "@/types";
+import Image from "next/image";
 
 type TranslationSet = (typeof translations)["en"];
 
@@ -144,13 +145,19 @@ if (isPlatformRoute) {
             href="/"
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
-              T
-            </div>
+           <div className="flex h-10 w-10 items-center justify-center">
+  <Image
+    src="/smatpic-icon.png"
+    alt="SmatPic"
+    width={40}
+    height={40}
+    className="h-10 w-10 object-contain"
+  />
+</div>
 
             <div>
               <p className="text-sm font-semibold tracking-tight text-slate-900">
-                Teketeke
+                SmatPic
               </p>
 
               <p className="mt-1 text-[11px] text-slate-500">
@@ -196,7 +203,7 @@ if (isDashboardRoute) {
 
                 <div>
                   <p className="text-sm font-semibold tracking-tight text-white">
-                    {businessName ?? "Teketeke"}
+                    {businessName ?? "SmatPic"}
                   </p>
 
                   <p className="mt-1 text-[11px] text-slate-400">

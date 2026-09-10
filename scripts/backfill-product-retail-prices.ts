@@ -1,9 +1,56 @@
-import { loadEnvConfig } from "@next/env";
-
-loadEnvConfig(process.cwd());
-
+import fs from "fs";
+import path from "path";
 
 const args = process.argv.slice(2);
+
+const useProduction =
+  args.includes("--production");
+
+const envFile = useProduction
+  ? ".env.production.local"
+  : ".env";
+
+const envPath = path.join(
+  process.cwd(),
+  envFile,
+);
+
+if (!fs.existsSync(envPath)) {
+  throw new Error(
+    `Environment file not found: ${envFile}`,
+  );
+}
+
+const envContent =
+  fs.readFileSync(envPath, "utf8");
+
+for (const line of envContent.split(/\r?\n/)) {
+  const trimmed = line.trim();
+
+  if (
+    !trimmed ||
+    trimmed.startsWith("#")
+  ) {
+    continue;
+  }
+
+  const separator =
+    trimmed.indexOf("=");
+
+  if (separator === -1) {
+    continue;
+  }
+
+  const key =
+    trimmed.slice(0, separator).trim();
+
+  const value =
+    trimmed.slice(separator + 1).trim();
+
+  if (key) {
+    process.env[key] = value;
+  }
+}
 
 const businessId =
   args.find((arg) => arg.startsWith("--business-id="))
