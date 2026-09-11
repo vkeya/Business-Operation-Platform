@@ -245,7 +245,8 @@ export const productRepository = {
     businessId,
   },
   include: {
-    sellingUnits: {
+  category: true,
+  sellingUnits: {
       where: {
         isActive: true,
       },
@@ -338,6 +339,9 @@ async listByTypeAndCategory(
         },
       ],
     },
+	include: {
+    category: true,
+  },
     orderBy: {
       name: "asc",
     },

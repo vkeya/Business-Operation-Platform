@@ -12,6 +12,9 @@ import PosPaymentDetails from "@/components/pos/PosPaymentDetails";
 import PosProductCard from "@/components/pos/PosProductCard";
 import PosReceipt from "@/components/pos/PosReceipt";
 import type { PosReceipt as PosReceiptData } from "@/lib/pos/posReceiptService";
+import {
+  productCategoryService,
+} from "@/lib/inventory/productCategoryService";
 
 import {
   Banknote,
@@ -96,12 +99,29 @@ export default function PosPage() {
   const [warehouseId, setWarehouseId] =
     useState("");
 
+	const selectedWarehouse =
+  warehouses.find(
+    (warehouse) =>
+      warehouse.id === warehouseId,
+  ) ?? null;
+
   const [query, setQuery] =
     useState("");
 
   const [products, setProducts] =
     useState<PosProduct[]>([]);
-	
+
+	const [categories, setCategories] =
+  useState<
+    Array<{
+      id: string;
+      name: string;
+    }>
+  >([]);
+
+	const [selectedCategoryId, setSelectedCategoryId] =
+  useState("ALL");
+
 	const [receipt, setReceipt] =
   useState<PosReceiptData | null>(null);
 
@@ -109,7 +129,7 @@ export default function PosPage() {
     useState<PosCart>(() =>
       posCartService.createEmptyCart(),
     );
-	
+
   const [selectedCustomer, setSelectedCustomer] =
   useState<PosCustomer | null>(null);
 
@@ -118,7 +138,7 @@ export default function PosPage() {
 
   const [paymentAmount, setPaymentAmount] =
     useState("");
-	
+
 	const [paymentReference, setPaymentReference] =
   useState("");
 
@@ -152,8 +172,8 @@ export default function PosPage() {
               "Unable to load warehouses.",
           );
         }
-		
-		
+
+
 
         const loadedWarehouses =
           Array.isArray(result.warehouses)
@@ -179,11 +199,47 @@ export default function PosPage() {
     loadWarehouses();
   }, []);
 
-  useEffect(() => {
-    if (!warehouseId) {
-      setProducts([]);
-      return;
+   useEffect(() => {
+    async function loadCategories() {
+      try {
+        const response = await fetch(
+          "/api/pos/categories",
+        );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              "Unable to load categories.",
+          );
+        }
+
+        setCategories(
+          Array.isArray(result.categories)
+            ? result.categories
+            : [],
+        );
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load categories.",
+        );
+      }
     }
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+  setSelectedCategoryId("ALL");
+
+  if (!warehouseId) {
+    setProducts([]);
+    return;
+  }
 
     const controller =
       new AbortController();
@@ -267,14 +323,19 @@ export default function PosPage() {
       cart.totalAmount &&
     !checkoutLoading;
 
-  const selectedWarehouse = useMemo(
-    () =>
-      warehouses.find(
-        (warehouse) =>
-          warehouse.id === warehouseId,
-      ),
-    [warehouses, warehouseId],
+
+
+const filteredProducts = useMemo(() => {
+  if (selectedCategoryId === "ALL") {
+    return products;
+  }
+
+  return products.filter(
+    (product) =>
+      product.category?.id ===
+      selectedCategoryId,
   );
+}, [products, selectedCategoryId]);
 
   function addProduct(
   product: PosProduct,
@@ -401,7 +462,7 @@ export default function PosPage() {
       );
       return;
     }
-	
+
 	const requiresReference =
   paymentMethod === "MPESA" ||
   paymentMethod === "CARD" ||
@@ -466,7 +527,7 @@ if (
             "Unable to complete checkout.",
         );
       }
-	  
+
 	  const receiptResponse =
   await fetch(
     `/api/pos/receipts/${result.sale.saleId}`,
@@ -491,7 +552,7 @@ setReceipt(receiptResult.receipt);
       setCart(
         posCartService.createEmptyCart(),
       );
-	  
+
 	  setSelectedCustomer(null);
 
       setPaymentAmount("");
@@ -509,71 +570,95 @@ setReceipt(receiptResult.receipt);
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-slate-950 to-cyan-950 px-6 py-7 text-white shadow-xl shadow-slate-950/10 sm:px-8 sm:py-8">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-40 w-80 rounded-full bg-violet-500/10 blur-3xl" />
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div className="flex flex-col gap-4 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex items-center gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-extrabold text-white">
+        SP
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-extrabold tracking-tight text-slate-950">
+            SmatPic POS
+          </h1>
+
+          <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+            Checkout
+          </span>
         </div>
 
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
-                Point of Sale
-              </span>
+        <p className="mt-0.5 text-[11px] text-slate-400">
+          Fast retail checkout
+        </p>
+      </div>
+    </div>
 
-              <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-slate-300">
-                Checkout
-              </span>
+    <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+      <div className="min-w-0 flex-1 sm:min-w-56 lg:w-64">
+        <label className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+          Warehouse
+        </label>
+
+        <select
+          value={warehouseId}
+          onChange={(event) =>
+            setWarehouseId(
+              event.target.value,
+            )
+          }
+          className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white"
+        >
+          <option value="">
+            Select warehouse
+          </option>
+
+          {warehouses.map(
+            (warehouse) => (
+              <option
+                key={warehouse.id}
+                value={warehouse.id}
+              >
+                {warehouse.name}
+              </option>
+            ),
+          )}
+        </select>
+      </div>
+
+      <div className="flex min-w-0 flex-1 items-end sm:min-w-72 lg:w-80">
+        <div className="w-full">
+          <label className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            Cashier
+          </label>
+
+          <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-[10px] font-extrabold text-violet-700">
+              C
             </div>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-              POS
-            </h1>
+            <div className="ml-2 min-w-0">
+              <p className="truncate text-xs font-bold text-slate-700">
+                Current cashier
+              </p>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Sell products, collect payment,
-              and keep inventory and accounting
-              synchronized.
-            </p>
-          </div>
-
-          <div className="w-full lg:w-64">
-            <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Warehouse
-            </label>
-
-            <select
-              value={warehouseId}
-              onChange={(event) =>
-                setWarehouseId(
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-cyan-400"
-            >
-              <option
-                value=""
-                className="text-slate-900"
-              >
-                Select warehouse
-              </option>
-
-              {warehouses.map(
-                (warehouse) => (
-                  <option
-                    key={warehouse.id}
-                    value={warehouse.id}
-                    className="text-slate-900"
-                  >
-                    {warehouse.name}
-                  </option>
-                ),
-              )}
-            </select>
+              <p className="truncate text-[9px] text-slate-400">
+                Active session
+              </p>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+
+  <div className="p-4">
+    <PosBarcodeInput
+      warehouseId={warehouseId}
+      onProductFound={addProduct}
+    />
+  </div>
+</section>
 
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
@@ -587,31 +672,77 @@ setReceipt(receiptResult.receipt);
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start">
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-violet-700">
-                <Search className="h-5 w-5" />
-              </div>
+            <div className="flex items-center justify-between gap-3">
+  <div className="flex items-center gap-3">
+    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+      <Search className="h-5 w-5" />
+    </div>
 
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                  Product catalogue
-                </p>
+    <div>
+      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+        Product catalogue
+      </p>
 
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">
-                  Add products
-                </h2>
-              </div>
-            </div>
-			
-			<div className="mt-5">
-  <PosBarcodeInput
-    warehouseId={warehouseId}
-    onProductFound={addProduct}
-  />
+      <h2 className="mt-1 text-base font-extrabold tracking-tight text-slate-950">
+        Add products
+      </h2>
+    </div>
+  </div>
+
+  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+    {filteredProducts.length} available
+  </span>
 </div>
+
+{categories.length > 0 && (
+  <div className="mt-4">
+    <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      Categories
+    </p>
+
+    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+    <div className="flex min-w-max gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          setSelectedCategoryId("ALL")
+        }
+        className={`min-h-11 rounded-xl px-4 text-xs font-bold uppercase tracking-wide transition ${
+          selectedCategoryId === "ALL"
+            ? "bg-violet-600 text-white shadow-sm"
+            : "border border-slate-200 bg-slate-50 text-slate-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+        }`}
+      >
+        All
+      </button>
+
+      {categories.map((category) => (
+        <button
+          key={category.id}
+          type="button"
+          onClick={() =>
+            setSelectedCategoryId(
+              category.id,
+            )
+          }
+          className={`min-h-11 rounded-xl px-4 text-xs font-bold uppercase tracking-wide transition ${
+            selectedCategoryId === category.id
+              ? "bg-violet-600 text-white shadow-sm"
+              : "border border-slate-200 bg-slate-50 text-slate-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+          }`}
+        >
+          {category.name}
+        </button>
+      ))}
+    </div>
+   </div>
+  </div>
+)}
+
+
 
             <div className="mt-5 flex gap-3">
               <div className="relative flex-1">
@@ -625,7 +756,7 @@ setReceipt(receiptResult.receipt);
                     )
                   }
                   placeholder="Search product, SKU or barcode..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10"
                 />
               </div>
 
@@ -671,20 +802,45 @@ setReceipt(receiptResult.receipt);
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
-  <PosProductCard
-    key={product.productId}
-    product={product}
-    onAdd={addProduct}
-  />
-))}
-              </div>
+              filteredProducts.length === 0 ? (
+  <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+    <Package className="h-8 w-8 text-slate-300" />
+
+    <p className="mt-3 text-sm font-semibold text-slate-700">
+      No products in this category
+    </p>
+
+    <p className="mt-1 max-w-sm text-xs text-slate-400">
+      Try another category or select All to
+      view the full catalogue.
+    </p>
+
+    <button
+      type="button"
+      onClick={() =>
+        setSelectedCategoryId("ALL")
+      }
+      className="mt-4 min-h-11 rounded-xl bg-violet-600 px-4 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-violet-700 active:scale-95"
+    >
+      View all products
+    </button>
+  </div>
+) : (
+  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+    {filteredProducts.map((product) => (
+      <PosProductCard
+        key={product.productId}
+        product={product}
+        onAdd={addProduct}
+      />
+    ))}
+  </div>
+)
             )}
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-4">
           <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -728,81 +884,90 @@ setReceipt(receiptResult.receipt);
               </div>
             ) : (
               <div className="space-y-4">
-                {cart.items.map(
-                  (item) => (
-                    <div
-                      key={item.lineId}
-                      className="rounded-xl border border-slate-200 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
-                            {item.productName}
-                          </p>
+                {cart.items.map((item) => (
+  <div
+    key={item.lineId}
+    className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-violet-200 hover:shadow-sm"
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-slate-900">
+          {item.productName}
+        </p>
 
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            {item.sku}
-                          </p>
-                        </div>
+        <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          {item.sku}
+        </p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeItem(
-                              item.lineId,
-                            )
-                          }
-                          className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+        {item.sellingUnitId && (
+          <p className="mt-1 text-[10px] font-semibold text-violet-600">
+            Selling unit
+          </p>
+        )}
+      </div>
 
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <div className="flex items-center rounded-lg border border-slate-200">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateQuantity(
-                                item.lineId,
-                                item.quantity -
-                                  1,
-                              )
-                            }
-                            className="p-2 text-slate-500 transition hover:bg-slate-50"
-                          >
-                            <Minus className="h-3.5 w-3.5" />
-                          </button>
+      <button
+        type="button"
+        onClick={() =>
+          removeItem(item.lineId)
+        }
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 active:scale-95"
+        aria-label={`Remove ${item.productName}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
 
-                          <span className="min-w-8 text-center text-sm font-semibold text-slate-800">
-                            {item.quantity}
-                          </span>
+    <div className="mt-4 flex items-center justify-between gap-4">
+      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <button
+          type="button"
+          onClick={() =>
+            updateQuantity(
+              item.lineId,
+              item.quantity - 1,
+            )
+          }
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-violet-700 active:scale-95"
+          aria-label={`Decrease quantity of ${item.productName}`}
+        >
+          <Minus className="h-4 w-4" />
+        </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateQuantity(
-                                item.lineId,
-                                item.quantity +
-                                  1,
-                              )
-                            }
-                            className="p-2 text-slate-500 transition hover:bg-slate-50"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+        <span className="flex min-w-12 items-center justify-center px-2 text-base font-extrabold text-slate-900">
+          {item.quantity}
+        </span>
 
-                        <p className="text-sm font-bold text-slate-900">
-                          {formatAmount(
-                            item.totalAmount,
-                            currency,
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  ),
-                )}
+        <button
+          type="button"
+          onClick={() =>
+            updateQuantity(
+              item.lineId,
+              item.quantity + 1,
+            )
+          }
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-violet-700 active:scale-95"
+          aria-label={`Increase quantity of ${item.productName}`}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="text-right">
+        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+          Line total
+        </p>
+
+        <p className="mt-1 text-base font-extrabold tracking-tight text-slate-950">
+          {formatAmount(
+            item.totalAmount,
+            currency,
+          )}
+        </p>
+      </div>
+    </div>
+  </div>
+))}
               </div>
             )}
 
@@ -829,18 +994,20 @@ setReceipt(receiptResult.receipt);
                 </span>
               </div>
 
-              <div className="mt-4 flex justify-between border-t border-slate-200 pt-4">
-                <span className="text-sm font-bold uppercase tracking-wide text-slate-900">
-                  Total
-                </span>
+              <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-4">
+  <div className="flex items-center justify-between gap-4">
+    <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+      Total
+    </span>
 
-                <span className="text-xl font-bold text-slate-950">
-                  {formatAmount(
-                    cart.totalAmount,
-                    currency,
-                  )}
-                </span>
-              </div>
+    <span className="text-2xl font-extrabold tracking-tight text-white">
+      {formatAmount(
+        cart.totalAmount,
+        currency,
+      )}
+    </span>
+  </div>
+</div>
             </div>
 
 <div className="mt-6">
@@ -882,11 +1049,11 @@ setReceipt(receiptResult.receipt);
                             method.value,
                           )
                         }
-                        className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition ${
-                          selected
-                            ? "border-violet-300 bg-violet-50 text-violet-700"
-                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                        }`}
+                        className={`flex min-h-14 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition active:scale-[0.98] ${
+  selected
+    ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-600/20"
+    : "border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+}`}
                       >
                         <Icon className="h-4 w-4" />
                         {method.label}
@@ -941,16 +1108,19 @@ setReceipt(receiptResult.receipt);
               </div>
             )}
 
-            <button
-              type="button"
-              disabled={!canCheckout}
-              onClick={handleCheckout}
-              className="mt-5 flex w-full items-center justify-center rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {checkoutLoading
-                ? "Processing sale..."
-                : "Complete Sale"}
-            </button>
+            {checkoutLoading ? (
+  "Processing sale..."
+) : (
+  <>
+    <span>Complete Sale</span>
+    <span className="ml-2 text-violet-200">
+      {formatAmount(
+        cart.totalAmount,
+        currency,
+      )}
+    </span>
+  </>
+)}
           </div>
         </section>
       </div>

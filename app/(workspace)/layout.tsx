@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MobileNav from "@/components/layout/MobileNav";
 import {
   BarChart3,
   Boxes,
@@ -214,14 +215,23 @@ export default async function WorkspaceLayout({
         </header>
 
         {/* Navigation */}
-        <div className="relative z-20 border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
-          <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-            <DashboardNavigation
-              sections={sections}
-              translations={translations}
-            />
-          </div>
-        </div>
+<div className="relative z-20">
+  <div className="lg:hidden">
+    <MobileNav
+      translations={translations}
+      businessType={business.type}
+    />
+  </div>
+
+  <div className="hidden border-b border-slate-200/70 bg-white/70 backdrop-blur-xl lg:block">
+    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+      <DashboardNavigation
+        sections={sections}
+        translations={translations}
+      />
+    </div>
+  </div>
+</div>
 
         {/* Workspace */}
         <main className="relative z-10 mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

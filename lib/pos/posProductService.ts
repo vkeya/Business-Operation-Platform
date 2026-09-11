@@ -11,6 +11,10 @@ export interface PosProduct {
   name: string;
   sku: string;
   barcode?: string | null;
+  category?: {
+  id: string;
+  name: string;
+} | null;
 
   type: "PRODUCT" | "SERVICE";
 
@@ -42,6 +46,12 @@ function toPosProduct(
     name: product.name,
     sku: product.sku,
     barcode: product.barcode,
+	category: product.category
+  ? {
+      id: product.category.id,
+      name: product.category.name,
+    }
+  : null,
 
     type: product.type,
 
