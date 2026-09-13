@@ -21,6 +21,7 @@ model Business {
   updatedAt           DateTime                   @updatedAt
   logoUrl             String?
   accounts            Account[]
+  paymentAttempts PaymentAttempt[]
   auditEvents         AuditEvent[]
   branches            Branch[]
   events              BusinessEvent[]
@@ -463,6 +464,7 @@ model Sale {
   updatedAt       DateTime      @updatedAt
   warehouseId     String?
   payments        Payment[]
+  paymentAttempts PaymentAttempt[]
   branch          Branch?       @relation(fields: [branchId], references: [id])
   business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customer        Customer?     @relation(fields: [customerId], references: [id])
@@ -575,6 +577,30 @@ model Payment {
   @@index([businessId])
   @@index([saleId])
   @@index([purchaseId])
+  @@index([createdAt])
+}
+
+model PaymentAttempt {
+  id                String              @id @default(cuid())
+  businessId        String
+  saleId            String
+  provider          String
+  method            String
+  status            PaymentStatus       @default(PENDING)
+  amount            Decimal             @db.Decimal(18, 4)
+  currency          String
+  providerReference String?
+  terminalReference String?
+  providerResponse  Json?
+  createdBy         String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  business          Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sale              Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([saleId])
+  @@index([provider, providerReference])
   @@index([createdAt])
 }
 
@@ -790,6 +816,7 @@ enum JournalEntryStatus {
 
 enum BusinessReferenceType {
   PRODUCT_SKU
+  PRODUCT_BARCODE
   SALE
   PURCHASE
   PAYMENT

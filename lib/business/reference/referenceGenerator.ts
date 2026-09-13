@@ -9,6 +9,7 @@ type PrismaTransactionClient =
 
 export type BusinessReferenceType =
   | "PRODUCT_SKU"
+  | "PRODUCT_BARCODE"
   | "SALE"
   | "PURCHASE"
   | "PAYMENT"
