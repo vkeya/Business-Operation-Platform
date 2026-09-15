@@ -63,6 +63,13 @@ export async function getDashboardMetrics(
       0,
     );
 
+const activeSalesRevenue =
+  completedSales.reduce(
+    (total, sale) =>
+      total + Number(sale.totalAmount),
+    0,
+  );
+
 const cashInsight =
   getCashPositionInsight({
     cashPosition:
@@ -77,6 +84,9 @@ const cashInsight =
 
     return {
     ...accounting,
+	
+	    revenue:
+      activeSalesRevenue,
 
     inventoryValue,
 
