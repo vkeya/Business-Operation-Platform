@@ -27,6 +27,31 @@ export async function GET() {
           createdAt: "asc",
         },
       });
+	  
+	  const barcodeCounts =
+  new Map<string, number>();
+
+for (const product of products) {
+  const barcode =
+    product.barcode?.trim() ?? "";
+
+  if (!barcode) {
+    continue;
+  }
+
+  barcodeCounts.set(
+    barcode,
+    (barcodeCounts.get(barcode) ?? 0) + 1,
+  );
+}
+
+const duplicateBarcodes =
+  Array.from(barcodeCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([barcode, count]) => ({
+      barcode,
+      count,
+    }));
 
     const skuInspection =
       await inspectBusinessReferenceSequence({
@@ -122,6 +147,8 @@ export async function GET() {
             count,
           }),
         ),
+		duplicates: duplicateBarcodes,
+duplicateCount: duplicateBarcodes.length,
       },
     });
   } catch (error) {
@@ -159,6 +186,31 @@ export async function POST() {
           barcode: true,
         },
       });
+	  
+	  const barcodeCounts =
+  new Map<string, number>();
+
+for (const product of products) {
+  const barcode =
+    product.barcode?.trim() ?? "";
+
+  if (!barcode) {
+    continue;
+  }
+
+  barcodeCounts.set(
+    barcode,
+    (barcodeCounts.get(barcode) ?? 0) + 1,
+  );
+}
+
+const duplicateBarcodes =
+  Array.from(barcodeCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([barcode, count]) => ({
+      barcode,
+      count,
+    }));
 
     const skuResult =
       await synchronizeBusinessReferenceSequence({
