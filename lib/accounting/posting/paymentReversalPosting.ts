@@ -8,32 +8,25 @@ type PrismaTransactionClient =
     ? T
     : never;
 
-interface ReverseSaleInput {
+export async function reversePaymentAccounting(input: {
   businessId: string;
-  saleId: string;
-  referenceNumber: string;
-  totalAmount: number;
+  paymentReference: string;
   currency: string;
-  customerId?: string | null;
   createdBy: string;
   client?: PrismaTransactionClient;
-}
-
-export async function reverseSaleAccounting(
-  input: ReverseSaleInput,
-) {
+}) {
   return reverseJournalEntry({
     businessId:
       input.businessId,
 
     originalReference:
-      `SALE-${input.referenceNumber}`,
+      `PAY-${input.paymentReference}`,
 
     reversalReference:
-      `SALE-${input.referenceNumber}-REVERSAL`,
+      `PAY-${input.paymentReference}-REVERSAL`,
 
     description:
-      `Reversal of sale ${input.referenceNumber}`,
+      `Reversal of payment ${input.paymentReference}`,
 
     createdBy:
       input.createdBy,

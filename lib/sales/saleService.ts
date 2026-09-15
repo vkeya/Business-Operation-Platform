@@ -8,7 +8,9 @@ import { productService } from "@/lib/inventory/productService";
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
-
+import { reverseSaleAccounting } from "@/lib/accounting/posting/salesReversalPosting";
+import { reversePaymentAccounting } from "@/lib/accounting/posting/paymentReversalPosting";
+import { paymentRepository } from "@/lib/payment/paymentRepository";
 
 export type CreateSaleServiceInput =
   Omit<CreateSaleInput, "referenceNumber">;
@@ -436,6 +438,16 @@ export const saleService = {
       productId: string;
       quantity: number;
     }> = [];
+	
+	    const existingReversalMovements =
+      await inventoryService.findMovementsByReference(
+        businessId,
+        "SALE_REVERSAL",
+        sale.id,
+      );
+
+    const inventoryAlreadyReversed =
+      existingReversalMovements.length > 0;
 
     for (const item of sale.items) {
       // Restaurant menu items are restored
@@ -473,7 +485,10 @@ export const saleService = {
       });
     }
 
-    if (restaurantItems.length > 0) {
+        if (
+      restaurantItems.length > 0 &&
+      !inventoryAlreadyReversed
+    ) {
   const { recipeService } =
     await import(
       "@/lib/restaurant/recipeService"
@@ -494,7 +509,10 @@ export const saleService = {
   });
 }
 
-    if (inventoryItems.length > 0) {
+        if (
+      inventoryItems.length > 0 &&
+      !inventoryAlreadyReversed
+    ) {
       await inventoryService.returnStockBatch({
         businessId,
         warehouseId:
@@ -511,6 +529,34 @@ export const saleService = {
           `Stock restored from reversed sale ${sale.referenceNumber}.`,
         items:
           inventoryItems,
+      });
+	}
+	  
+	      await reverseSaleAccounting({
+      businessId,
+      saleId: sale.id,
+      referenceNumber: sale.referenceNumber,
+      totalAmount: Number(sale.totalAmount),
+      currency: sale.currency,
+      customerId: sale.customerId,
+      createdBy: sale.createdBy,
+    });
+	
+	    const payments =
+      await paymentRepository.listSalePayments(
+        businessId,
+        sale.id,
+      );
+
+    for (const payment of payments) {
+      await reversePaymentAccounting({
+        businessId,
+        paymentReference:
+          payment.reference,
+        currency:
+          payment.currency,
+        createdBy:
+          payment.createdBy,
       });
     }
 

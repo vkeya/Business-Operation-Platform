@@ -201,12 +201,13 @@ export const paymentRepository = {
     });
   },
 
-  async listSalePayments(
+   async listSalePayments(
     businessId: string,
     saleId: string,
+    client: PrismaTransactionClient = prisma,
   ) {
     const payments =
-      await prisma.payment.findMany({
+      await client.payment.findMany({
         where: {
           businessId,
           saleId,

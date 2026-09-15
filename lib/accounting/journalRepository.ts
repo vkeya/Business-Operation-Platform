@@ -59,6 +59,22 @@ export const journalRepository = {
   });
 },
 
+  async findByReference(
+    businessId: string,
+    reference: string,
+    client: PrismaTransactionClient = prisma,
+  ) {
+    return client.journalEntry.findFirst({
+      where: {
+        businessId,
+        reference,
+      },
+      include: {
+        lines: true,
+      },
+    });
+  },
+
 
   async list(
     businessId: string,

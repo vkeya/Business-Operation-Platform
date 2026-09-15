@@ -34,6 +34,23 @@ function serializeBalance<
 }
 
 export const inventoryRepository = {
+	
+	  async findMovementsByReference(
+    businessId: string,
+    referenceType: string,
+    referenceId: string,
+  ) {
+    return prisma.inventoryMovement.findMany({
+      where: {
+        businessId,
+        referenceType,
+        referenceId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+  },
 
 	async adjustStock(input: {
   businessId: string;

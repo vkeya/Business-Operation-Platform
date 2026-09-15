@@ -1,6 +1,36 @@
 import { inventoryRepository } from "./inventoryRepository";
 
 export const inventoryService = {
+	
+	  async findMovementsByReference(
+    businessId: string,
+    referenceType: string,
+    referenceId: string,
+  ) {
+    if (!businessId) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!referenceType) {
+      throw new Error(
+        "Reference type is required.",
+      );
+    }
+
+    if (!referenceId) {
+      throw new Error(
+        "Reference ID is required.",
+      );
+    }
+
+    return inventoryRepository.findMovementsByReference(
+      businessId,
+      referenceType,
+      referenceId,
+    );
+  },
 
 	async adjustStock(input: {
   businessId: string;
