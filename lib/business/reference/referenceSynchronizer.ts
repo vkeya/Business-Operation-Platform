@@ -10,6 +10,9 @@ interface ReferenceSyncResult {
   detectedHighest: number | null;
   recommendedCounter: number | null;
   pattern: string | null;
+  prefix: string | null;
+  padLength: number | null;
+  synchronized: boolean;
 }
 
 interface SyncBusinessReferenceInput {
@@ -18,53 +21,56 @@ interface SyncBusinessReferenceInput {
   values: Array<string | null | undefined>;
 }
 
-function detectNumericSequence(
-  value: string,
-): number | null {
+function detectNumericSequence(value: string): number | null {
   const normalized = value.trim();
 
   if (!normalized) {
     return null;
   }
 
-  const match =
-    normalized.match(/(\d+)$/);
+  const match = normalized.match(/(\d+)$/);
 
   if (!match) {
     return null;
   }
 
   const numericPart = match[1];
-
   const parsed = Number(numericPart);
 
-  if (
-    !Number.isSafeInteger(parsed) ||
-    parsed < 0
-  ) {
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
     return null;
   }
 
   return parsed;
 }
 
-function detectPattern(
-  value: string,
-): string | null {
+function detectFormat(value: string): {
+  pattern: string;
+  prefix: string;
+  padLength: number;
+} | null {
   const normalized = value.trim();
 
   if (!normalized) {
     return null;
   }
 
-  const match =
-    normalized.match(/^(.*?)(\d+)$/);
+  const match = normalized.match(/^(.*?)(\d+)$/);
 
   if (!match) {
     return null;
   }
 
-  return `${match[1]}{n}`;
+  const prefix = match[1];
+  const numericPart = match[2];
+
+  return {
+    pattern: `${prefix}{n}`,
+    prefix: prefix.endsWith("-")
+      ? prefix.slice(0, -1)
+      : prefix,
+    padLength: numericPart.length,
+  };
 }
 
 export async function inspectBusinessReferenceSequence(
@@ -72,25 +78,25 @@ export async function inspectBusinessReferenceSequence(
 ): Promise<ReferenceSyncResult> {
   const counter =
     await prisma.businessReferenceCounter.findUnique({
-		
       where: {
         businessId_referenceType: {
-          businessId:
-            input.businessId,
-          referenceType:
-            input.referenceType,
+          businessId: input.businessId,
+          referenceType: input.referenceType,
         },
       },
       select: {
         currentValue: true,
+        prefix: true,
+        padLength: true,
       },
     });
 
-  let detectedHighest:
-    number | null = null;
-
-  let detectedPattern:
-    string | null = null;
+  let detectedHighest: number | null = null;
+  let detectedFormat: {
+    pattern: string;
+    prefix: string;
+    padLength: number;
+  } | null = null;
 
   for (const rawValue of input.values) {
     if (!rawValue) {
@@ -98,9 +104,7 @@ export async function inspectBusinessReferenceSequence(
     }
 
     const value = rawValue.trim();
-
-    const numericSequence =
-      detectNumericSequence(value);
+    const numericSequence = detectNumericSequence(value);
 
     if (numericSequence === null) {
       continue;
@@ -108,13 +112,10 @@ export async function inspectBusinessReferenceSequence(
 
     if (
       detectedHighest === null ||
-      numericSequence >
-        detectedHighest
+      numericSequence > detectedHighest
     ) {
-      detectedHighest =
-        numericSequence;
-      detectedPattern =
-        detectPattern(value);
+      detectedHighest = numericSequence;
+      detectedFormat = detectFormat(value);
     }
   }
 
@@ -130,11 +131,90 @@ export async function inspectBusinessReferenceSequence(
         );
 
   return {
-    referenceType:
-      input.referenceType,
+    referenceType: input.referenceType,
     currentCounter,
     detectedHighest,
     recommendedCounter,
-    pattern: detectedPattern,
+    pattern:
+      detectedFormat?.pattern ??
+      null,
+    prefix:
+      counter?.prefix ??
+      detectedFormat?.prefix ??
+      null,
+    padLength:
+      counter?.padLength ??
+      detectedFormat?.padLength ??
+      null,
+    synchronized: false,
   };
 }
+
+export async function synchronizeBusinessReferenceSequence(
+  input: SyncBusinessReferenceInput,
+): Promise<ReferenceSyncResult> {
+  const inspection =
+    await inspectBusinessReferenceSequence(input);
+
+  if (inspection.recommendedCounter === null) {
+    return inspection;
+  }
+
+  const existingCounter =
+    await prisma.businessReferenceCounter.findUnique({
+      where: {
+        businessId_referenceType: {
+          businessId: input.businessId,
+          referenceType: input.referenceType,
+        },
+      },
+      select: {
+        currentValue: true,
+        prefix: true,
+        padLength: true,
+      },
+    });
+
+  const currentValue =
+    existingCounter?.currentValue ?? 0;
+
+  const nextCounterValue =
+    Math.max(
+      currentValue,
+      inspection.recommendedCounter,
+    );
+
+  await prisma.businessReferenceCounter.upsert({
+    where: {
+      businessId_referenceType: {
+        businessId: input.businessId,
+        referenceType: input.referenceType,
+      },
+    },
+    create: {
+      businessId: input.businessId,
+      referenceType: input.referenceType,
+      currentValue: nextCounterValue,
+      prefix: inspection.prefix,
+      padLength: inspection.padLength,
+    },
+    update: {
+      currentValue: nextCounterValue,
+      prefix:
+        existingCounter?.prefix ??
+        inspection.prefix ??
+        undefined,
+      padLength:
+        existingCounter?.padLength ??
+        inspection.padLength ??
+        undefined,
+    },
+  });
+
+  return {
+    ...inspection,
+    currentCounter: nextCounterValue,
+    synchronized: true,
+  };
+}
+
