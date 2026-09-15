@@ -85,13 +85,22 @@ const sku =
     referenceType: "PRODUCT_SKU",
     prefix,
   });
+  
+  const barcode =
+  input.barcode?.trim() ||
+  await generateBusinessReference({
+    businessId: input.businessId,
+    referenceType: "PRODUCT_BARCODE",
+    prefix: "",
+    padLength: 7,
+  });
 
     return productRepository.create({
       ...input,
       name,
       sku,
       unit: input.unit.trim(),
-      barcode: input.barcode?.trim() || undefined,
+      barcode,
       description: input.description?.trim() || undefined,
       taxCode: input.taxCode?.trim() || undefined,
     });
