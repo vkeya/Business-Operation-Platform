@@ -36,6 +36,28 @@ export async function generateBusinessReference(
     client = prisma,
   } = input;
 
+  const existingCounter =
+    await client.businessReferenceCounter.findUnique({
+      where: {
+        businessId_referenceType: {
+          businessId,
+          referenceType,
+        },
+      },
+      select: {
+        prefix: true,
+        padLength: true,
+      },
+    });
+
+  const effectivePrefix =
+    existingCounter?.prefix ??
+    prefix;
+
+  const effectivePadLength =
+    existingCounter?.padLength ??
+    padLength;
+
   const counter =
     await client.businessReferenceCounter.upsert({
       where: {
@@ -48,17 +70,35 @@ export async function generateBusinessReference(
         businessId,
         referenceType,
         currentValue: 1,
+        prefix: effectivePrefix,
+        padLength: effectivePadLength,
       },
       update: {
         currentValue: {
           increment: 1,
         },
+        prefix:
+          existingCounter?.prefix ??
+          undefined,
+        padLength:
+          existingCounter?.padLength ??
+          undefined,
       },
     });
 
   const sequence = String(
     counter.currentValue,
-  ).padStart(padLength, "0");
+  ).padStart(
+    counter.padLength ??
+      effectivePadLength,
+    "0",
+  );
 
-  return `${prefix}-${sequence}`;
+  const finalPrefix =
+  counter.prefix ??
+  effectivePrefix;
+
+return finalPrefix
+  ? `${finalPrefix}-${sequence}`
+  : sequence;
 }
