@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/database/prisma";
 import { reverseSaleAccounting } from "@/lib/accounting/posting/salesReversalPosting";
 import { reversePaymentAccounting } from "@/lib/accounting/posting/paymentReversalPosting";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 
 const CURRENT_BUSINESS_COOKIE = "teketeke_current_business";
 
@@ -24,33 +25,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = await cookies();
-    const businessId = cookieStore.get(
-      CURRENT_BUSINESS_COOKIE,
-    )?.value;
+    const context =
+  await getCurrentBusinessContext();
 
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "No current business is selected." },
-        { status: 400 },
-      );
-    }
+const businessId =
+  context.business.id;
 
-    const membership =
-      await prisma.businessMembership.findFirst({
-        where: {
-          userId,
-          businessId,
-          isOwner: true,
-          isActive: true,
-          business: {
-            status: "ACTIVE",
-          },
-        },
-        select: {
-          businessId: true,
-        },
-      });
+const membership =
+  await prisma.businessMembership.findFirst({
+    where: {
+      userId,
+      businessId,
+      isOwner: true,
+      isActive: true,
+      business: {
+        status: "ACTIVE",
+      },
+    },
+    select: {
+      businessId: true,
+    },
+  });
 
     if (!membership) {
       return NextResponse.json(
