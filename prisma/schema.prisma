@@ -689,6 +689,8 @@ model BusinessReferenceCounter {
   businessId    String
   referenceType BusinessReferenceType
   currentValue  Int                   @default(0)
+   prefix        String?
+  padLength     Int?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
