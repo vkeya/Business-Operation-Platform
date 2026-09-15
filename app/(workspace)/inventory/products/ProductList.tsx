@@ -76,8 +76,8 @@ export default function ProductList({
   const [deleting, setDeleting] =
     useState(false);
 
-  const [deleteError, setDeleteError] =
-    useState("");
+  const [archiveError, setArchiveError] =
+  useState("");
 
   const handleResults = useCallback(
     (results: Product[]) => {
@@ -142,34 +142,34 @@ export default function ProductList({
     );
   }
 
-  async function handleDeleteSelected() {
+  async function handleArchiveSelected() {
     if (selectedIds.length === 0 || deleting) {
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete ${selectedIds.length} selected product${
-        selectedIds.length === 1 ? "" : "s"
-      }? This action cannot be undone.`,
-    );
+  `Archive ${selectedIds.length} selected product${
+    selectedIds.length === 1 ? "" : "s"
+  }? The products will be removed from active inventory and POS, but their SKU, barcode, and history will be preserved.`,
+);
 
     if (!confirmed) {
       return;
     }
 
     setDeleting(true);
-    setDeleteError("");
+    setArchiveError("");
 
     try {
       await deleteProductsAction(selectedIds);
 
       window.location.reload();
     } catch (error) {
-      setDeleteError(
-        error instanceof Error
-          ? error.message
-          : "Failed to delete selected products.",
-      );
+      setArchiveError(
+  error instanceof Error
+    ? error.message
+    : "Failed to archive selected products.",
+);
     } finally {
       setDeleting(false);
     }
@@ -213,22 +213,22 @@ export default function ProductList({
           {selectedIds.length > 0 && (
             <button
               type="button"
-              onClick={handleDeleteSelected}
+              onClick={handleArchiveSelected}
               disabled={deleting}
               className="inline-flex shrink-0 items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {deleting
-                ? "Deleting..."
-                : `Delete Selected (${selectedIds.length})`}
+  ? "Archiving..."
+  : `Archive Selected (${selectedIds.length})`}
             </button>
           )}
         </div>
       </div>
 
-      {deleteError && (
+      {archiveError && (
         <div className="border-b border-rose-100 bg-rose-50 px-5 py-4 sm:px-6">
           <p className="text-sm font-medium text-rose-700">
-            {deleteError}
+            {archiveError}
           </p>
         </div>
       )}

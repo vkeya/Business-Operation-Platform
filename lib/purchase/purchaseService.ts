@@ -6,6 +6,7 @@ import { postPurchaseToAccounting } from "@/lib/accounting/posting/purchasePosti
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
+import { assertActiveProduct } from "@/lib/inventory/productStatus";
 
 export const purchaseService = {
   async createPurchase(

@@ -156,13 +156,22 @@ export default async function ProductsPage() {
           </div>
 
           {products.length > 0 && (
-            <Link
-              href="/inventory/products/new"
-              className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
-            >
-              + {t.inventory.addAnotherProduct}
-            </Link>
-          )}
+  <div className="flex flex-wrap items-center gap-4">
+    <Link
+      href="/inventory/products/archived"
+      className="text-sm font-semibold text-violet-700 transition hover:text-violet-900"
+    >
+      Archived Products →
+    </Link>
+
+    <Link
+      href="/inventory/products/new"
+      className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
+    >
+      + {t.inventory.addAnotherProduct}
+    </Link>
+  </div>
+)}
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

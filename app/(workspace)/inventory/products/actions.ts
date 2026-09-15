@@ -141,17 +141,75 @@ export async function deleteProductsAction(
     );
   }
 
-  await prisma.product.deleteMany({
+  await prisma.product.updateMany({
     where: {
       id: {
         in: ids,
       },
       businessId: business.id,
     },
+    data: {
+      status: "ARCHIVED",
+    },
   });
 
   return {
     deletedCount: ids.length,
+  };
+}
+
+export async function restoreProductsAction(
+  productIds: string[],
+) {
+  const business = await getCurrentBusiness();
+
+  const ids = Array.from(
+    new Set(
+      productIds
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (ids.length === 0) {
+    throw new Error("No products selected.");
+  }
+
+  const products =
+    await prisma.product.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+        businessId: business.id,
+        status: "ARCHIVED",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (products.length !== ids.length) {
+    throw new Error(
+      "One or more selected products are not archived products in the current business.",
+    );
+  }
+
+  await prisma.product.updateMany({
+    where: {
+      id: {
+        in: ids,
+      },
+      businessId: business.id,
+      status: "ARCHIVED",
+    },
+    data: {
+      status: "ACTIVE",
+    },
+  });
+
+  return {
+    restoredCount: ids.length,
   };
 }
 

@@ -10,6 +10,14 @@ export async function getProductsAction() {
   return productService.listProducts(business.id);
 }
 
+export async function getArchivedProductsAction() {
+  const business = await getCurrentBusiness();
+
+  return productService.listArchivedProducts(
+    business.id,
+  );
+}
+
 export async function searchProductsAction(
   query: string,
 ) {

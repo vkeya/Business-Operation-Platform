@@ -15,6 +15,7 @@ import {
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { prisma } from "@/lib/database/prisma";
 import { inventoryRepository } from "@/lib/inventory/inventoryRepository";
+import { assertActiveProduct } from "@/lib/inventory/productStatus";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (

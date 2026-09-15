@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
-
+import { assertActiveProduct } from "@/lib/inventory/productStatus";
 import {
   saleRepository,
   type CreateSaleInput,

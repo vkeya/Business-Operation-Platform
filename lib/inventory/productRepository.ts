@@ -243,6 +243,7 @@ export const productRepository = {
     const products = await prisma.product.findMany({
   where: {
     businessId,
+	 status: "ACTIVE",
   },
   include: {
   category: true,
@@ -262,6 +263,34 @@ export const productRepository = {
 
     return products.map(serializeProduct);
   },
+  
+  async listArchived(
+  businessId: string,
+) {
+  const products =
+    await prisma.product.findMany({
+      where: {
+        businessId,
+        status: "ARCHIVED",
+      },
+      include: {
+        category: true,
+        sellingUnits: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+  return products.map(serializeProduct);
+},
 
   async listByType(
   businessId: string,
@@ -317,8 +346,9 @@ async listByTypeAndCategory(
 
   const products = await prisma.product.findMany({
     where: {
-      businessId,
-      OR: [
+  businessId,
+  status: "ACTIVE",
+  OR: [
         {
           name: {
             contains: searchTerm,
@@ -373,9 +403,10 @@ async listByTypeAndCategory(
     const product =
       await prisma.product.findFirst({
         where: {
-          businessId,
-          barcode,
-        },
+  businessId,
+  barcode,
+  status: "ACTIVE",
+},
       });
 
     return product

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
+import { assertActiveProduct } from "@/lib/inventory/productStatus";
 
 export interface CreatePurchaseInput {
   businessId: string;

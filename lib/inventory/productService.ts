@@ -113,6 +113,20 @@ const sku =
 
     return productRepository.list(businessId);
   },
+  
+  async listArchivedProducts(
+  businessId: string,
+) {
+  if (!businessId) {
+    throw new Error(
+      "Business context is required.",
+    );
+  }
+
+  return productRepository.listArchived(
+    businessId,
+  );
+},
 
   async listServices(businessId: string) {
   if (!businessId) {
