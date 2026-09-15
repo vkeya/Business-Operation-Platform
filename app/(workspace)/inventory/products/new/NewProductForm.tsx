@@ -380,7 +380,7 @@ useEffect(() => {
                 onChange={(event) =>
                   setName(event.target.value)
                 }
-                placeholder="e.g. Coca-Cola 500ml"
+                placeholder=""
                 required
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
@@ -465,8 +465,8 @@ useEffect(() => {
                 onChange={(event) =>
                   setSku(event.target.value.toUpperCase())
                 }
-                placeholder="COKE-500"
-                required
+                placeholder=""
+                
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm uppercase outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
