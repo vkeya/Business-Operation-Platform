@@ -681,7 +681,7 @@ useEffect(() => {
                 onChange={(event) =>
                   setCostPrice(event.target.value)
                 }
-                required
+                
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
