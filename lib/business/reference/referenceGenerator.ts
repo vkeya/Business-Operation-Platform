@@ -11,6 +11,7 @@ export type BusinessReferenceType =
   | "PRODUCT_SKU"
   | "PRODUCT_BARCODE"
   | "SALE"
+  | "SALE_RETURN"
   | "PURCHASE"
   | "PAYMENT"
   | "EXPENSE"

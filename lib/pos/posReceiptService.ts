@@ -39,11 +39,14 @@ export interface PosReceipt {
     code: string;
   } | null;
 
-  items: PosReceiptItem[];
+    items: PosReceiptItem[];
 
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
+  taxName: string | null;
+  taxRate: number | null;
+  taxPricingMode: "EXCLUSIVE" | "INCLUSIVE" | null;
   totalAmount: number;
 
   payments: PosReceiptPayment[];
@@ -155,6 +158,14 @@ export const posReceiptService = {
         Number(sale.discountAmount),
       taxAmount:
         Number(sale.taxAmount),
+      taxName:
+        sale.taxName ?? null,
+      taxRate:
+        sale.taxRate !== null
+          ? Number(sale.taxRate)
+          : null,
+      taxPricingMode:
+        sale.taxPricingMode ?? null,
       totalAmount:
         Number(sale.totalAmount),
 

@@ -1,5 +1,6 @@
 import { productService } from "@/lib/inventory/productService";
 import SaleForm from "./SaleForm";
+import { taxConfigurationService } from "@/lib/tax/taxConfigurationService";
 import {
   getCurrentBusiness,
   getCurrentBusinessWarehouses,
@@ -15,6 +16,11 @@ export const dynamic = "force-dynamic";
 export default async function NewSalePage() {
   const business =
     await getCurrentBusiness();
+	
+	const taxConfiguration =
+  await taxConfigurationService.get(
+    business.id,
+  );
 
   const locale =
     await getLocale();
@@ -60,7 +66,9 @@ export default async function NewSalePage() {
   warehouses={warehouses}
   restaurantMenuItems={restaurantMenuItems}
   currency={business.baseCurrency}
+  
   translations={t}
+  taxConfiguration={taxConfiguration}
 />
     </div>
   );

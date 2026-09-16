@@ -158,7 +158,7 @@ export async function checkoutPosSale(
   input: PosCheckoutInput,
 ): Promise<PosCheckoutResult> {
   validateCheckoutInput(input);
-
+  
     const taxConfiguration =
     await prisma.taxConfiguration.findUnique({
       where: {
@@ -233,11 +233,26 @@ export async function checkoutPosSale(
             discountAmount:
               input.discountAmount,
 
-            taxAmount:
-  calculatedTaxAmount,
+                        taxAmount:
+              calculatedTaxAmount,
 
-totalAmount:
-  calculatedTotalAmount,
+            taxName:
+  taxConfiguration?.enabled
+    ? taxConfiguration.name
+    : null,
+
+taxRate:
+  taxConfiguration?.enabled
+    ? Number(taxConfiguration.rate)
+    : null,
+
+taxPricingMode:
+  taxConfiguration?.enabled
+    ? taxConfiguration.pricingMode
+    : null,
+
+            totalAmount:
+              calculatedTotalAmount,
           },
           tx,
         );
@@ -367,6 +382,9 @@ totalAmount:
 
         totalAmount:
   calculatedTotalAmount,
+  
+  taxAmount:
+  calculatedTaxAmount,
 
         currency:
           input.currency,

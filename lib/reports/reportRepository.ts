@@ -15,6 +15,23 @@ export const reportRepository = {
       _count: true,
     });
   },
+  
+    async getTaxSummary(
+    businessId: string,
+  ) {
+    return prisma.sale.aggregate({
+      where: {
+        businessId,
+        status: "COMPLETED",
+      },
+      _sum: {
+        subtotal: true,
+        discountAmount: true,
+        taxAmount: true,
+        totalAmount: true,
+      },
+    });
+  },
 
   async getPurchaseSummary(
     businessId: string,

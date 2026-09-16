@@ -49,7 +49,7 @@ export default async function HomePage() {
       redirect("/setup");
     }
 
-
+    
   }
 
   return (
@@ -255,7 +255,7 @@ export default async function HomePage() {
               title="Business Operations"
               description="Organize the essential activities that keep your business moving."
             />
-
+			
 			<FeatureCard
   icon={<ShoppingCart size={22} />}
   title="Point of Sale"
@@ -279,8 +279,8 @@ export default async function HomePage() {
   title="Sales & Payments"
   description="Track sales activity and the money moving through your business across your connected operations."
 />
-
-
+			
+			
 
             <FeatureCard
               icon={<Users size={22} />}

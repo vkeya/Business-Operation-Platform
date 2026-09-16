@@ -191,18 +191,27 @@ export default function PosReceipt({
           )}
 
           {receipt.taxAmount > 0 && (
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-500">
-                Tax
-              </span>
-              <span className="font-medium text-slate-800">
-                {formatAmount(
-                  receipt.taxAmount,
-                  receipt.currency,
-                )}
-              </span>
-            </div>
-          )}
+  <div className="flex justify-between gap-4">
+    <span className="text-slate-500">
+      {receipt.taxName ?? "Tax"}
+      {receipt.taxRate !== null
+        ? ` (${receipt.taxRate}%${
+            receipt.taxPricingMode ===
+            "INCLUSIVE"
+              ? " inclusive"
+              : " exclusive"
+          })`
+        : ""}
+    </span>
+
+    <span className="font-medium text-slate-800">
+      {formatAmount(
+        receipt.taxAmount,
+        receipt.currency,
+      )}
+    </span>
+  </div>
+)}
 
           <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
             <span className="font-bold text-slate-900">

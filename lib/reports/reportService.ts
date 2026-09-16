@@ -1,15 +1,9 @@
-import {
-  reportRepository,
-} from "./reportRepository";
+import { reportRepository } from "./reportRepository";
 
 export const reportService = {
-  async getBusinessReport(
-    businessId: string,
-  ) {
+  async getBusinessReport(businessId: string) {
     if (!businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
+      throw new Error("Business context is required.");
     }
 
     const [
@@ -17,58 +11,61 @@ export const reportService = {
       purchases,
       expenses,
       inventory,
+      taxSummary,
     ] = await Promise.all([
-      reportRepository.getSalesSummary(
-        businessId,
-      ),
-
-      reportRepository.getPurchaseSummary(
-        businessId,
-      ),
-
-      reportRepository.getExpenseSummary(
-        businessId,
-      ),
-
-      reportRepository.getInventorySummary(
-        businessId,
-      ),
+      reportRepository.getSalesSummary(businessId),
+      reportRepository.getPurchaseSummary(businessId),
+      reportRepository.getExpenseSummary(businessId),
+      reportRepository.getInventorySummary(businessId),
+      reportRepository.getTaxSummary(businessId),
     ]);
 
+    const revenue = Number(
+      sales._sum.totalAmount ?? 0,
+    );
 
-    const revenue =
+    const purchaseCost = Number(
+      purchases._sum.totalAmount ?? 0,
+    );
+
+    const expenseCost = Number(
+      expenses._sum.amount ?? 0,
+    );
+
+    const inventoryValue = inventory.reduce(
+      (total, item) =>
+        total +
+        Number(item.quantity) *
+          Number(item.averageCost),
+      0,
+    );
+
+    const taxableSales =
       Number(
-        sales._sum.totalAmount ?? 0,
-      );
-
-    const purchaseCost =
+        taxSummary._sum.subtotal ?? 0,
+      ) -
       Number(
-        purchases._sum.totalAmount ?? 0,
+        taxSummary._sum.discountAmount ?? 0,
       );
 
-    const expenseCost =
-      Number(
-        expenses._sum.amount ?? 0,
-      );
+    const taxCollected = Number(
+      taxSummary._sum.taxAmount ?? 0,
+    );
 
-
-    const inventoryValue =
-      inventory.reduce(
-        (total, item) => {
-          return (
-            total +
-            Number(item.quantity) *
-              Number(item.averageCost)
-          );
-        },
-        0,
-      );
-
+    const totalSales = Number(
+      taxSummary._sum.totalAmount ?? 0,
+    );
 
     return {
       sales: {
         count: sales._count,
         amount: revenue,
+      },
+
+      tax: {
+        taxableSales,
+        taxCollected,
+        totalSales,
       },
 
       purchases: {
@@ -83,13 +80,11 @@ export const reportService = {
 
       inventory: {
         value: inventoryValue,
-        units:
-          inventory.reduce(
-            (total, item) =>
-              total +
-              Number(item.quantity),
-            0,
-          ),
+        units: inventory.reduce(
+          (total, item) =>
+            total + Number(item.quantity),
+          0,
+        ),
       },
 
       profit:

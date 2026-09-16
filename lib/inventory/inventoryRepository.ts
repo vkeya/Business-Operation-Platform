@@ -442,6 +442,112 @@ async transferStock(input: {
   });
 },
 
+  async returnStock(input: {
+    businessId: string;
+    productId: string;
+    warehouseId: string;
+    quantity: number;
+    unitCost: number;
+    currency: string;
+    createdBy: string;
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+  }) {
+    if (input.quantity <= 0) {
+      throw new Error(
+        "Return quantity must be greater than zero.",
+      );
+    }
+
+    if (input.unitCost < 0) {
+      throw new Error(
+        "Unit cost cannot be negative.",
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const existingBalance =
+        await tx.inventoryBalance.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: input.productId,
+              warehouseId: input.warehouseId,
+            },
+          },
+        });
+
+      const previousQuantity =
+        existingBalance?.quantity.toNumber() ?? 0;
+
+      const previousAverageCost =
+        existingBalance?.averageCost.toNumber() ??
+        input.unitCost;
+
+      const newQuantity =
+        previousQuantity + input.quantity;
+
+      const newAverageCost =
+        newQuantity === 0
+          ? input.unitCost
+          : (
+              previousQuantity *
+                previousAverageCost +
+              input.quantity *
+                input.unitCost
+            ) / newQuantity;
+
+      const movement =
+        await tx.inventoryMovement.create({
+          data: {
+            businessId: input.businessId,
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            type: "RETURN",
+            quantity: input.quantity,
+            unitCost: input.unitCost,
+            totalCost:
+              input.quantity * input.unitCost,
+            referenceType:
+              input.referenceType,
+            referenceId:
+              input.referenceId,
+            createdBy: input.createdBy,
+            notes: input.notes,
+          },
+        });
+
+      const balance =
+        await tx.inventoryBalance.upsert({
+          where: {
+            productId_warehouseId: {
+              productId: input.productId,
+              warehouseId: input.warehouseId,
+            },
+          },
+          create: {
+            businessId: input.businessId,
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            quantity: newQuantity,
+            reservedQuantity: 0,
+            averageCost: newAverageCost,
+            currency: input.currency,
+          },
+          update: {
+            quantity: newQuantity,
+            averageCost: newAverageCost,
+            currency: input.currency,
+          },
+        });
+
+      return {
+        movement: serializeMovement(movement),
+        balance: serializeBalance(balance),
+      };
+    });
+  },
+
   async getBalance(
     businessId: string,
     productId: string,

@@ -14,10 +14,11 @@ interface PostSaleInput {
   saleId: string;
   referenceNumber: string;
   totalAmount: number;
+  taxAmount: number;
   currency: string;
   customerId?: string | null;
   createdBy: string;
-client?: PrismaTransactionClient;
+  client?: PrismaTransactionClient;
 }
 
 
@@ -25,16 +26,25 @@ export async function postSaleToAccounting(
   input: PostSaleInput,
 ) {
   const receivableAccount =
-    await accountRepository.findByCode(
-      input.businessId,
-      "1200",
-    );
+  await accountRepository.findByCode(
+    input.businessId,
+    "1200",
+    input.client,
+  );
 
-  const revenueAccount =
-    await accountRepository.findByCode(
-      input.businessId,
-      "4000",
-    );
+const revenueAccount =
+  await accountRepository.findByCode(
+    input.businessId,
+    "4000",
+    input.client,
+  );
+
+const taxPayableAccount =
+  await accountRepository.findByCode(
+    input.businessId,
+    "2100",
+    input.client,
+  );
 
 
   if (!receivableAccount) {
@@ -46,6 +56,15 @@ export async function postSaleToAccounting(
   if (!revenueAccount) {
     throw new Error(
       "Sales Revenue account not configured.",
+    );
+  }
+  
+    if (
+    input.taxAmount > 0 &&
+    !taxPayableAccount
+  ) {
+    throw new Error(
+      "Tax Payable account not configured.",
     );
   }
 
@@ -70,7 +89,7 @@ export async function postSaleToAccounting(
       currency:
         input.currency,
 
-      lines: [
+            lines: [
         {
           accountId:
             receivableAccount.id,
@@ -96,8 +115,28 @@ export async function postSaleToAccounting(
             0,
 
           credit:
-            input.totalAmount,
+            input.totalAmount -
+            input.taxAmount,
         },
+
+        ...(input.taxAmount > 0 &&
+        taxPayableAccount
+          ? [
+              {
+                accountId:
+                  taxPayableAccount.id,
+
+                description:
+                  "Tax payable",
+
+                debit:
+                  0,
+
+                credit:
+                  input.taxAmount,
+              },
+            ]
+          : []),
       ],
     },
     input.client,

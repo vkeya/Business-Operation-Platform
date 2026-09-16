@@ -34,6 +34,14 @@ const defaultAccounts = [
     description:
       "Money owed to suppliers",
   },
+  
+    {
+    code: "2100",
+    name: "Tax Payable",
+    type: "LIABILITY" as const,
+    description:
+      "Taxes collected and payable to tax authorities",
+  },
 
   {
   code: "4000",

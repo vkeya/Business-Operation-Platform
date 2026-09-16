@@ -11,6 +11,8 @@ import {
 import { reverseSaleAccounting } from "@/lib/accounting/posting/salesReversalPosting";
 import { reversePaymentAccounting } from "@/lib/accounting/posting/paymentReversalPosting";
 import { paymentRepository } from "@/lib/payment/paymentRepository";
+import { calculateTax } from "@/lib/tax/taxCalculationService";
+import { taxConfigurationService } from "@/lib/tax/taxConfigurationService";
 
 export type CreateSaleServiceInput =
   Omit<CreateSaleInput, "referenceNumber">;
@@ -86,6 +88,40 @@ export const saleService = {
         );
       }
     }
+	
+	const taxConfiguration =
+  await taxConfigurationService.get(
+    input.businessId,
+  );
+
+const taxCalculation = calculateTax({
+  subtotal: input.subtotal,
+  discountAmount: input.discountAmount,
+  taxEnabled: taxConfiguration.enabled,
+  taxRate: taxConfiguration.rate,
+  pricingMode: taxConfiguration.pricingMode,
+});
+
+const calculatedTaxAmount =
+  taxCalculation.taxAmount;
+
+const calculatedTotalAmount =
+  taxCalculation.totalAmount;
+  
+  const taxName =
+  taxConfiguration.enabled
+    ? taxConfiguration.name
+    : null;
+
+const taxRate =
+  taxConfiguration.enabled
+    ? taxConfiguration.rate
+    : null;
+
+const taxPricingMode =
+  taxConfiguration.enabled
+    ? taxConfiguration.pricingMode
+    : null;
 
 	const referenceNumber =
   await generateBusinessReference({
@@ -95,9 +131,14 @@ export const saleService = {
   });
 
     return saleRepository.create({
-      ...input,
-      referenceNumber,
-    });
+  ...input,
+  taxAmount: calculatedTaxAmount,
+  taxName,
+  taxRate,
+  taxPricingMode,
+  totalAmount: calculatedTotalAmount,
+  referenceNumber,
+});
   },
 
   async list(businessId: string) {
@@ -356,6 +397,8 @@ export const saleService = {
       existingSale.referenceNumber,
     totalAmount:
       existingSale.totalAmount,
+	  taxAmount:
+  Number(existingSale.taxAmount),
     currency:
       existingSale.currency,
     customerId:

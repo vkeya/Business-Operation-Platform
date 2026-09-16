@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
-
+import type { TaxPricingMode } from "@/lib/tax/taxCalculationService";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -40,6 +40,9 @@ export interface CreateSaleInput {
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
+   taxName?: string | null;
+  taxRate?: number | null;
+  taxPricingMode?: TaxPricingMode | null;
   totalAmount: number;
 }
 
@@ -142,11 +145,17 @@ export const saleRepository = {
           exchangeRate:
             input.exchangeRate,
 
-          subtotal: input.subtotal,
+                   subtotal: input.subtotal,
           discountAmount:
             input.discountAmount,
           taxAmount:
             input.taxAmount,
+          taxName:
+            input.taxName ?? null,
+          taxRate:
+            input.taxRate ?? null,
+          taxPricingMode:
+            input.taxPricingMode ?? null,
           totalAmount:
             input.totalAmount,
 

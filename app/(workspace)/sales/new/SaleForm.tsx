@@ -7,7 +7,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSaleAction } from "@/lib/sales/actions";
-
+import type { TaxConfiguration } from "@/lib/tax/taxConfigurationService";
+import {
+  calculateTax,
+} from "@/lib/tax/taxCalculationService";
 import type { TranslationSet } from "@/lib/i18n";
 
 interface ProductSellingUnit {
@@ -56,6 +59,7 @@ interface SaleFormProps {
   restaurantMenuItems: RestaurantMenuItem[];
   currency: string;
   translations: TranslationSet;
+  taxConfiguration: TaxConfiguration;
   }
 
 
@@ -73,6 +77,7 @@ export default function SaleForm({
   restaurantMenuItems,
   currency: defaultCurrency,
   translations,
+  taxConfiguration,
 }: SaleFormProps) {
   const router = useRouter();
   const t = translations;
@@ -104,9 +109,6 @@ export default function SaleForm({
 
   const [discountAmount, setDiscountAmount] =
     useState("");
-
-  const [taxRate, setTaxRate] =
-  useState("");
 
   const [barcode, setBarcode] =
   useState("");
@@ -171,21 +173,16 @@ export default function SaleForm({
     subtotal,
   );
 
-  const taxableAmount =
-  subtotal - discount;
+  const taxCalculation = calculateTax({
+  subtotal,
+  discountAmount: discount,
+  taxEnabled: taxConfiguration.enabled,
+  taxRate: taxConfiguration.rate,
+  pricingMode: taxConfiguration.pricingMode,
+});
 
-const taxPercentage = Math.max(
-  Number(taxRate || 0),
-  0,
-);
-
-const taxAmount =
-  taxableAmount *
-  (taxPercentage / 100);
-
-const totalAmount =
-  taxableAmount + taxAmount;
-
+const taxAmount = taxCalculation.taxAmount;
+const totalAmount = taxCalculation.totalAmount;
   function updateItem(
     id: string,
     field:
@@ -871,19 +868,24 @@ const totalAmount =
     Tax (%)
   </label>
 
-  <input
-    type="number"
-    min="0"
-    step="0.01"
-    value={taxRate}
-    onChange={(event) =>
-      setTaxRate(
-        event.target.value,
-      )
-    }
-    placeholder="0"
-    className="mt-1 w-full max-w-xs rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
-  />
+  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+  <div className="flex items-center justify-between gap-4">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+        {taxConfiguration.name}
+      </p>
+      <p className="mt-1 text-sm text-slate-600">
+        {taxConfiguration.enabled
+          ? `${taxConfiguration.rate}% · ${taxConfiguration.pricingMode === "INCLUSIVE" ? "Tax inclusive" : "Tax exclusive"}`
+          : "Tax disabled"}
+      </p>
+    </div>
+
+    <p className="text-sm font-semibold text-slate-900">
+      {taxAmount.toFixed(2)}
+    </p>
+  </div>
+</div>
 
   <p className="mt-2 text-sm text-slate-500">
     {currency}{" "}
