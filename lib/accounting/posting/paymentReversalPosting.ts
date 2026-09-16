@@ -13,8 +13,17 @@ export async function reversePaymentAccounting(input: {
   paymentReference: string;
   currency: string;
   createdBy: string;
+  amountRatio?: number;
+  reversalSuffix?: string;
   client?: PrismaTransactionClient;
 }) {
+  const suffix =
+    input.reversalSuffix?.trim() ||
+    (input.amountRatio !== undefined &&
+    input.amountRatio < 1
+      ? `-${Math.round(input.amountRatio * 10000)}`
+      : "");
+
   return reverseJournalEntry({
     businessId:
       input.businessId,
@@ -23,7 +32,7 @@ export async function reversePaymentAccounting(input: {
       `PAY-${input.paymentReference}`,
 
     reversalReference:
-      `PAY-${input.paymentReference}-REVERSAL`,
+      `PAY-${input.paymentReference}-REVERSAL${suffix}`,
 
     description:
       `Reversal of payment ${input.paymentReference}`,
@@ -33,6 +42,9 @@ export async function reversePaymentAccounting(input: {
 
     currency:
       input.currency,
+
+    amountRatio:
+      input.amountRatio,
 
     client:
       input.client,

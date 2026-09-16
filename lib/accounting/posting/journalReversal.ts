@@ -16,6 +16,7 @@ export async function reverseJournalEntry(input: {
   description: string;
   createdBy: string;
   currency: string;
+  amountRatio?: number;
   client?: PrismaTransactionClient;
 }) {
   const client =
@@ -30,6 +31,19 @@ export async function reverseJournalEntry(input: {
 
   if (existingReversal) {
     return existingReversal;
+  }
+
+  const amountRatio =
+    input.amountRatio ?? 1;
+
+  if (
+    !Number.isFinite(amountRatio) ||
+    amountRatio <= 0 ||
+    amountRatio > 1
+  ) {
+    throw new Error(
+      "Reversal amount ratio must be greater than 0 and no greater than 1.",
+    );
   }
 
   const original =
@@ -50,6 +64,13 @@ export async function reverseJournalEntry(input: {
       `Original accounting entry ${input.originalReference} is incomplete.`,
     );
   }
+
+  const roundCurrency = (
+    value: number,
+  ) =>
+    Math.round(
+      (value + Number.EPSILON) * 100,
+    ) / 100;
 
   return journalService.create(
     {
@@ -81,10 +102,16 @@ export async function reverseJournalEntry(input: {
               `Reversal of ${line.description ?? "journal line"}`,
 
             debit:
-              Number(line.credit),
+              roundCurrency(
+                Number(line.credit) *
+                  amountRatio,
+              ),
 
             credit:
-              Number(line.debit),
+              roundCurrency(
+                Number(line.debit) *
+                  amountRatio,
+              ),
           }),
         ),
     },

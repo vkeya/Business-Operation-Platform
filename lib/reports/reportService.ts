@@ -40,22 +40,6 @@ export const reportService = {
       0,
     );
 
-    const taxableSales =
-      Number(
-        taxSummary._sum.subtotal ?? 0,
-      ) -
-      Number(
-        taxSummary._sum.discountAmount ?? 0,
-      );
-
-    const taxCollected = Number(
-      taxSummary._sum.taxAmount ?? 0,
-    );
-
-    const totalSales = Number(
-      taxSummary._sum.totalAmount ?? 0,
-    );
-
     return {
       sales: {
         count: sales._count,
@@ -63,10 +47,20 @@ export const reportService = {
       },
 
       tax: {
-        taxableSales,
-        taxCollected,
-        totalSales,
-      },
+  taxableSales:
+    Number(taxSummary.sales._sum.subtotal ?? 0) -
+    Number(taxSummary.sales._sum.discountAmount ?? 0) -
+    Number(taxSummary.returns._sum.subtotal ?? 0) +
+    Number(taxSummary.returns._sum.discountAmount ?? 0),
+
+  taxCollected:
+    Number(taxSummary.sales._sum.taxAmount ?? 0) -
+    Number(taxSummary.returns._sum.taxAmount ?? 0),
+
+  totalSales:
+    Number(taxSummary.sales._sum.totalAmount ?? 0) -
+    Number(taxSummary.returns._sum.totalAmount ?? 0),
+},
 
       purchases: {
         count: purchases._count,

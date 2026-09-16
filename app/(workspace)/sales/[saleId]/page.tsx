@@ -11,6 +11,7 @@ import {
   reverseSaleAction,
 } from "@/lib/sales/actions";
 import RecordPaymentForm from "./RecordPaymentForm";
+import SaleReturnForm from "@/components/sales/SaleReturnForm";
 import { getTranslations } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
 
@@ -197,6 +198,33 @@ export default async function SaleDetailPage({
             ))}
           </div>
         </section>
+
+		{sale.status === "COMPLETED" && (
+  <SaleReturnForm
+    saleId={sale.id}
+    businessId={business.id}
+    currency={sale.currency}
+    items={sale.items.map(
+      (item) => ({
+        id: item.id,
+        productName:
+          item.productName,
+        sku:
+          item.sku ?? null,
+        quantity:
+          Number(item.quantity),
+        unitPrice:
+          Number(item.unitPrice),
+        discountAmount:
+          Number(item.discountAmount),
+        taxAmount:
+          Number(item.taxAmount),
+        totalAmount:
+          Number(item.totalAmount),
+      }),
+    )}
+  />
+)}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-900">

@@ -16,21 +16,41 @@ export const reportRepository = {
     });
   },
   
-    async getTaxSummary(
+      async getTaxSummary(
     businessId: string,
   ) {
-    return prisma.sale.aggregate({
-      where: {
-        businessId,
-        status: "COMPLETED",
-      },
-      _sum: {
-        subtotal: true,
-        discountAmount: true,
-        taxAmount: true,
-        totalAmount: true,
-      },
-    });
+    const [sales, returns] = await Promise.all([
+      prisma.sale.aggregate({
+        where: {
+          businessId,
+          status: "COMPLETED",
+        },
+        _sum: {
+          subtotal: true,
+          discountAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+        },
+      }),
+
+      prisma.saleReturn.aggregate({
+        where: {
+          businessId,
+          status: "COMPLETED",
+        },
+        _sum: {
+          subtotal: true,
+          discountAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+        },
+      }),
+    ]);
+
+    return {
+      sales,
+      returns,
+    };
   },
 
   async getPurchaseSummary(
