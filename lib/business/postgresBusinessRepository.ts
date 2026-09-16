@@ -103,6 +103,15 @@ export const postgresBusinessRepository: BusinessRepository = {
         language: setup.business.language,
         timezone: setup.business.timezone,
 
+		taxConfiguration: {
+  create: {
+    enabled: setup.business.tax.enabled,
+    name: setup.business.tax.name || "VAT",
+    rate: setup.business.tax.rate,
+    pricingMode: setup.business.tax.pricingMode,
+  },
+},
+
 		memberships: {
   create: {
     userId,

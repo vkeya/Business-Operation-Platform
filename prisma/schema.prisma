@@ -21,6 +21,7 @@ model Business {
   updatedAt           DateTime                   @updatedAt
   logoUrl             String?
   accounts            Account[]
+  taxConfiguration TaxConfiguration?
   paymentAttempts PaymentAttempt[]
   auditEvents         AuditEvent[]
   branches            Branch[]
@@ -48,6 +49,22 @@ model Business {
   warehouses          Warehouse[]
 
   @@index([status])
+}
+
+model TaxConfiguration {
+  id String @id @default(cuid())
+
+  businessId String @unique
+
+  enabled     Boolean         @default(false)
+  name        String          @default("VAT")
+  rate        Decimal         @default(0) @db.Decimal(8, 4)
+  pricingMode TaxPricingMode  @default(EXCLUSIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model Branch {
@@ -756,6 +773,11 @@ enum BusinessStatus {
   ACTIVE
   SUSPENDED
   ARCHIVED
+}
+
+enum TaxPricingMode {
+  EXCLUSIVE
+  INCLUSIVE
 }
 
 enum ProductType {

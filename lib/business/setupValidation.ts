@@ -30,6 +30,29 @@ export function validateBusinessSetup(
     errors.timezone = "Timezone is required.";
   }
 
+  if (!setup.business.tax.name.trim()) {
+    errors.taxName = "Tax name is required.";
+  }
+
+  const taxRate = Number(setup.business.tax.rate);
+
+  if (
+    !Number.isFinite(taxRate) ||
+    taxRate < 0 ||
+    taxRate > 100
+  ) {
+    errors.taxRate =
+      "Tax rate must be a number between 0 and 100.";
+  }
+
+  if (
+    setup.business.tax.pricingMode !== "EXCLUSIVE" &&
+    setup.business.tax.pricingMode !== "INCLUSIVE"
+  ) {
+    errors.taxPricingMode =
+      "Tax pricing mode is invalid.";
+  }
+
   if (!setup.branch.name.trim()) {
     errors.branchName = "Branch name is required.";
   }
@@ -39,11 +62,13 @@ export function validateBusinessSetup(
   }
 
   if (!setup.warehouse.name.trim()) {
-    errors.warehouseName = "Inventory location name is required.";
+    errors.warehouseName =
+      "Inventory location name is required.";
   }
 
   if (!setup.warehouse.code.trim()) {
-    errors.warehouseCode = "Inventory location code is required.";
+    errors.warehouseCode =
+      "Inventory location code is required.";
   }
 
   return {

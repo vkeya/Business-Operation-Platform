@@ -21,6 +21,15 @@ export default function SettingsPage() {
       icon: Wallet,
       iconLabel: "01",
     },
+	{
+      title: "Tax Configuration",
+      description:
+        "Configure tax rates, pricing mode, and tax behavior.",
+      href: "/settings/tax",
+      action: "Manage tax",
+      icon: ShieldCheck,
+      iconLabel: "02",
+    },
     {
       title: "Users & Access",
       description:
@@ -28,7 +37,7 @@ export default function SettingsPage() {
       href: "/settings/users",
       action: "Manage access",
       icon: Users,
-      iconLabel: "02",
+      iconLabel: "03",
     },
     {
       title: "Data Management",
@@ -37,7 +46,7 @@ export default function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "03",
+      iconLabel: "04",
     },
   ];
 

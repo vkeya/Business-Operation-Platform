@@ -11,7 +11,11 @@ import {
   currencyOptions,
   languageOptions,
 } from "@/lib/localization/options";
-import type { BusinessSetup } from "@/types/setup";
+import type {
+  BusinessSetup,
+  TaxPricingMode,
+} from "@/types/setup";
+
 import type { BusinessType } from "@/types";
 import type { TranslationSet } from "@/lib/i18n";
 
@@ -53,6 +57,12 @@ export default function SetupForm({
 
   const [warehouseCode, setWarehouseCode] =
     useState("MAIN");
+
+	const [taxEnabled, setTaxEnabled] = useState(false);
+const [taxName, setTaxName] = useState("VAT");
+const [taxRate, setTaxRate] = useState("0");
+const [taxPricingMode, setTaxPricingMode] =
+  useState<TaxPricingMode>("EXCLUSIVE");
 
   const [errors, setErrors] =
     useState<Record<string, string>>({});
@@ -152,6 +162,12 @@ export default function SetupForm({
           currency,
         language,
         timezone,
+		tax: {
+  enabled: taxEnabled,
+  name: taxName.trim(),
+  rate: taxRate,
+  pricingMode: taxPricingMode,
+},
       },
 
       branch: {
@@ -659,6 +675,116 @@ export default function SetupForm({
           </div>
         </div>
       </section>
+
+	  <section>
+  <div className="mb-5">
+    <h2 className="text-lg font-semibold text-slate-900">
+      Tax configuration
+    </h2>
+
+    <p className="mt-1 text-sm text-slate-500">
+      Configure how tax should be applied to transactions for this business.
+      You can change these settings later.
+    </p>
+  </div>
+
+  <div className="space-y-5">
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div>
+        <p className="font-medium text-slate-900">
+          Enable tax
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          Automatically calculate tax on taxable transactions.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={taxEnabled}
+        onClick={() => setTaxEnabled((current) => !current)}
+        className={`relative h-7 w-12 rounded-full transition ${
+          taxEnabled ? "bg-violet-600" : "bg-slate-300"
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+            taxEnabled ? "left-6" : "left-1"
+          }`}
+        />
+      </button>
+    </div>
+
+    {taxEnabled && (
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="taxName"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Tax name
+          </label>
+
+          <input
+            id="taxName"
+            type="text"
+            value={taxName}
+            onChange={(event) => setTaxName(event.target.value)}
+            placeholder="VAT"
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="taxRate"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Tax rate (%)
+          </label>
+
+          <input
+            id="taxRate"
+            type="number"
+            min="0"
+            step="0.01"
+            value={taxRate}
+            onChange={(event) => setTaxRate(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label
+            htmlFor="taxPricingMode"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Pricing mode
+          </label>
+
+          <select
+            id="taxPricingMode"
+            value={taxPricingMode}
+            onChange={(event) =>
+              setTaxPricingMode(
+                event.target.value as TaxPricingMode,
+              )
+            }
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+          >
+            <option value="EXCLUSIVE">
+              Tax exclusive — tax is added to the price
+            </option>
+            <option value="INCLUSIVE">
+              Tax inclusive — tax is included in the price
+            </option>
+          </select>
+        </div>
+      </div>
+    )}
+  </div>
+</section>
 
       {/* First location */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">

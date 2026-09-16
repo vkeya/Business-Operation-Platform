@@ -12,7 +12,9 @@ import {
 import {
   paymentService,
 } from "@/lib/payment/paymentService";
-
+import {
+  calculateTax,
+} from "@/lib/tax/taxCalculationService";
 import {
   inventoryRepository,
 } from "@/lib/inventory/inventoryRepository";
@@ -157,6 +159,32 @@ export async function checkoutPosSale(
 ): Promise<PosCheckoutResult> {
   validateCheckoutInput(input);
 
+    const taxConfiguration =
+    await prisma.taxConfiguration.findUnique({
+      where: {
+        businessId: input.businessId,
+      },
+    });
+
+  const taxCalculation = calculateTax({
+    subtotal: input.subtotal,
+    discountAmount: input.discountAmount,
+    taxEnabled:
+      taxConfiguration?.enabled ?? false,
+    taxRate:
+      taxConfiguration
+        ? Number(taxConfiguration.rate)
+        : 0,
+    pricingMode:
+      taxConfiguration?.pricingMode ?? "EXCLUSIVE",
+  });
+
+  const calculatedTaxAmount =
+    taxCalculation.taxAmount;
+
+  const calculatedTotalAmount =
+    taxCalculation.totalAmount;
+
   return prisma.$transaction(
     async (tx) => {
       const referenceNumber =
@@ -206,10 +234,10 @@ export async function checkoutPosSale(
               input.discountAmount,
 
             taxAmount:
-              input.taxAmount,
+  calculatedTaxAmount,
 
-            totalAmount:
-              input.totalAmount,
+totalAmount:
+  calculatedTotalAmount,
           },
           tx,
         );
@@ -338,7 +366,7 @@ export async function checkoutPosSale(
         referenceNumber,
 
         totalAmount:
-          input.totalAmount,
+  calculatedTotalAmount,
 
         currency:
           input.currency,
