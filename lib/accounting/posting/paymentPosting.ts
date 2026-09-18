@@ -17,6 +17,7 @@ interface PostPaymentInput {
   currency: string;
   createdBy: string;
   type: "SALE" | "PURCHASE";
+  paymentMethod?: "CASH" | "MPESA" | "CARD" | "BANK";
   client?: PrismaTransactionClient;
 }
 
@@ -24,18 +25,25 @@ interface PostPaymentInput {
 export async function postPaymentToAccounting(
   input: PostPaymentInput,
 ) {
-  const cashAccount =
+  const paymentAccountCode =
+  input.paymentMethod === "MPESA"
+    ? "1010"
+    : "1000";
+
+const paymentAccount =
   await accountRepository.findByCode(
     input.businessId,
-    "1000",
+    paymentAccountCode,
     input.client,
   );
 
-  if (!cashAccount) {
-    throw new Error(
-      "Cash account not configured.",
-    );
-  }
+if (!paymentAccount) {
+  throw new Error(
+    input.paymentMethod === "MPESA"
+      ? "M-Pesa account not configured."
+      : "Cash account not configured.",
+  );
+}
 
 
   const receivableAccount =
@@ -98,7 +106,7 @@ export async function postPaymentToAccounting(
         ? [
             {
               accountId:
-                cashAccount.id,
+  paymentAccount.id,
               description:
                 "Customer payment received",
               debit:
@@ -130,7 +138,7 @@ export async function postPaymentToAccounting(
             },
             {
               accountId:
-                cashAccount.id,
+  paymentAccount.id,
               description:
                 "Supplier payment made",
               debit:

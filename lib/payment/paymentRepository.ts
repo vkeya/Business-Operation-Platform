@@ -13,7 +13,7 @@ export interface CreatePurchasePaymentInput {
 
   reference?: string;
 
-  method: string;
+  method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT";
   amount: number;
   currency: string;
   exchangeRate?: number;
@@ -27,12 +27,14 @@ export interface CreateSalePaymentInput {
 
   reference?: string;
 
-  method: string;
+  method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT";
   amount: number;
   currency: string;
   exchangeRate?: number;
   notes?: string;
   createdBy: string;
+
+   paymentAttemptId?: string;
 }
 
 function serializePayment<
@@ -144,6 +146,9 @@ export const paymentRepository = {
         data: {
           businessId: input.businessId,
           saleId: input.saleId,
+
+		  paymentAttemptId:
+        input.paymentAttemptId,
 
           reference: input.reference,
           method: input.method,

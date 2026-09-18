@@ -239,11 +239,12 @@ export const saleRepository = {
   },
 
   async findById(
-    businessId: string,
-    saleId: string,
-  ) {
+  businessId: string,
+  saleId: string,
+  client: PrismaTransactionClient = prisma,
+) {
     const sale =
-      await prisma.sale.findFirst({
+  await client.sale.findFirst({
         where: {
           id: saleId,
           businessId,

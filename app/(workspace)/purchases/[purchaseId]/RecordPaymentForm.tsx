@@ -21,7 +21,7 @@ export default function RecordPaymentForm({
   const router = useRouter();
 
   const [method, setMethod] =
-    useState("Cash");
+  useState<"CASH" | "MPESA" | "CARD" | "BANK">("CASH");
 
   const [amount, setAmount] =
     useState("");
@@ -77,7 +77,7 @@ export default function RecordPaymentForm({
     try {
       await createPurchasePaymentAction({
   purchaseId,
-  method: method.trim(),
+  method,
         amount: parsedAmount,
         currency,
         notes:
@@ -131,10 +131,14 @@ export default function RecordPaymentForm({
             id="payment-method"
             value={method}
             onChange={(event) =>
-              setMethod(
-                event.target.value,
-              )
-            }
+  setMethod(
+    event.target.value as
+      | "CASH"
+      | "MPESA"
+      | "CARD"
+      | "BANK",
+  )
+}
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
           >
             <option value="Cash">

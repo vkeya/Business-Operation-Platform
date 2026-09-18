@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -128,6 +129,8 @@ export default function PosPage() {
 	const [paymentReference, setPaymentReference] =
   useState("");
 
+  const [customerPhone, setCustomerPhone] = useState("");
+
   const [currency, setCurrency] =
     useState("KES");
 
@@ -146,6 +149,19 @@ export default function PosPage() {
   const [checkoutLoading, setCheckoutLoading] =
     useState(false);
 
+	const [pendingPaymentAttemptId, setPendingPaymentAttemptId] =
+  useState<string | null>(null);
+
+const [pendingPaymentSaleId, setPendingPaymentSaleId] =
+  useState<string | null>(null);
+
+const [paymentPolling, setPaymentPolling] =
+  useState(false);
+
+  const [paymentTimedOut, setPaymentTimedOut] = useState(false);
+
+  const paymentPendingSinceRef = useRef<number | null>(null);
+  const PAYMENT_PENDING_TIMEOUT_MS = 2 * 60 * 1000;
   const [error, setError] =
     useState("");
 
@@ -300,6 +316,186 @@ export default function PosPage() {
   void loadTaxConfiguration();
 }, []);
 
+  useEffect(() => {
+    if (!pendingPaymentAttemptId) {
+      setPaymentPolling(false);
+      return;
+    }
+
+    let cancelled = false;
+    let pollingTimer: number | null = null;
+
+    async function checkPaymentStatus() {
+      try {
+        setPaymentPolling(true);
+
+        const response = await fetch(
+          `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              "Unable to check M-Pesa payment status.",
+          );
+        }
+
+        const status = result.attempt?.status;
+
+		if (
+  status === "PENDING" &&
+  paymentPendingSinceRef.current !== null &&
+  Date.now() - paymentPendingSinceRef.current >= 10000
+) {
+  paymentPendingSinceRef.current = Date.now();
+
+  const reconcileResponse = await fetch(
+    `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
+    {
+      method: "POST",
+      cache: "no-store",
+    },
+  );
+
+  const reconcileResult =
+    await reconcileResponse.json();
+
+  if (!reconcileResponse.ok) {
+    throw new Error(
+      reconcileResult.error ||
+        "Unable to reconcile M-Pesa payment.",
+    );
+  }
+
+  const reconciledStatus =
+    reconcileResult.result?.status;
+
+  if (reconciledStatus === "FAILED") {
+    setPaymentPolling(false);
+    setError(
+      reconcileResult.result?.message ||
+        "The M-Pesa payment was not completed.",
+    );
+	paymentPendingSinceRef.current = null;
+    setPendingPaymentAttemptId(null);
+    setPendingPaymentSaleId(null);
+    return;
+  }
+}
+
+        if (cancelled) {
+          return;
+        }
+
+		if (
+  paymentPendingSinceRef.current !== null &&
+  Date.now() - paymentPendingSinceRef.current >=
+    PAYMENT_PENDING_TIMEOUT_MS
+) {
+  setPaymentPolling(false);
+  setSuccessMessage("");
+  setPaymentTimedOut(true);
+  setError(
+    "M-Pesa payment is still processing. Please check the payment status before retrying.",
+  );
+  return;
+}
+
+        if (status === "PAID") {
+          setPaymentPolling(false);
+		  setPaymentTimedOut(false);
+          setSuccessMessage(
+            "M-Pesa payment received successfully.",
+          );
+
+          if (pendingPaymentSaleId) {
+            const receiptResponse = await fetch(
+              `/api/pos/receipts/${pendingPaymentSaleId}`,
+            );
+
+            const receiptResult =
+              await receiptResponse.json();
+
+            if (!receiptResponse.ok) {
+              throw new Error(
+                receiptResult.error ||
+                  "Payment received, but the receipt could not be loaded.",
+              );
+            }
+
+            if (!cancelled) {
+              setReceipt(receiptResult.receipt);
+              setCart(
+                posCartService.createEmptyCart(),
+              );
+              setSelectedCustomer(null);
+              setPaymentAmount("");
+              setPaymentReference("");
+              setCustomerPhone("");
+              setPendingPaymentAttemptId(null);
+              setPendingPaymentSaleId(null);
+            }
+
+            return;
+          }
+
+          setPendingPaymentAttemptId(null);
+          setPendingPaymentSaleId(null);
+          return;
+        }
+
+        if (status === "FAILED") {
+  setPaymentPolling(false);
+  setPaymentTimedOut(false);
+  setSuccessMessage("");
+  setError(
+    "The M-Pesa payment was not completed.",
+  );
+  paymentPendingSinceRef.current = null;
+  setPendingPaymentAttemptId(null);
+  setPendingPaymentSaleId(null);
+  return;
+}
+
+        pollingTimer = window.setTimeout(
+          checkPaymentStatus,
+          2000,
+        );
+      } catch (pollingError) {
+        if (cancelled) {
+          return;
+        }
+
+        setPaymentPolling(false);
+        setError(
+          pollingError instanceof Error
+            ? pollingError.message
+            : "Unable to check M-Pesa payment status.",
+        );
+      }
+    }
+
+    void checkPaymentStatus();
+
+    return () => {
+      cancelled = true;
+
+      if (pollingTimer !== null) {
+        window.clearTimeout(pollingTimer);
+      }
+
+      setPaymentPolling(false);
+    };
+  }, [
+    pendingPaymentAttemptId,
+    pendingPaymentSaleId,
+  ]);
+
 
   const paymentAmountNumber =
     Number(paymentAmount) || 0;
@@ -339,12 +535,14 @@ export default function PosPage() {
         cart.totalAmount
       : 0;
 
-  const canCheckout =
+    const canCheckout =
     cart.items.length > 0 &&
     checkoutCart.totalAmount > 0 &&
     paymentAmountNumber >=
       checkoutCart.totalAmount &&
-    !checkoutLoading;
+    !checkoutLoading &&
+    !paymentPolling &&
+    !pendingPaymentAttemptId;
 
 
 
@@ -469,20 +667,39 @@ totalAmount: 0,
       return;
     }
 
-	const requiresReference =
-  paymentMethod === "MPESA" ||
-  paymentMethod === "CARD" ||
-  paymentMethod === "BANK";
+	    const requiresReference =
+      paymentMethod === "CARD" ||
+      paymentMethod === "BANK";
 
-if (
-  requiresReference &&
-  !paymentReference.trim()
-) {
-  setError(
-    `Please enter the ${paymentMethod.toLowerCase()} transaction reference.`,
-  );
-  return;
-}
+    if (
+      requiresReference &&
+      !paymentReference.trim()
+    ) {
+      setError(
+        `Please enter the ${paymentMethod.toLowerCase()} transaction reference.`,
+      );
+      return;
+    }
+
+    if (
+      paymentMethod === "MPESA" &&
+      !customerPhone.trim()
+    ) {
+      setError(
+        "Please enter the customer's M-Pesa phone number.",
+      );
+      return;
+    }
+
+	    if (
+      paymentMethod === "MPESA" &&
+      !Number.isInteger(checkoutCart.totalAmount)
+    ) {
+      setError(
+        "M-Pesa payments require a whole-number KES sale total.",
+      );
+      return;
+    }
 
 if (
   paymentMethod === "CREDIT" &&
@@ -513,12 +730,17 @@ if (
 			customerId:
               selectedCustomer?.customerId,
             cart: checkoutCart,
-            payment: {
+                        payment: {
               method: paymentMethod,
               amount:
                 paymentAmountNumber,
               currency,
-			   reference: paymentReference.trim() || undefined,
+              reference:
+                paymentReference.trim() || undefined,
+              customerPhone:
+                paymentMethod === "MPESA"
+                  ? customerPhone.trim()
+                  : undefined,
             },
           }),
         },
@@ -534,22 +756,55 @@ if (
         );
       }
 
-	  const receiptResponse =
-  await fetch(
-    `/api/pos/receipts/${result.sale.saleId}`,
+	       if (result.status === "PENDING") {
+
+  const attemptId =
+    result.paymentAttempt?.attemptId;
+
+  const saleId =
+    result.sale?.saleId;
+
+  if (!attemptId || !saleId) {
+    throw new Error(
+      "M-Pesa payment was initiated, but the payment tracking details are missing.",
+    );
+  }
+
+  paymentPendingSinceRef.current = Date.now();
+setPaymentTimedOut(false);
+setPendingPaymentAttemptId(attemptId);
+setPendingPaymentSaleId(saleId);
+
+  setSuccessMessage(
+    result.paymentAttempt?.message ||
+      "M-Pesa payment request sent. Waiting for customer confirmation.",
   );
 
-const receiptResult =
-  await receiptResponse.json();
-
-if (!receiptResponse.ok) {
-  throw new Error(
-    receiptResult.error ||
-      "Sale completed, but the receipt could not be loaded.",
-  );
+  return;
 }
 
-setReceipt(receiptResult.receipt);
+      if (result.status !== "COMPLETED") {
+        throw new Error(
+          "Unexpected checkout status received.",
+        );
+      }
+
+      const receiptResponse =
+        await fetch(
+          `/api/pos/receipts/${result.sale.saleId}`,
+        );
+
+      const receiptResult =
+        await receiptResponse.json();
+
+      if (!receiptResponse.ok) {
+        throw new Error(
+          receiptResult.error ||
+            "Sale completed, but the receipt could not be loaded.",
+        );
+      }
+
+      setReceipt(receiptResult.receipt);
 
       setSuccessMessage(
         `Sale ${result.sale.referenceNumber} completed successfully.`,
@@ -559,10 +814,11 @@ setReceipt(receiptResult.receipt);
         posCartService.createEmptyCart(),
       );
 
-	  setSelectedCustomer(null);
+      setSelectedCustomer(null);
 
       setPaymentAmount("");
-	  setPaymentReference("");
+      setPaymentReference("");
+      setCustomerPhone("");
     } catch (checkoutError) {
       setError(
         checkoutError instanceof Error
@@ -843,7 +1099,15 @@ setReceipt(receiptResult.receipt);
                     <button
                       key={method.value}
                       type="button"
-                      onClick={() => setPaymentMethod(method.value)}
+                      onClick={() => {
+  setPaymentMethod(method.value);
+
+  if (method.value === "MPESA") {
+    setPaymentAmount(
+      checkoutCart.totalAmount.toString(),
+    );
+  }
+}}
                       className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-black transition active:scale-[0.98] ${
                         selected
                           ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-600/20"
@@ -859,12 +1123,14 @@ setReceipt(receiptResult.receipt);
 
               <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <PosPaymentDetails
-                  method={paymentMethod}
-                  amount={paymentAmount}
-                  reference={paymentReference}
-                  onAmountChange={setPaymentAmount}
-                  onReferenceChange={setPaymentReference}
-                />
+  method={paymentMethod}
+  amount={paymentAmount}
+  reference={paymentReference}
+  customerPhone={customerPhone}
+  onAmountChange={setPaymentAmount}
+  onReferenceChange={setPaymentReference}
+  onCustomerPhoneChange={setCustomerPhone}
+/>
               </div>
 
               {change > 0 && (
@@ -881,14 +1147,126 @@ setReceipt(receiptResult.receipt);
                 className="mt-3 flex min-h-16 w-full items-center justify-between rounded-xl bg-violet-600 px-5 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {checkoutLoading ? (
-                  <span className="mx-auto">Processing sale...</span>
-                ) : (
+  <span className="mx-auto">
+    Processing sale...
+  </span>
+) : paymentPolling ? (
+  <span className="mx-auto">
+    Waiting for M-Pesa payment...
+  </span>
+) : (
                   <>
                     <span>Complete Sale</span>
                     <span className="text-violet-200">{formatAmount(checkoutCart.totalAmount, currency)}</span>
                   </>
                 )}
               </button>
+
+			  {paymentTimedOut && pendingPaymentAttemptId && (
+  <button
+    type="button"
+    disabled={paymentPolling}
+    onClick={async () => {
+      try {
+        setPaymentPolling(true);
+        setError("");
+
+        const response = await fetch(
+          `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
+          {
+            method: "POST",
+            cache: "no-store",
+          },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              "Unable to check M-Pesa payment status.",
+          );
+        }
+
+        const status =
+          result.result?.status;
+
+        if (status === "PAID") {
+  setPaymentTimedOut(false);
+  setPaymentPolling(false);
+  setSuccessMessage(
+    "M-Pesa payment received successfully.",
+  );
+
+  if (pendingPaymentSaleId) {
+    const receiptResponse = await fetch(
+      `/api/pos/receipts/${pendingPaymentSaleId}`,
+    );
+
+    const receiptResult =
+      await receiptResponse.json();
+
+    if (!receiptResponse.ok) {
+      throw new Error(
+        receiptResult.error ||
+          "Payment received, but the receipt could not be loaded.",
+      );
+    }
+
+    setReceipt(receiptResult.receipt);
+    setCart(
+      posCartService.createEmptyCart(),
+    );
+    setSelectedCustomer(null);
+    setPaymentAmount("");
+    setPaymentReference("");
+    setCustomerPhone("");
+    setPendingPaymentAttemptId(null);
+    setPendingPaymentSaleId(null);
+    paymentPendingSinceRef.current = null;
+  }
+
+  return;
+}
+
+        if (status === "FAILED") {
+          setPaymentTimedOut(false);
+          setPaymentPolling(false);
+          setError(
+            result.result?.message ||
+              "The M-Pesa payment was not completed.",
+          );
+          setPendingPaymentAttemptId(null);
+          setPendingPaymentSaleId(null);
+          paymentPendingSinceRef.current = null;
+          return;
+        }
+
+        paymentPendingSinceRef.current =
+          Date.now();
+
+        setPaymentTimedOut(false);
+        setSuccessMessage(
+          result.result?.message ||
+            "M-Pesa payment is still being processed.",
+        );
+      } catch (statusError) {
+        setError(
+          statusError instanceof Error
+            ? statusError.message
+            : "Unable to check M-Pesa payment status.",
+        );
+      } finally {
+        setPaymentPolling(false);
+      }
+    }}
+    className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-xs font-black uppercase tracking-wide text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100"
+  >
+    {paymentPolling
+      ? "Checking M-Pesa..."
+      : "Check M-Pesa Status"}
+  </button>
+)}
 
               {receipt && (
                 <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">

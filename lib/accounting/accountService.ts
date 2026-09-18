@@ -11,6 +11,14 @@ const defaultAccounts = [
       "Business cash account",
   },
 
+    {
+    code: "1010",
+    name: "M-Pesa",
+    type: "ASSET" as const,
+    description:
+      "M-Pesa funds received by the business",
+  },
+
   {
     code: "1100",
     name: "Inventory",
@@ -18,7 +26,7 @@ const defaultAccounts = [
     description:
       "Inventory assets",
   },
-  
+
   {
   code: "1200",
   name: "Accounts Receivable",
@@ -34,7 +42,7 @@ const defaultAccounts = [
     description:
       "Money owed to suppliers",
   },
-  
+
     {
     code: "2100",
     name: "Tax Payable",

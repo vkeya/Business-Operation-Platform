@@ -76,7 +76,72 @@ export async function executePosCheckout(
   const result =
     await checkoutPosSale(input);
 
+  if (request.payment.method === "MPESA") {
+    if (!result.paymentAttempt) {
+      throw new Error(
+        "M-Pesa checkout did not create a payment attempt.",
+      );
+    }
+
+    return {
+      status: "PENDING",
+
+      sale: {
+        saleId:
+          result.sale.id,
+
+        referenceNumber:
+          result.sale.referenceNumber,
+
+        subtotal:
+          result.sale.subtotal,
+
+        discountAmount:
+          result.sale.discountAmount,
+
+        taxAmount:
+          result.sale.taxAmount,
+
+        totalAmount:
+          result.sale.totalAmount,
+
+        currency:
+          result.sale.currency,
+
+        paymentMethod:
+          request.payment.method,
+
+        paymentAmount:
+          request.payment.amount,
+
+        paymentReference:
+          result.paymentAttempt.providerReference ??
+          "",
+      },
+
+      paymentAttempt: {
+        attemptId:
+          result.paymentAttempt.attemptId,
+
+        providerReference:
+          result.paymentAttempt.providerReference ??
+          null,
+
+        message:
+          result.paymentAttempt.message,
+      },
+    };
+  }
+
+  if (!result.payment) {
+    throw new Error(
+      "POS checkout did not create a payment.",
+    );
+  }
+
   return {
+    status: "COMPLETED",
+
     sale: {
       saleId:
         result.sale.id,

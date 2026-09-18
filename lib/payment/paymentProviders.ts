@@ -1,5 +1,6 @@
 export const paymentProviders = {
   PESAPAL: "PESAPAL",
+  MPESA: "MPESA",
 } as const;
 
 export type PaymentProvider =

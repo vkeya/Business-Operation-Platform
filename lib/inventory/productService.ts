@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/database/prisma";
 import {
   productRepository,
   type CreateProductInput,
@@ -14,6 +15,13 @@ import {
 import {
   getProductSkuPrefix,
 } from "./productSku";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export const productService = {
   async createProduct(
@@ -255,9 +263,10 @@ async listServicesByCategory(
   },
 
     async findSellingUnitById(
-    productId: string,
-    sellingUnitId: string,
-  ) {
+  productId: string,
+  sellingUnitId: string,
+  client?: PrismaTransactionClient,
+) {
     if (!productId) {
       throw new Error(
         "Product is required.",
@@ -271,9 +280,10 @@ async listServicesByCategory(
     }
 
     return productRepository.findSellingUnitById(
-      productId,
-      sellingUnitId,
-    );
+  productId,
+  sellingUnitId,
+  client,
+);
   },
 
   async listSellingUnits(

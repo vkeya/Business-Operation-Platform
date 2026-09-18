@@ -109,8 +109,7 @@ export const paymentService = {
         {
           ...input,
           reference,
-          method:
-            input.method.trim(),
+          method: input.method,
           currency:
             input.currency.trim(),
         },
@@ -268,8 +267,7 @@ return payment;
     {
       ...input,
       reference,
-      method:
-        input.method.trim(),
+      method: input.method,
       currency:
         input.currency.trim(),
     },
@@ -291,6 +289,16 @@ return payment;
   currency: payment.currency,
   createdBy: payment.createdBy,
   type: "SALE",
+  paymentMethod:
+  input.method === "MPESA"
+    ? "MPESA"
+    : input.method === "CARD"
+      ? "CARD"
+      : input.method === "BANK"
+        ? "BANK"
+        : input.method === "CASH"
+          ? "CASH"
+          : undefined,
   client,
 });
 

@@ -13,6 +13,7 @@ import { reversePaymentAccounting } from "@/lib/accounting/posting/paymentRevers
 import { paymentRepository } from "@/lib/payment/paymentRepository";
 import { calculateTax } from "@/lib/tax/taxCalculationService";
 import { taxConfigurationService } from "@/lib/tax/taxConfigurationService";
+import { saleCompletionService } from "./saleCompletionService";
 
 export type CreateSaleServiceInput =
   Omit<CreateSaleInput, "referenceNumber">;
@@ -198,232 +199,96 @@ const taxPricingMode =
   },
 
     async updateStatus(
-    businessId: string,
-    saleId: string,
-    status:
-      | "DRAFT"
-      | "COMPLETED"
-      | "CANCELLED"
-	  | "REVERSED",
-  ) {
-    if (!businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
-    }
-
-    if (!saleId) {
-      throw new Error(
-        "Sale is required.",
-      );
-    }
-
-    const sale =
-      await saleRepository.findById(
-        businessId,
-        saleId,
-      );
-
-    if (!sale) {
-      throw new Error(
-        "Sale not found.",
-      );
-    }
-
-    const existingSale = sale;
-
-    if (sale.status === "CANCELLED") {
-      throw new Error(
-        "Cancelled sales cannot be changed.",
-      );
-    }
-
-    if (
-      sale.status === "COMPLETED" &&
-      status !== "COMPLETED"
-    ) {
-      throw new Error(
-        "Completed sales cannot be changed.",
-      );
-    }
-
-    if (
-      status === "COMPLETED" &&
-      sale.items.length === 0
-    ) {
-      throw new Error(
-        "A sale must contain at least one item.",
-      );
-    }
-
-    if (
-      status === "COMPLETED" &&
-      !sale.warehouseId
-    ) {
-      throw new Error(
-        "A warehouse is required to complete a sale.",
-      );
-    }
-
-    if (
-      sale.status === "DRAFT" &&
-      status === "CANCELLED"
-    ) {
-      return saleRepository.updateStatus(
-        businessId,
-        saleId,
-        status,
-      );
-    }
-
-    if (
-  sale.status === "DRAFT" &&
-  status === "COMPLETED"
+  businessId: string,
+  saleId: string,
+  status:
+    | "DRAFT"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "REVERSED",
 ) {
-  const restaurantItems =
-  sale.items
-    .filter(
-      (item) => item.menuItemId,
-    )
-    .map((item) => ({
-      menuItemId: item.menuItemId!,
-      quantity:
-        item.quantity.toNumber(),
-    }));
+  if (!businessId) {
+    throw new Error(
+      "Business context is required.",
+    );
+  }
 
-  const inventoryItems: Array<{
-    productId: string;
-    quantity: number;
-  }> = [];
+  if (!saleId) {
+    throw new Error(
+      "Sale is required.",
+    );
+  }
 
-  const { productService } =
-    await import(
-      "@/lib/inventory/productService"
+  const sale =
+    await saleRepository.findById(
+      businessId,
+      saleId,
     );
 
-  for (const item of sale.items) {
-    // Restaurant menu items consume stock
-    // through their recipes.
-    if (item.menuItemId) {
-      continue;
-    }
+  if (!sale) {
+    throw new Error(
+      "Sale not found.",
+    );
+  }
 
-    let inventoryQuantity =
-  Number(item.quantity);
-
-    if (item.sellingUnitId) {
-      const sellingUnit =
-        await productService.findSellingUnitById(
-          item.productId,
-          item.sellingUnitId,
-        );
-
-      if (!sellingUnit) {
-        throw new Error(
-          `Selling unit not found for product "${item.productName}".`,
-        );
-      }
-
-      inventoryQuantity =
-        item.quantity *
-        sellingUnit.quantity;
-    }
-
-    inventoryItems.push({
-      productId:
-        item.productId,
-      quantity:
-        inventoryQuantity,
-    });
+  if (sale.status === "CANCELLED") {
+    throw new Error(
+      "Cancelled sales cannot be changed.",
+    );
   }
 
   if (
-    restaurantItems.length > 0 &&
-    sale.warehouseId
+    sale.status === "COMPLETED" &&
+    status !== "COMPLETED"
   ) {
-    const { recipeService } =
-      await import(
-        "@/lib/restaurant/recipeService"
-      );
-
-    await recipeService.consumeSaleRecipes({
-      businessId,
-      warehouseId:
-        sale.warehouseId,
-      currency:
-        sale.currency,
-      createdBy:
-        sale.createdBy,
-      referenceId:
-        sale.id,
-      items:
-        restaurantItems,
-    });
+    throw new Error(
+      "Completed sales cannot be changed.",
+    );
   }
 
   if (
-    inventoryItems.length > 0 &&
-    sale.warehouseId
+    status === "COMPLETED" &&
+    sale.items.length === 0
   ) {
-    const { inventoryService } =
-      await import(
-        "@/lib/inventory/inventoryService"
-      );
-
-    await inventoryService.consumeStockBatch({
-      businessId,
-      warehouseId:
-        sale.warehouseId,
-      currency:
-        sale.currency,
-      createdBy:
-        sale.createdBy,
-      referenceType:
-        "SALE",
-      referenceId:
-        sale.id,
-      notes:
-        `Inventory consumption for sale ${sale.referenceNumber}.`,
-      items:
-        inventoryItems,
-    });
+    throw new Error(
+      "A sale must contain at least one item.",
+    );
   }
 
-  await postSaleToAccounting({
-    businessId,
-    saleId:
-      existingSale.id,
-    referenceNumber:
-      existingSale.referenceNumber,
-    totalAmount:
-      existingSale.totalAmount,
-	  taxAmount:
-  Number(existingSale.taxAmount),
-    currency:
-      existingSale.currency,
-    customerId:
-      existingSale.customerId,
-    createdBy:
-      existingSale.createdBy,
-  });
+  if (
+    status === "COMPLETED" &&
+    !sale.warehouseId
+  ) {
+    throw new Error(
+      "A warehouse is required to complete a sale.",
+    );
+  }
 
-  return saleRepository.updateStatus(
-    businessId,
-    saleId,
-    status,
-  );
-} {
-      throw new Error(
-        "Draft sales can only be completed or cancelled.",
-      );
-    }
+  if (
+    sale.status === "DRAFT" &&
+    status === "COMPLETED"
+  ) {
+    return saleCompletionService.completeDraftSale(
+      businessId,
+      saleId,
+    );
+  }
 
+  if (
+    sale.status === "DRAFT" &&
+    status === "CANCELLED"
+  ) {
     return saleRepository.updateStatus(
       businessId,
       saleId,
       status,
     );
-  },
+  }
+
+  throw new Error(
+    "Draft sales can only be completed or cancelled.",
+  );
+},
 
       async reverse(
     businessId: string,

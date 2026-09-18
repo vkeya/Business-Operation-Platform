@@ -4,6 +4,7 @@ import {
   Banknote,
   CreditCard,
   Hash,
+  Phone,
   WalletCards,
 } from "lucide-react";
 
@@ -13,8 +14,10 @@ interface PosPaymentDetailsProps {
   method: PosPaymentMethod;
   amount: string;
   reference: string;
+  customerPhone: string;
   onAmountChange: (value: string) => void;
   onReferenceChange: (value: string) => void;
+  onCustomerPhoneChange: (value: string) => void;
 }
 
 const paymentLabels: Record<
@@ -43,13 +46,14 @@ export default function PosPaymentDetails({
   method,
   amount,
   reference,
+  customerPhone,
   onAmountChange,
   onReferenceChange,
+  onCustomerPhoneChange,
 }: PosPaymentDetailsProps) {
   const Icon = paymentIcons[method];
 
   const requiresReference =
-    method === "MPESA" ||
     method === "CARD" ||
     method === "BANK";
 
@@ -74,7 +78,7 @@ export default function PosPaymentDetails({
               {method === "CASH"
                 ? "Record the amount received."
                 : method === "MPESA"
-                  ? "Record the M-Pesa transaction reference."
+                  ? "Send an M-Pesa STK Push to the customer's phone."
                   : method === "CARD"
                     ? "Record the card authorization reference."
                     : method === "BANK"
@@ -85,9 +89,38 @@ export default function PosPaymentDetails({
         </div>
       </div>
 
+      {method === "MPESA" && (
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+            Customer M-Pesa phone
+          </label>
+
+          <div className="relative mt-2">
+            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+            <input
+              type="tel"
+              inputMode="tel"
+              value={customerPhone}
+              onChange={(event) =>
+                onCustomerPhoneChange(event.target.value)
+              }
+              placeholder="07XXXXXXXX or 2547XXXXXXXX"
+              autoComplete="tel"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white"
+            />
+          </div>
+
+          <p className="mt-2 text-[11px] text-slate-400">
+            The customer will receive an M-Pesa payment prompt on this
+            number.
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-          Amount received
+          {method === "MPESA" ? "Amount to collect" : "Amount received"}
         </label>
 
         <div className="relative mt-2">
@@ -102,9 +135,20 @@ export default function PosPaymentDetails({
               onAmountChange(event.target.value)
             }
             placeholder="0.00"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white"
+            readOnly={method === "MPESA"}
+            className={`w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 ${
+              method === "MPESA"
+                ? "cursor-not-allowed bg-slate-100"
+                : "bg-slate-50 focus:bg-white"
+            }`}
           />
         </div>
+
+        {method === "MPESA" && (
+          <p className="mt-2 text-[11px] text-slate-400">
+            M-Pesa will request the full outstanding sale amount.
+          </p>
+        )}
       </div>
 
       {requiresReference && (

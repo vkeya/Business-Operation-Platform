@@ -454,11 +454,12 @@ async listByTypeAndCategory(
 },
 
   async findSellingUnitById(
-    productId: string,
-    sellingUnitId: string,
-  ) {
-    const sellingUnit =
-      await prisma.productSellingUnit.findFirst({
+  productId: string,
+  sellingUnitId: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  const sellingUnit =
+    await client.productSellingUnit.findFirst({
         where: {
           id: sellingUnitId,
           productId,

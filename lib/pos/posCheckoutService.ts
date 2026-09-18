@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
-import { assertActiveProduct } from "@/lib/inventory/productStatus";
+
 import {
   saleRepository,
   type CreateSaleInput,
@@ -12,9 +12,11 @@ import {
 import {
   paymentService,
 } from "@/lib/payment/paymentService";
+
 import {
   calculateTax,
 } from "@/lib/tax/taxCalculationService";
+
 import {
   inventoryRepository,
 } from "@/lib/inventory/inventoryRepository";
@@ -30,6 +32,10 @@ import {
 import {
   productService,
 } from "@/lib/inventory/productService";
+
+import {
+  mpesaPaymentService,
+} from "@/lib/payment/providers/mpesa/mpesaPaymentService";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -59,18 +65,29 @@ export interface PosCheckoutInput {
   totalAmount: number;
 
   payment: {
-    method: string;
+    method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT";
     amount: number;
     currency?: string;
     reference?: string;
+    customerPhone?: string;
   };
 }
 
 export interface PosCheckoutResult {
-  sale: Awaited<ReturnType<typeof saleRepository.create>>;
-  payment: Awaited<
+  sale: Awaited<
+    ReturnType<typeof saleRepository.create>
+  >;
+
+  payment?: Awaited<
     ReturnType<typeof paymentService.createSalePayment>
   >;
+
+  paymentAttempt?: {
+    attemptId: string;
+    status: "PENDING";
+    providerReference: string | null;
+    message: string;
+  };
 }
 
 function validateCheckoutInput(
@@ -127,6 +144,15 @@ function validateCheckoutInput(
     );
   }
 
+  if (
+    input.payment.method === "MPESA" &&
+    !input.payment.customerPhone?.trim()
+  ) {
+    throw new Error(
+      "Customer phone number is required for M-Pesa payments.",
+    );
+  }
+
   for (const item of input.items) {
     if (!item.productId) {
       throw new Error(
@@ -154,166 +180,244 @@ function validateCheckoutInput(
   }
 }
 
-export async function checkoutPosSale(
+async function calculateCheckoutTax(
   input: PosCheckoutInput,
-): Promise<PosCheckoutResult> {
-  validateCheckoutInput(input);
-  
-    const taxConfiguration =
+) {
+  const taxConfiguration =
     await prisma.taxConfiguration.findUnique({
       where: {
-        businessId: input.businessId,
+        businessId:
+          input.businessId,
       },
     });
 
-  const taxCalculation = calculateTax({
-    subtotal: input.subtotal,
-    discountAmount: input.discountAmount,
-    taxEnabled:
-      taxConfiguration?.enabled ?? false,
-    taxRate:
-      taxConfiguration
-        ? Number(taxConfiguration.rate)
-        : 0,
-    pricingMode:
-      taxConfiguration?.pricingMode ?? "EXCLUSIVE",
-  });
+  const taxCalculation =
+    calculateTax({
+      subtotal:
+        input.subtotal,
 
-  const calculatedTaxAmount =
-    taxCalculation.taxAmount;
+      discountAmount:
+        input.discountAmount,
 
-  const calculatedTotalAmount =
-    taxCalculation.totalAmount;
+      taxEnabled:
+        taxConfiguration?.enabled ??
+        false,
 
-  return prisma.$transaction(
-    async (tx) => {
-      const referenceNumber =
-        await generateBusinessReference({
-          businessId: input.businessId,
-          referenceType: "SALE",
-          prefix: "SALE",
-          client: tx,
-        });
+      taxRate:
+        taxConfiguration
+          ? Number(taxConfiguration.rate)
+          : 0,
 
-      const sale =
-        await saleRepository.create(
-          {
-            businessId:
-              input.businessId,
+      pricingMode:
+        taxConfiguration?.pricingMode ??
+        "EXCLUSIVE",
+    });
 
-            branchId:
-              input.branchId,
+  return {
+    taxConfiguration,
 
-            warehouseId:
-              input.warehouseId,
+    calculatedTaxAmount:
+      taxCalculation.taxAmount,
 
-            customerId:
-              input.customerId,
+    calculatedTotalAmount:
+      taxCalculation.totalAmount,
+  };
+}
 
-            referenceNumber,
+async function createPosSale(
+  input: PosCheckoutInput,
+  tx: PrismaTransactionClient,
+  calculatedTaxAmount: number,
+  calculatedTotalAmount: number,
+  taxConfiguration: Awaited<
+    ReturnType<
+      typeof prisma.taxConfiguration.findUnique
+    >
+  >,
+) {
+  const referenceNumber =
+    await generateBusinessReference({
+      businessId:
+        input.businessId,
 
-            currency:
-              input.currency.trim(),
+      referenceType:
+        "SALE",
 
-            exchangeRate:
-              input.exchangeRate,
+      prefix:
+        "SALE",
 
-            notes:
-              input.notes,
+      client:
+        tx,
+    });
 
-            createdBy:
-              input.createdBy,
+  const sale =
+    await saleRepository.create(
+      {
+        businessId:
+          input.businessId,
 
-            items:
-              input.items,
+        branchId:
+          input.branchId,
 
-            subtotal:
-              input.subtotal,
+        warehouseId:
+          input.warehouseId,
 
-            discountAmount:
-              input.discountAmount,
+        customerId:
+          input.customerId,
 
-                        taxAmount:
-              calculatedTaxAmount,
+        referenceNumber,
 
-            taxName:
-  taxConfiguration?.enabled
-    ? taxConfiguration.name
-    : null,
+        currency:
+          input.currency.trim(),
 
-taxRate:
-  taxConfiguration?.enabled
-    ? Number(taxConfiguration.rate)
-    : null,
+        exchangeRate:
+          input.exchangeRate,
 
-taxPricingMode:
-  taxConfiguration?.enabled
-    ? taxConfiguration.pricingMode
-    : null,
+        notes:
+          input.notes,
 
-            totalAmount:
-              calculatedTotalAmount,
-          },
+        createdBy:
+          input.createdBy,
+
+        items:
+          input.items,
+
+        subtotal:
+          input.subtotal,
+
+        discountAmount:
+          input.discountAmount,
+
+        taxAmount:
+          calculatedTaxAmount,
+
+        taxName:
+          taxConfiguration?.enabled
+            ? taxConfiguration.name
+            : null,
+
+        taxRate:
+          taxConfiguration?.enabled
+            ? Number(
+                taxConfiguration.rate,
+              )
+            : null,
+
+        taxPricingMode:
+          taxConfiguration?.enabled
+            ? taxConfiguration.pricingMode
+            : null,
+
+        totalAmount:
+          calculatedTotalAmount,
+
+
+      },
+      tx,
+    );
+
+  return sale;
+}
+
+async function completeSaleOperations(
+  input: PosCheckoutInput,
+  sale: Awaited<
+    ReturnType<typeof saleRepository.create>
+  >,
+  tx: PrismaTransactionClient,
+  calculatedTaxAmount: number,
+  calculatedTotalAmount: number,
+) {
+  const restaurantItems =
+    input.items
+      .filter(
+        (item) =>
+          Boolean(item.menuItemId),
+      )
+      .map((item) => ({
+        menuItemId:
+          item.menuItemId!,
+        quantity:
+          item.quantity,
+      }));
+
+  const inventoryItems: Array<{
+    productId: string;
+    quantity: number;
+  }> = [];
+
+  for (const item of input.items) {
+    if (item.menuItemId) {
+      continue;
+    }
+
+    let inventoryQuantity =
+      item.quantity;
+
+    if (item.sellingUnitId) {
+      const sellingUnit =
+        await productService.findSellingUnitById(
+          item.productId,
+          item.sellingUnitId,
           tx,
         );
 
-      const restaurantItems =
-        input.items
-          .filter(
-            (item) =>
-              Boolean(item.menuItemId),
-          )
-          .map((item) => ({
-            menuItemId:
-              item.menuItemId!,
-            quantity:
-              item.quantity,
-          }));
-
-      const inventoryItems: Array<{
-        productId: string;
-        quantity: number;
-      }> = [];
-
-      for (const item of input.items) {
-        if (item.menuItemId) {
-          continue;
-        }
-
-        let inventoryQuantity =
-          item.quantity;
-
-        if (item.sellingUnitId) {
-          const sellingUnit =
-            await productService.findSellingUnitById(
-              item.productId,
-              item.sellingUnitId,
-            );
-
-          if (!sellingUnit) {
-            throw new Error(
-              `Selling unit not found for product "${item.productName}".`,
-            );
-          }
-
-          inventoryQuantity =
-            item.quantity *
-            sellingUnit.quantity;
-        }
-
-        inventoryItems.push({
-          productId:
-            item.productId,
-          quantity:
-            inventoryQuantity,
-        });
+      if (!sellingUnit) {
+        throw new Error(
+          `Selling unit not found for product "${item.productName}".`,
+        );
       }
 
-      if (
-        restaurantItems.length > 0 &&
-        input.warehouseId
-      ) {
-        await recipeService.consumeSaleRecipes({
+      inventoryQuantity =
+        item.quantity *
+        sellingUnit.quantity;
+    }
+
+    inventoryItems.push({
+      productId:
+        item.productId,
+
+      quantity:
+        inventoryQuantity,
+    });
+  }
+
+  if (
+    restaurantItems.length > 0 &&
+    input.warehouseId
+  ) {
+    await recipeService.consumeSaleRecipes({
+      businessId:
+        input.businessId,
+
+      warehouseId:
+        input.warehouseId,
+
+      currency:
+        input.currency,
+
+      createdBy:
+        input.createdBy,
+
+      referenceId:
+        sale.id,
+
+      items:
+        restaurantItems,
+
+      client:
+        tx,
+    });
+  }
+
+  if (
+    inventoryItems.length > 0 &&
+    input.warehouseId
+  ) {
+    await inventoryRepository
+      .consumeStockBatchWithTx(
+        tx,
+        {
           businessId:
             input.businessId,
 
@@ -326,107 +430,186 @@ taxPricingMode:
           createdBy:
             input.createdBy,
 
+          referenceType:
+            "SALE",
+
           referenceId:
             sale.id,
 
+          notes:
+            `Inventory consumption for sale ${sale.referenceNumber}.`,
+
           items:
-            restaurantItems,
+            inventoryItems,
+        },
+      );
+  }
 
-          client: tx,
-        });
-      }
+  await postSaleToAccounting({
+    businessId:
+      input.businessId,
 
-      if (
-        inventoryItems.length > 0 &&
-        input.warehouseId
-      ) {
-        await inventoryRepository
-          .consumeStockBatchWithTx(
+    saleId:
+      sale.id,
+
+    referenceNumber:
+      sale.referenceNumber,
+
+    totalAmount:
+      calculatedTotalAmount,
+
+    taxAmount:
+      calculatedTaxAmount,
+
+    currency:
+      input.currency,
+
+    customerId:
+      input.customerId,
+
+    createdBy:
+      input.createdBy,
+
+    client:
+      tx,
+  });
+}
+
+export async function checkoutPosSale(
+  input: PosCheckoutInput,
+): Promise<PosCheckoutResult> {
+  validateCheckoutInput(input);
+
+  const {
+    taxConfiguration,
+    calculatedTaxAmount,
+    calculatedTotalAmount,
+  } = await calculateCheckoutTax(input);
+
+  /*
+   * M-Pesa is asynchronous.
+   *
+   * We create the sale as DRAFT and the
+   * PaymentAttempt as PENDING. Inventory,
+   * sale accounting and the final Payment
+   * are completed only after Safaricom
+   * confirms the STK transaction.
+   */
+  if (
+    input.payment.method === "MPESA"
+  ) {
+    const sale =
+      await prisma.$transaction(
+        async (tx) => {
+          return createPosSale(
+            input,
             tx,
-            {
-              businessId:
-                input.businessId,
-
-              warehouseId:
-                input.warehouseId,
-
-              currency:
-                input.currency,
-
-              createdBy:
-                input.createdBy,
-
-              referenceType:
-                "SALE",
-
-              referenceId:
-                sale.id,
-
-              notes:
-                `Inventory consumption for sale ${referenceNumber}.`,
-
-              items:
-                inventoryItems,
-            },
+            calculatedTaxAmount,
+            calculatedTotalAmount,
+            taxConfiguration,
           );
-      }
+        },
+      );
 
-      await postSaleToAccounting({
-        businessId:
-          input.businessId,
+    try {
+      const paymentAttempt =
+        await mpesaPaymentService.initiatePosPayment({
+          businessId:
+            input.businessId,
 
-        saleId:
-          sale.id,
+          saleId:
+            sale.id,
 
-        referenceNumber,
+          amount:
+            calculatedTotalAmount,
 
-        totalAmount:
-  calculatedTotalAmount,
-  
-  taxAmount:
-  calculatedTaxAmount,
+          customerPhone:
+            input.payment.customerPhone!,
 
-        currency:
-          input.currency,
+          createdBy:
+            input.createdBy,
+        });
 
-        customerId:
-          input.customerId,
+      return {
+        sale,
+        paymentAttempt: {
+          attemptId:
+            paymentAttempt.attemptId,
 
-        createdBy:
-          input.createdBy,
+          status:
+            "PENDING",
 
-        client: tx,
-      });
+          providerReference:
+  paymentAttempt.providerReference ??
+  null,
+
+          message:
+            paymentAttempt.message,
+        },
+      };
+    } catch (error) {
+      /*
+       * STK initiation failed. Keep the sale
+       * as DRAFT so it can be retried or
+       * cancelled rather than pretending that
+       * the sale was completed.
+       */
+      throw error;
+    }
+  }
+
+  /*
+   * Existing synchronous POS payment flow.
+   */
+  return prisma.$transaction(
+    async (tx) => {
+      const sale =
+        await createPosSale(
+          input,
+
+          tx,
+          calculatedTaxAmount,
+          calculatedTotalAmount,
+          taxConfiguration,
+        );
+
+      await completeSaleOperations(
+        input,
+        sale,
+        tx,
+        calculatedTaxAmount,
+        calculatedTotalAmount,
+      );
 
       const payment =
-  await paymentService.createSalePayment(
-    {
-      businessId:
-        input.businessId,
+        await paymentService.createSalePayment(
+          {
+            businessId:
+              input.businessId,
 
-      saleId:
-        sale.id,
+            saleId:
+              sale.id,
 
-      reference:
-        input.payment.reference,
+            reference:
+              input.payment.reference,
 
-      method:
-        input.payment.method,
+            method:
+  input.payment.method,
 
-      amount:
-        input.payment.amount,
+            amount:
+              input.payment.amount,
 
-      currency:
-        (
-          input.payment.currency ||
-          input.currency
-        ).trim(),
+            currency:
+              (
+                input.payment.currency ||
+                input.currency
+              ).trim(),
 
-      createdBy:
-        input.createdBy,
-    },
-    tx,
-  );
+            createdBy:
+              input.createdBy,
+          },
+          tx,
+        );
 
       const completedSale =
         await saleRepository.updateStatus(

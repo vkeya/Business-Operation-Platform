@@ -5,7 +5,10 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { createSalePaymentAction } from "@/lib/sales/actions";
+import {
+  createSalePaymentAction,
+  initiateMpesaSalePaymentAction,
+} from "@/lib/sales/actions";
 import type { TranslationSet } from "@/lib/i18n";
 
 interface RecordPaymentFormProps {
@@ -25,13 +28,16 @@ export default function RecordPaymentForm({
   const t = translations;
 
   const [method, setMethod] =
-    useState("Cash");
+  useState<"CASH" | "MPESA" | "CARD" | "BANK">("CASH");
 
   const [amount, setAmount] =
     useState("");
 
   const [notes, setNotes] =
     useState("");
+
+	const [customerPhone, setCustomerPhone] =
+  useState("");
 
   const [error, setError] =
     useState("");
@@ -78,21 +84,51 @@ export default function RecordPaymentForm({
 
     setSubmitting(true);
 
-    try {
-      await createSalePaymentAction({
+try {
+  if (method === "MPESA") {
+    if (!customerPhone.trim()) {
+      setError(
+        "Customer MPESA phone number is required.",
+      );
+      return;
+    }
+
+    const result =
+      await initiateMpesaSalePaymentAction({
         saleId,
-        method: method.trim(),
         amount: parsedAmount,
-        currency,
-        notes:
-          notes.trim() || undefined,
+        customerPhone,
       });
 
+    setAmount("");
+    setNotes("");
+    setCustomerPhone("");
 
-      setAmount("");
-      setNotes("");
+    setError("");
 
-      router.refresh();
+    alert(
+      result.message ||
+        "MPESA payment request sent. Ask the customer to approve the payment on their phone.",
+    );
+
+    router.refresh();
+
+    return;
+  }
+
+  await createSalePaymentAction({
+    saleId,
+    method,
+    amount: parsedAmount,
+    currency,
+    notes:
+      notes.trim() || undefined,
+  });
+
+  setAmount("");
+  setNotes("");
+
+  router.refresh();
     } catch (err) {
       setError(
         err instanceof Error
@@ -140,10 +176,14 @@ export default function RecordPaymentForm({
             id="sale-payment-method"
             value={method}
             onChange={(event) =>
-              setMethod(
-                event.target.value,
-              )
-            }
+  setMethod(
+    event.target.value as
+      | "CASH"
+      | "MPESA"
+      | "CARD"
+      | "BANK",
+  )
+}
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
           >
             <option value="Cash">
@@ -157,6 +197,10 @@ export default function RecordPaymentForm({
             <option value="Card">
               {t.recordPayment.card}
             </option>
+
+			<option value="MPESA">
+  MPESA
+</option>
 
             <option value="Mobile Money">
               {t.recordPayment.mobileMoney}
@@ -209,6 +253,33 @@ export default function RecordPaymentForm({
           </p>
         </div>
 
+		{method === "MPESA" && (
+  <div>
+    <label
+      htmlFor="sale-payment-mpesa-phone"
+      className="block text-sm font-medium text-slate-700"
+    >
+      Customer MPESA Phone
+    </label>
+
+    <input
+      id="sale-payment-mpesa-phone"
+      type="tel"
+      inputMode="tel"
+      value={customerPhone}
+      onChange={(event) =>
+        setCustomerPhone(event.target.value)
+      }
+      placeholder="0712345678"
+      className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+    />
+
+    <p className="mt-2 text-xs text-slate-500">
+      The customer will receive an MPESA payment prompt on this number.
+    </p>
+  </div>
+)}
+
         <div>
           <label
             htmlFor="sale-payment-notes"
@@ -242,9 +313,13 @@ export default function RecordPaymentForm({
           }
           className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting
-            ? t.recordPayment.recording
-            : t.recordPayment.record}
+          {method === "MPESA"
+  ? submitting
+    ? "Sending MPESA Request..."
+    : "Send MPESA Request"
+  : submitting
+    ? t.recordPayment.recording
+    : t.recordPayment.record}
         </button>
       </div>
     </form>

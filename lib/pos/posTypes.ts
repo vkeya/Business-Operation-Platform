@@ -21,6 +21,7 @@ export interface PosPaymentInput {
   amount: number;
   currency?: string;
   reference?: string;
+  customerPhone?: string;
 }
 
 export interface PosCart {
@@ -79,6 +80,20 @@ export interface PosSaleSummary {
   paymentReference: string;
 }
 
-export interface PosCheckoutResult {
-  sale: PosSaleSummary;
-}
+export type PosCheckoutResult =
+  | {
+      status: "COMPLETED";
+
+      sale: PosSaleSummary;
+    }
+  | {
+      status: "PENDING";
+
+      sale: PosSaleSummary;
+
+      paymentAttempt: {
+        attemptId: string;
+        providerReference: string | null;
+        message: string;
+      };
+    };

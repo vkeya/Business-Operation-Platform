@@ -14,11 +14,15 @@ export interface ExternalPaymentRequest {
   reference?: string;
   description?: string;
   createdBy: string;
+
+  customerPhone?: string;
+  callbackUrl?: string;
 }
 
 export interface ExternalPaymentResult {
   status: ExternalPaymentStatus;
   providerReference?: string;
+  providerResponse?: Record<string, unknown>;
   message?: string;
 }
 

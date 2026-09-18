@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  CreditCard,
   Database,
   Settings,
   ShieldCheck,
@@ -30,6 +31,16 @@ export default function SettingsPage() {
       icon: ShieldCheck,
       iconLabel: "02",
     },
+
+	{
+  title: "Payments",
+  description:
+    "Configure M-Pesa and other payment methods used to collect customer payments.",
+  href: "/settings/payments",
+  action: "Manage payments",
+  icon: CreditCard,
+  iconLabel: "03",
+},
     {
       title: "Users & Access",
       description:
@@ -37,7 +48,7 @@ export default function SettingsPage() {
       href: "/settings/users",
       action: "Manage access",
       icon: Users,
-      iconLabel: "03",
+      iconLabel: "04",
     },
     {
       title: "Data Management",
@@ -46,7 +57,7 @@ export default function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "04",
+      iconLabel: "05",
     },
   ];
 

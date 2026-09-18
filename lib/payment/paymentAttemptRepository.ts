@@ -44,7 +44,7 @@ export const paymentAttemptRepository = {
       },
     });
   },
-  
+
     async findById(
     businessId: string,
     id: string,
@@ -70,7 +70,7 @@ export const paymentAttemptRepository = {
       },
     });
   },
-  
+
     async updateStatus(
     businessId: string,
     id: string,
@@ -90,5 +90,31 @@ export const paymentAttemptRepository = {
       },
     });
   },
-  
+
+  async updateProviderDetails(
+  businessId: string,
+  id: string,
+  input: {
+    providerReference?: string;
+    terminalReference?: string;
+    providerResponse?: object;
+  },
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.paymentAttempt.updateMany({
+    where: {
+      id,
+      businessId,
+    },
+    data: {
+      providerReference:
+        input.providerReference,
+      terminalReference:
+        input.terminalReference,
+      providerResponse:
+        input.providerResponse,
+    },
+  });
+},
+
 };

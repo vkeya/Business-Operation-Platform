@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { mpesaPaymentService } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
 
 import type {
   CreateSalePaymentInput,
@@ -153,4 +154,21 @@ return paymentService.createSalePayment({
   businessId: business.id,
   createdBy: userId,
 });
+}
+
+export async function initiateMpesaSalePaymentAction(input: {
+  saleId: string;
+  amount: number;
+  customerPhone: string;
+}) {
+  const business = await getCurrentBusiness();
+  const userId = await getAuthenticatedUserId();
+
+  return mpesaPaymentService.initiateSalePayment({
+    saleId: input.saleId,
+    amount: input.amount,
+    customerPhone: input.customerPhone,
+    businessId: business.id,
+    createdBy: userId,
+  });
 }
