@@ -44,7 +44,18 @@ function getMpesaCallbackUrl() {
     );
   }
 
-  return `${appUrl.replace(/\/$/, "")}/api/payments/providers/mpesa/callback`;
+  const normalizedUrl = appUrl.replace(/\/$/, "");
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    !normalizedUrl.startsWith("https://")
+  ) {
+    throw new Error(
+      "M-Pesa production callbacks require an HTTPS APP_URL.",
+    );
+  }
+
+  return `${normalizedUrl}/api/payments/providers/mpesa/callback`;
 }
 
 export const mpesaPaymentService = {
@@ -426,11 +437,18 @@ if (
      * settlement still requires the callback metadata,
      * including the M-Pesa receipt and amount.
      */
-    if (
-      queryResult.queryStatus !== "PENDING" &&
-      queryResult.ResultCode &&
-      queryResult.ResultCode !== "0"
-    ) {
+    const resultCode =
+  queryResult.ResultCode?.toString();
+
+const isStillProcessing =
+  queryResult.queryStatus === "PENDING" ||
+  resultCode === "4999";
+
+if (
+  !isStillProcessing &&
+  resultCode &&
+  resultCode !== "0"
+) {
       await paymentAttemptService.fail(
         input.businessId,
         attempt.id,
@@ -460,7 +478,7 @@ if (
       providerResponse:
         queryResult,
       message:
-        queryResult.queryStatus === "PENDING"
+        isStillProcessing
           ? "M-Pesa payment is still being processed."
           : queryResult.ResultDesc ||
             "M-Pesa payment status received. Waiting for callback settlement.",

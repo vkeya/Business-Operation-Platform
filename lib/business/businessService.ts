@@ -1,5 +1,8 @@
 import type { BusinessRepository } from "./businessRepository";
 import { requireBusinessContext } from "./businessContext";
+import {
+  requireBusinessPermission,
+} from "./businessPermissionService";
 import type { BusinessSetup } from "@/types/setup";
 import {
   boutiqueCategoryDefaults,
@@ -120,6 +123,12 @@ for (const category of defaultCategories) {
         businessId,
         userId,
       });
+
+	  await requireBusinessPermission(
+  context.userId,
+  context.businessId,
+  "business.read",
+);
 
       return repository.getBranches(
         context.businessId,

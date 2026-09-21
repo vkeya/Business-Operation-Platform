@@ -9,6 +9,9 @@ import { supplierService } from "@/lib/supplier/supplierService";
 import {
   purchaseService,
 } from "@/lib/purchase/purchaseService";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import type {
   CreatePurchaseInput,
 } from "@/lib/purchase/purchaseRepository";
@@ -21,14 +24,22 @@ import {
 
 export async function createPurchaseAction(
   input: Omit<
-    CreatePurchaseInput,
-    | "businessId"
-    | "createdBy"
-    | "referenceNumber"
-  >,
+  CreatePurchaseInput,
+  | "businessId"
+  | "createdBy"
+  | "referenceNumber"
+> & {
+  operationId: string;
+},
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
 
   return purchaseService.createPurchase({
     ...input,
@@ -43,6 +54,12 @@ export async function getPurchasesAction() {
   const context =
     await getCurrentBusinessContext();
 
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.read",
+);
+
   return purchaseService.listPurchases(
     context.business.id,
   );
@@ -53,6 +70,12 @@ export async function getPurchaseByReferenceAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.read",
+);
 
   return purchaseService.findPurchaseByReference(
     context.business.id,
@@ -66,6 +89,12 @@ export async function getPurchaseByIdAction(
   const context =
     await getCurrentBusinessContext();
 
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.read",
+);
+
   return purchaseService.findPurchaseById(
     context.business.id,
     purchaseId,
@@ -75,6 +104,12 @@ export async function getPurchaseByIdAction(
 export async function getPurchaseDefaultsAction() {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.read",
+);
 
   const [suppliers, products, warehouses] =
     await Promise.all([
@@ -111,6 +146,12 @@ export async function orderPurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
+
   return purchaseService.orderPurchase(
     context.business.id,
     purchaseId,
@@ -122,6 +163,12 @@ export async function receivePurchaseAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
 
   return purchaseService.receivePurchase(
     context.business.id,
@@ -135,6 +182,12 @@ export async function cancelPurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
+
   return purchaseService.cancelPurchase(
     context.business.id,
     purchaseId,
@@ -146,6 +199,12 @@ export async function getPurchasePaymentsAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.read",
+);
 
   return paymentService.listPurchasePayments(
     context.business.id,
@@ -161,6 +220,12 @@ export async function createPurchasePaymentAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
 
   return paymentService.createPurchasePayment({
     ...input,

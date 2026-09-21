@@ -2,6 +2,12 @@
 
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { productService } from "@/lib/inventory/productService";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import { productCategoryService } from "@/lib/inventory/productCategoryService";
 import type { CreateProductInput } from "@/lib/inventory/productRepository";
 import type { CreateProductCategoryInput } from "@/lib/inventory/productCategoryRepository";
@@ -10,9 +16,20 @@ export async function createServiceAction(
   input: Omit<
     CreateProductInput,
     "businessId" | "type" | "trackInventory"
-  >,
+  > & {
+    operationId: string;
+  },
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   return productService.createProduct({
     ...input,
@@ -25,6 +42,15 @@ export async function createServiceAction(
 export async function getServiceDefaultsAction() {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   return {
     currency: business.baseCurrency,
   };
@@ -32,6 +58,15 @@ export async function getServiceDefaultsAction() {
 
 export async function getServicesAction() {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return productService.listServices(
     business.id,
@@ -41,6 +76,15 @@ export async function getServicesAction() {
 export async function getServiceCategoriesAction() {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   return productCategoryService.listCategories(
     business.id,
   );
@@ -48,6 +92,15 @@ export async function getServiceCategoriesAction() {
 
 export async function getAllServiceCategoriesAction() {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return productCategoryService.listAllCategories(
     business.id,
@@ -61,6 +114,15 @@ export async function createServiceCategoryAction(
   >,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   return productCategoryService.createCategory({
     ...input,
@@ -78,6 +140,15 @@ export async function updateServiceCategoryAction(
 ) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return productCategoryService.updateCategory(
     business.id,
     categoryId,
@@ -89,6 +160,15 @@ export async function getServicesByCategoryAction(
   categoryId: string,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return productService.listServicesByCategory(
     business.id,

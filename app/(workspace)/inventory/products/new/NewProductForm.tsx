@@ -281,8 +281,12 @@ useEffect(() => {
     setSaving(true);
 
     try {
+
+		const operationId = crypto.randomUUID();
+
       const product = await createProductAction({
-        name,
+  operationId,
+  name,
 		categoryId: selectedProductCategory?.id || undefined,
         barcode: barcode || undefined,
         type,
@@ -302,6 +306,10 @@ useEffect(() => {
             : Number(reorderLevel),
         attributes,
       });
+
+	  if (!product) {
+  throw new Error("Unable to create the product.");
+}
 
       await Promise.all(
         sellingUnits.map((sellingUnit) =>
@@ -466,7 +474,7 @@ useEffect(() => {
                   setSku(event.target.value.toUpperCase())
                 }
                 placeholder=""
-                
+
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm uppercase outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
@@ -681,7 +689,7 @@ useEffect(() => {
                 onChange={(event) =>
                   setCostPrice(event.target.value)
                 }
-                
+
                 className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>

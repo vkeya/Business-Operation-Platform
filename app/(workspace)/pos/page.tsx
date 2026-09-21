@@ -716,6 +716,8 @@ if (
       setError("");
       setSuccessMessage("");
 
+	  const operationId = crypto.randomUUID();
+
       const response = await fetch(
         "/api/pos/checkout",
         {
@@ -725,6 +727,7 @@ if (
               "application/json",
           },
           body: JSON.stringify({
+			operationId,
             warehouseId,
             currency,
 			customerId:

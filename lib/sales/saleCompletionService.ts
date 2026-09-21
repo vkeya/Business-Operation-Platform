@@ -26,20 +26,46 @@ export const saleCompletionService = {
       throw new Error("Sale is required.");
     }
 
-    return prisma.$transaction((tx) =>
-      this.completeDraftSaleWithTx(
-        tx,
-        businessId,
-        saleId,
-      ),
+    const operationId = `SALE_COMPLETE:${saleId}`;
+
+const maxAttempts = 3;
+
+for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        return this.completeDraftSaleWithTx(
+          tx,
+          businessId,
+          saleId,
+          operationId,
+        );
+      },
+      {
+        isolationLevel: "Serializable",
+      },
     );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2034" &&
+      attempt < maxAttempts
+    ) {
+      continue;
+    }
+
+    throw error;
+  }
+}
   },
 
   async completeDraftSaleWithTx(
-    tx: PrismaTransactionClient,
-    businessId: string,
-    saleId: string,
-  ) {
+  tx: PrismaTransactionClient,
+  businessId: string,
+  saleId: string,
+  operationId?: string,
+) {
     if (!businessId) {
       throw new Error("Business context is required.");
     }
@@ -47,6 +73,9 @@ export const saleCompletionService = {
     if (!saleId) {
       throw new Error("Sale is required.");
     }
+
+	const resolvedOperationId =
+  operationId ?? `SALE_COMPLETE:${saleId}`;
 
     const sale = await saleRepository.findById(
       businessId,
@@ -58,7 +87,7 @@ export const saleCompletionService = {
       throw new Error("Sale not found.");
     }
 
-    if (sale.status === "COMPLETED") {
+	 if (sale.status === "COMPLETED") {
       return sale;
     }
 
@@ -67,6 +96,65 @@ export const saleCompletionService = {
         `Only draft sales can be completed. Current status: ${sale.status}.`,
       );
     }
+
+const existingOperation =
+  await tx.operationRequest.findUnique({
+    where: {
+      businessId_operationId: {
+        businessId,
+        operationId: resolvedOperationId,
+      },
+    },
+  });
+
+if (existingOperation) {
+  if (
+    existingOperation.status === "COMPLETED" &&
+    existingOperation.entityId
+  ) {
+    const existingSale =
+      await saleRepository.findById(
+        businessId,
+        existingOperation.entityId,
+        tx,
+      );
+
+    if (existingSale) {
+      return existingSale;
+    }
+  }
+
+  if (
+    existingOperation.status === "PROCESSING"
+  ) {
+	    /*
+     * The operation already belongs to an active
+     * completion transaction.
+     *
+     * The current transaction must not continue because
+     * doing so could consume inventory or post accounting
+     * twice.
+     */
+
+    throw new Error(
+      "This sale completion is already being processed.",
+    );
+  }
+}else {
+
+await tx.operationRequest.create({
+  data: {
+    businessId,
+    operationId: resolvedOperationId,
+    operation: "SALE_COMPLETE",
+    status: "PROCESSING",
+    entityType: "SALE",
+    entityId: saleId,
+    createdBy: sale.createdBy,
+  },
+});
+
+}
 
     /*
      * Payment safety:
@@ -178,10 +266,11 @@ export const saleCompletionService = {
       if (item.sellingUnitId) {
         const sellingUnit =
           await productService.findSellingUnitById(
-            item.productId,
-            item.sellingUnitId,
-            tx,
-          );
+  businessId,
+  item.productId,
+  item.sellingUnitId,
+  tx,
+);
 
         if (!sellingUnit) {
           throw new Error(
@@ -241,11 +330,32 @@ export const saleCompletionService = {
       client: tx,
     });
 
-    return saleRepository.updateStatus(
+    const completedSale =
+  await saleRepository.updateStatus(
+    businessId,
+    saleId,
+    "COMPLETED",
+    tx,
+  );
+
+await tx.operationRequest.update({
+  where: {
+    businessId_operationId: {
       businessId,
+      operationId: resolvedOperationId,
+    },
+  },
+  data: {
+    status: "COMPLETED",
+    entityType: "SALE",
+    entityId: saleId,
+    response: {
       saleId,
-      "COMPLETED",
-      tx,
-    );
+      status: "COMPLETED",
+    },
+  },
+});
+
+return completedSale;
   },
 };

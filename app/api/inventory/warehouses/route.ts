@@ -4,6 +4,7 @@ import {
   getCurrentBusinessContext,
   getCurrentBusinessWarehouses,
 } from "@/lib/business/currentBusiness";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 export async function GET() {
   try {
@@ -18,6 +19,12 @@ export async function GET() {
       warehouses,
     });
   } catch (error) {
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Inventory warehouse lookup failed:",
       error,

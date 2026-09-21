@@ -14,6 +14,9 @@ export function buildPosCheckoutInput(
   createdBy: string,
 ): PosCheckoutInput {
   return {
+	  operationId:
+    request.operationId,
+
     businessId,
 
     branchId:

@@ -393,10 +393,13 @@ const totalAmount = taxCalculation.totalAmount;
     );
 
     try {
+
+		const operationId = crypto.randomUUID();
       setSubmitting(true);
 
       const sale =
         await createSaleAction({
+			operationId,
 
           warehouseId,
           currency,

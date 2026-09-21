@@ -6,12 +6,10 @@ import { randomBytes } from "crypto";
 import {
   createDefaultBusinessRoles,
 } from "./businessRoleService";
+import {
+  requireBusinessPermission,
+} from "./businessPermissionService";
 
-const USER_MANAGEMENT_PERMISSIONS = [
-  "users.read",
-  "users.create",
-  "users.update",
-];
 
 interface CreateBusinessUserInvitationInput {
   name?: string;
@@ -19,67 +17,27 @@ interface CreateBusinessUserInvitationInput {
   roleId: string;
 }
 
-async function requireUserManagementAccess() {
+async function requireUserManagementAccess(
+  permission: string,
+) {
   const context =
     await getCurrentBusinessContext();
 
-  const membership =
-    await prisma.businessMembership.findFirst({
-      where: {
-        businessId: context.business.id,
-        userId: context.user.id,
-        isActive: true,
-      },
-      select: {
-        isOwner: true,
-      },
-    });
-
-  if (membership?.isOwner) {
-    return context;
-  }
-
-  const userRoles =
-    await prisma.userRole.findMany({
-      where: {
-        userId: context.user.id,
-        role: {
-          businessId: context.business.id,
-        },
-      },
-      include: {
-        role: {
-          select: {
-            permissions: true,
-          },
-        },
-      },
-    });
-
-  const hasPermission =
-  userRoles.some(({ role }) =>
-    role.permissions.includes("*") ||
-    USER_MANAGEMENT_PERMISSIONS.every(
-      (permission) =>
-        role.permissions.includes(
-          permission,
-        ),
-    ),
+  await requireBusinessPermission(
+    context.user.id,
+    context.business.id,
+    permission,
   );
-
-  if (!hasPermission) {
-    throw new Error(
-      "You do not have permission to manage business users.",
-    );
-  }
 
   return context;
 }
 
 export const businessUserService = {
   async listUsers() {
-    const context =
-      await requireUserManagementAccess();
+  const context =
+    await requireUserManagementAccess(
+      "users.read",
+    );
 
     const memberships =
       await prisma.businessMembership.findMany({
@@ -140,7 +98,9 @@ export const businessUserService = {
 
   async listRoles() {
   const context =
-    await requireUserManagementAccess();
+    await requireUserManagementAccess(
+      "roles.read",
+    );
 
   await createDefaultBusinessRoles(
     context.business.id,
@@ -162,21 +122,22 @@ export const businessUserService = {
     },
   });
 },
-  
+
     async listInvitations() {
-    const context =
-      await requireUserManagementAccess();
+  const context =
+    await requireUserManagementAccess(
+      "users.read",
+    );
 
     return prisma.businessUserInvitation.findMany({
       where: {
         businessId: context.business.id,
       },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        token: true,
-        expiresAt: true,
+  id: true,
+  name: true,
+  email: true,
+  expiresAt: true,
         acceptedAt: true,
         createdAt: true,
         role: {
@@ -191,12 +152,14 @@ export const businessUserService = {
       },
     });
   },
-  
+
     async revokeInvitation(
-    invitationId: string,
-  ) {
-    const context =
-      await requireUserManagementAccess();
+  invitationId: string,
+) {
+  const context =
+    await requireUserManagementAccess(
+      "users.update",
+    );
 
     const invitation =
       await prisma.businessUserInvitation.findFirst({
@@ -233,12 +196,14 @@ export const businessUserService = {
       id: invitation.id,
     };
   },
-  
+
     async resendInvitation(
-    invitationId: string,
-  ) {
-    const context =
-      await requireUserManagementAccess();
+  invitationId: string,
+) {
+  const context =
+    await requireUserManagementAccess(
+      "users.update",
+    );
 
     const invitation =
       await prisma.businessUserInvitation.findFirst({
@@ -248,12 +213,18 @@ export const businessUserService = {
             context.business.id,
         },
         select: {
-          id: true,
-          acceptedAt: true,
-          email: true,
-          name: true,
-          roleId: true,
-        },
+  id: true,
+  acceptedAt: true,
+  email: true,
+  name: true,
+  roleId: true,
+  role: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+},
       });
 
     if (!invitation) {
@@ -277,35 +248,39 @@ export const businessUserService = {
           7 * 24 * 60 * 60 * 1000,
       );
 
-    return prisma.businessUserInvitation.update({
-      where: {
-        id: invitation.id,
-      },
-      data: {
-        token,
-        expiresAt,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        token: true,
-        expiresAt: true,
-        role: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    await prisma.businessUserInvitation.update({
+  where: {
+    id: invitation.id,
+  },
+  data: {
+    token,
+    expiresAt,
+  },
+});
+
+return {
+  email: invitation.email,
+  expiresAt,
+  role: {
+    id: invitation.role.id,
+    name: invitation.role.name,
+  },
+};
   },
 
   async createInvitation(
   input: CreateBusinessUserInvitationInput,
 ) {
   const context =
-    await requireUserManagementAccess();
+    await requireUserManagementAccess(
+      "users.create",
+    );
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "roles.manage",
+);
 
   const name =
     input.name?.trim() || undefined;
@@ -322,23 +297,30 @@ export const businessUserService = {
   }
 
   const role =
-    await prisma.role.findFirst({
-      where: {
-        id: input.roleId,
-        businessId:
-          context.business.id,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
+  await prisma.role.findFirst({
+    where: {
+      id: input.roleId,
+      businessId:
+        context.business.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      isSystemRole: true,
+    },
+  });
 
   if (!role) {
     throw new Error(
       "The selected role does not belong to this business.",
     );
   }
+
+  if (role.name === "Business Owner") {
+  throw new Error(
+    "The Business Owner role cannot be assigned through an invitation.",
+  );
+}
 
   const token =
     randomBytes(32).toString("hex");
@@ -404,11 +386,13 @@ export const businessUserService = {
 },
 
   async setUserActive(
-    userId: string,
-    isActive: boolean,
-  ) {
-    const context =
-      await requireUserManagementAccess();
+  userId: string,
+  isActive: boolean,
+) {
+  const context =
+    await requireUserManagementAccess(
+      "users.update",
+    );
 
     const membership =
       await prisma.businessMembership.findFirst({

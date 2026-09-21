@@ -115,7 +115,11 @@ export default function ReceiveStockForm({
     setSubmitting(true);
 
     try {
+
+		const operationId = crypto.randomUUID();
+
       await receiveStockAction({
+		  operationId,
         productId,
         warehouseId,
         quantity: parsedQuantity,

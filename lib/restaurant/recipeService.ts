@@ -113,6 +113,55 @@ export const recipeService = {
       );
     }
 
+	const recipe = await prisma.recipe.findFirst({
+  where: {
+    id: input.recipeId,
+    businessId: input.businessId,
+  },
+  select: {
+    id: true,
+  },
+});
+
+if (!recipe) {
+  throw new Error(
+    "Recipe does not belong to the current business.",
+  );
+}
+
+const product = await prisma.product.findFirst({
+  where: {
+    id: input.productId,
+    businessId: input.businessId,
+  },
+  select: {
+    id: true,
+  },
+});
+
+if (!product) {
+  throw new Error(
+    "Ingredient product does not belong to the current business or is inactive.",
+  );
+}
+
+const existingIngredient =
+  await prisma.recipeIngredient.findFirst({
+    where: {
+      recipeId: input.recipeId,
+      productId: input.productId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+if (existingIngredient) {
+  throw new Error(
+    "This product is already an ingredient in this recipe.",
+  );
+}
+
     return recipeRepository.addIngredient({
       ...input,
       unit,
@@ -538,7 +587,8 @@ return inventoryService.consumeStockBatch({
     });
   },
 
-    async restoreSaleRecipes(input: {
+    async restoreSaleRecipes(
+  input: {
     businessId: string;
     warehouseId: string;
     currency: string;
@@ -548,7 +598,9 @@ return inventoryService.consumeStockBatch({
       menuItemId: string;
       quantity: number;
     }>;
-  }) {
+    client?: PrismaTransactionClient;
+  },
+) {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
@@ -625,21 +677,24 @@ return inventoryService.consumeStockBatch({
       return [];
     }
 
-    return inventoryService.returnStockBatch({
-      businessId: input.businessId,
-      warehouseId: input.warehouseId,
-      currency: input.currency,
-      createdBy: input.createdBy,
-      referenceType: "SALE_REVERSAL",
-      referenceId: input.referenceId,
-      items: Array.from(
-        restorationByProduct.entries(),
-      ).map(
-        ([productId, quantity]) => ({
-          productId,
-          quantity,
-        }),
-      ),
-    });
+    return inventoryService.returnStockBatch(
+  {
+    businessId: input.businessId,
+    warehouseId: input.warehouseId,
+    currency: input.currency,
+    createdBy: input.createdBy,
+    referenceType: "SALE_REVERSAL",
+    referenceId: input.referenceId,
+    items: Array.from(
+      restorationByProduct.entries(),
+    ).map(
+      ([productId, quantity]) => ({
+        productId,
+        quantity,
+      }),
+    ),
+  },
+  input.client,
+);
   },
 };

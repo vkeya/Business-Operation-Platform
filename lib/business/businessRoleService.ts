@@ -27,6 +27,10 @@ export const DEFAULT_BUSINESS_ROLES = [
       "sales.manage",
       "payments.read",
       "payments.manage",
+	  "expenses.read",
+"expenses.manage",
+"accounting.read",
+"accounting.manage",
     ],
   },
   {
@@ -43,6 +47,10 @@ export const DEFAULT_BUSINESS_ROLES = [
       "sales.manage",
       "payments.read",
       "payments.manage",
+	  "expenses.read",
+"expenses.manage",
+"accounting.read",
+"accounting.manage",
     ],
   },
   {

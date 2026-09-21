@@ -115,14 +115,17 @@ export default function AdjustStockForm({
     setSubmitting(true);
 
     try {
-      await adjustStockAction({
-        productId,
-        warehouseId,
-        quantity: parsedQuantity,
-        currency:
-          selectedProduct.currency,
-        notes: notes.trim(),
-      });
+      const operationId = crypto.randomUUID();
+
+await adjustStockAction({
+  operationId,
+  productId,
+  warehouseId,
+  quantity: parsedQuantity,
+  currency:
+    selectedProduct.currency,
+  notes: notes.trim(),
+});
 
       setSuccess(
         `${t.inventory.stockAdjustedBy} ${parsedQuantity} ${t.inventory.forProduct} ${selectedProduct.name}.`,

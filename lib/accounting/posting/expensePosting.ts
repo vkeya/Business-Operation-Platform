@@ -1,6 +1,10 @@
 import { accountRepository } from "@/lib/accounting/accountRepository";
 import { journalService } from "@/lib/accounting/journalService";
+import { prisma } from "@/lib/database/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
+type PrismaTransactionClient =
+  Prisma.TransactionClient;
 
 interface PostExpenseInput {
   businessId: string;
@@ -16,18 +20,21 @@ interface PostExpenseInput {
 
 export async function postExpenseToAccounting(
   input: PostExpenseInput,
+  client: PrismaTransactionClient = prisma,
 ) {
   const expenseAccount =
     await accountRepository.findByCode(
-      input.businessId,
-      "5000",
-    );
+  input.businessId,
+  "5000",
+  client,
+);
 
   const payableAccount =
     await accountRepository.findByCode(
-      input.businessId,
-      "2000",
-    );
+  input.businessId,
+  "2000",
+  client,
+);
 
 
   if (!expenseAccount) {
@@ -43,7 +50,8 @@ export async function postExpenseToAccounting(
   }
 
 
-  return journalService.create({
+  return journalService.create(
+  {
     businessId:
       input.businessId,
 
@@ -91,5 +99,7 @@ export async function postExpenseToAccounting(
           input.amount,
       },
     ],
-  });
+  },
+  client,
+);
 }

@@ -62,7 +62,7 @@ export const paymentAttemptService = {
       currency,
     });
   },
-  
+
     async findById(
     businessId: string,
     id: string,
@@ -82,6 +82,28 @@ export const paymentAttemptService = {
     return paymentAttemptRepository.findById(
       businessId,
       id,
+    );
+  },
+
+    async findBySaleId(
+    businessId: string,
+    saleId: string,
+  ) {
+    if (!businessId.trim()) {
+      throw new Error(
+        "Business context is required.",
+      );
+    }
+
+    if (!saleId.trim()) {
+      throw new Error(
+        "Sale is required.",
+      );
+    }
+
+    return paymentAttemptRepository.findBySaleId(
+      businessId,
+      saleId,
     );
   },
 
@@ -106,7 +128,7 @@ export const paymentAttemptService = {
       providerReference.trim(),
     );
   },
-  
+
     async updateStatus(
     businessId: string,
     id: string,
@@ -133,7 +155,7 @@ export const paymentAttemptService = {
       status,
     );
   },
-  
+
   async complete(
   businessId: string,
   id: string,
@@ -209,5 +231,5 @@ async fail(
     id,
   );
 },
-  
+
 };

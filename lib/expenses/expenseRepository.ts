@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+
+type PrismaTransactionClient =
+  Prisma.TransactionClient;
 
 export interface CreateExpenseInput {
   businessId: string;
+  operationId: string;
   branchId?: string;
 
   reference?: string;
@@ -44,12 +49,14 @@ function serializeExpense<
 }
 
 export const expenseRepository = {
-  async create(input: CreateExpenseInput & {
-  reference: string;
+  async create(
+  input: CreateExpenseInput & {
+    reference: string;
   },
-  ){
-    const expense =
-      await prisma.expense.create({
+  client: PrismaTransactionClient = prisma,
+) {
+  const expense =
+    await client.expense.create({
         data: {
           businessId:
             input.businessId,
@@ -115,11 +122,12 @@ export const expenseRepository = {
   },
 
   async findByReference(
-    businessId: string,
-    reference: string,
-  ) {
-    const expense =
-      await prisma.expense.findUnique({
+  businessId: string,
+  reference: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  const expense =
+    await client.expense.findUnique({
         where: {
           businessId_reference: {
             businessId,
@@ -134,11 +142,12 @@ export const expenseRepository = {
   },
 
   async findById(
-    businessId: string,
-    expenseId: string,
-  ) {
-    const expense =
-      await prisma.expense.findFirst({
+  businessId: string,
+  expenseId: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  const expense =
+    await client.expense.findFirst({
         where: {
           id: expenseId,
           businessId,

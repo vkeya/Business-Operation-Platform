@@ -82,7 +82,9 @@ export default function RecordPaymentForm({
       return;
     }
 
-    setSubmitting(true);
+    const operationId = crypto.randomUUID();
+
+setSubmitting(true);
 
 try {
   if (method === "MPESA") {
@@ -118,6 +120,7 @@ try {
 
   await createSalePaymentAction({
     saleId,
+	operationId,
     method,
     amount: parsedAmount,
     currency,

@@ -260,7 +260,8 @@ if (!currency) {
 
     try {
       await createPurchaseAction({
-        supplierId,
+  operationId: crypto.randomUUID(),
+  supplierId,
         warehouseId:
           warehouseId || undefined,
 

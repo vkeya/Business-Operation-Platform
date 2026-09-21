@@ -15,6 +15,7 @@ import type {
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 
 export async function createRestaurantMenuAction(
   input: Omit<
@@ -25,6 +26,14 @@ export async function createRestaurantMenuAction(
   const business =
     await getCurrentBusiness();
 
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return restaurantMenuService.createMenu({
     ...input,
     businessId: business.id,
@@ -34,6 +43,14 @@ export async function createRestaurantMenuAction(
 export async function getRestaurantMenusAction() {
   const business =
     await getCurrentBusiness();
+
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return restaurantMenuService.listMenus(
     business.id,
@@ -49,6 +66,14 @@ export async function createRestaurantMenuItemAction(
   const business =
     await getCurrentBusiness();
 
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return restaurantMenuService.createMenuItem({
     ...input,
     businessId: business.id,
@@ -61,6 +86,14 @@ export async function getRestaurantMenuItemsAction(
   const business =
     await getCurrentBusiness();
 
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   return restaurantMenuService.listMenuItems(
     business.id,
     menuId,
@@ -70,6 +103,14 @@ export async function getRestaurantMenuItemsAction(
 export async function getRestaurantMenuProductsAction() {
   const business =
     await getCurrentBusiness();
+
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return productService.listProducts(
     business.id,
@@ -82,6 +123,14 @@ export async function getRestaurantMenuAction(
   const business =
     await getCurrentBusiness();
 
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   return restaurantMenuService.findMenuById(
     business.id,
     menuId,
@@ -92,6 +141,14 @@ export async function createRestaurantRecipeAction(
   input: Omit<CreateRecipeInput, "businessId">,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   if (business.type !== "restaurant") {
     throw new Error(
@@ -109,6 +166,14 @@ export async function getRestaurantRecipeAction(
   menuItemId: string,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   if (business.type !== "restaurant") {
     throw new Error(
@@ -129,6 +194,14 @@ export async function addRestaurantRecipeIngredientAction(
   >,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   if (business.type !== "restaurant") {
     throw new Error(
@@ -159,6 +232,14 @@ export async function consumeRestaurantRecipeStockAction(
   const userId =
     await getAuthenticatedUserId();
 
+
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   if (business.type !== "restaurant") {
     throw new Error(
       "Recipe consumption is only available for restaurants.",
@@ -178,6 +259,14 @@ export async function getRestaurantMenuItemAction(
   const business =
     await getCurrentBusiness();
 
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   if (business.type !== "restaurant") {
     throw new Error(
       "Menu management is only available for restaurants.",
@@ -193,6 +282,14 @@ export async function getRestaurantMenuItemAction(
 export async function getAvailableRestaurantMenuItemsAction() {
   const business =
     await getCurrentBusiness();
+
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   if (business.type !== "restaurant") {
     throw new Error(

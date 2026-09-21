@@ -37,11 +37,14 @@ export default function ExpenseForm({
     event.preventDefault();
 
     setError("");
+
+	const operationId = crypto.randomUUID();
+
     setSaving(true);
 
     try {
       await createExpenseAction({
-
+		  operationId,
         category,
         description,
         amount: Number(amount),

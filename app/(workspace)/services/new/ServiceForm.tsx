@@ -86,8 +86,11 @@ export default function ServiceForm({
       const serviceCurrency =
         currency || defaults.currency;
 
-      await createServiceAction({
-        name,
+		const operationId = crypto.randomUUID();
+
+     await createServiceAction({
+  operationId,
+  name,
         sku,
         description:
           description || undefined,

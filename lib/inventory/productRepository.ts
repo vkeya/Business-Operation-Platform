@@ -12,6 +12,7 @@ export type ProductAttributes =
 
 export interface CreateProductInput {
   businessId: string;
+  createdBy?: string;
   categoryId?: string;
   name: string;
   sku: string;
@@ -104,8 +105,11 @@ function serializeProduct<
 }
 
 export const productRepository = {
-  async create(input: CreateProductInput) {
-    const product = await prisma.product.create({
+  async create(
+  input: CreateProductInput,
+  client: PrismaTransactionClient = prisma,
+) {
+  const product = await client.product.create({
       data: {
         businessId: input.businessId,
         categoryId: input.categoryId,
@@ -263,7 +267,7 @@ export const productRepository = {
 
     return products.map(serializeProduct);
   },
-  
+
   async listArchived(
   businessId: string,
 ) {

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import { authOptions } from "@/lib/auth/auth";
 import { requireBusinessContext } from "@/lib/business/businessContext";
 import { saleReturnService } from "@/lib/sales/saleReturnService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 export async function POST(
   request: Request,
@@ -26,27 +29,38 @@ export async function POST(
     }
 
     const body =
-      await request.json();
+  await request.json();
 
-    const businessId =
+const context =
+  await requireBusinessContext({
+    businessId:
       typeof body.businessId === "string"
         ? body.businessId.trim()
-        : "";
+        : "",
+    userId,
+    branchId:
+      typeof body.branchId === "string"
+        ? body.branchId
+        : undefined,
+  });
 
-    const context =
-      await requireBusinessContext({
-        businessId,
-        userId,
-        branchId:
-          typeof body.branchId === "string"
-            ? body.branchId
-            : undefined,
-      });
+  await requireBusinessPermission(
+  context.userId,
+  context.businessId,
+  "sales.manage",
+);
 
     const result =
       await saleReturnService.create({
+
+		  operationId:
+  typeof body.operationId === "string"
+    ? body.operationId.trim()
+    : "",
         businessId:
           context.businessId,
+
+
 
         saleId:
           body.saleId,
@@ -78,6 +92,13 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Failed to create sale return:",
       error,

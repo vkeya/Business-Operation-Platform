@@ -35,6 +35,7 @@ model Business {
   inventoryBalances   InventoryBalance[]
   inventoryMovements  InventoryMovement[]
   journalEntries      JournalEntry[]
+  operationRequests OperationRequest[]
   payments            Payment[]
   mpesaConfiguration MpesaConfiguration?
   products            Product[]
@@ -293,10 +294,11 @@ model Product {
   recipeIngredients   RecipeIngredient[]
   restaurantMenuItems RestaurantMenuItem[]
 
-  @@unique([businessId, sku])
-  @@index([businessId])
-  @@index([categoryId])
-  @@index([barcode])
+@@unique([businessId, sku])
+@@unique([businessId, barcode])
+@@index([businessId])
+@@index([categoryId])
+@@index([barcode])
 }
 
 model ProductSellingUnit {
@@ -313,6 +315,7 @@ model ProductSellingUnit {
   saleItems    SaleItem[]
 
   @@index([productId])
+  @@unique([productId, name, quantity, unit])
 }
 
 model ProductPrice {
@@ -401,6 +404,7 @@ model RecipeIngredient {
   @@index([businessId])
   @@index([recipeId])
   @@index([productId])
+  @@unique([recipeId, productId])
 }
 
 model InventoryBalance {
@@ -709,6 +713,26 @@ model PaymentAttempt {
   @@index([saleId])
   @@unique([businessId, provider, providerReference])
   @@index([createdAt])
+}
+
+model OperationRequest {
+  id          String   @id @default(cuid())
+  businessId  String
+  operationId String
+  operation   String
+  status      String   @default("PROCESSING")
+  entityType  String?
+  entityId    String?
+  response    Json?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, operationId])
+  @@index([businessId, operation])
+  @@index([businessId, entityType, entityId])
 }
 
 model Expense {

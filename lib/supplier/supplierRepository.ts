@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export interface CreateSupplierInput {
   businessId: string;
   name: string;
@@ -12,8 +19,11 @@ export interface CreateSupplierInput {
 }
 
 export const supplierRepository = {
-  async create(input: CreateSupplierInput) {
-    return prisma.supplier.create({
+  async create(
+  input: CreateSupplierInput,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.supplier.create({
       data: {
         businessId: input.businessId,
         name: input.name,

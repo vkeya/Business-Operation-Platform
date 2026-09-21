@@ -2,43 +2,184 @@ import {
   customerRepository,
   type CreateCustomerInput,
 } from "./customerRepository";
+import { prisma } from "@/lib/database/prisma";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export const customerService = {
-  async createCustomer(input: CreateCustomerInput) {
-    const name = input.name.trim();
-
-    if (!input.businessId) {
-      throw new Error("Business context is required.");
-    }
-
-    if (!name) {
-      throw new Error("Customer name is required.");
-    }
-
-    const phone = input.phone?.trim() || undefined;
-    const email = input.email?.trim() || undefined;
-    const address = input.address?.trim() || undefined;
-    const taxNumber =
-      input.taxNumber?.trim() || undefined;
-
-    if (
-      input.creditLimit !== undefined &&
-      input.creditLimit < 0
-    ) {
-      throw new Error(
-        "Credit limit cannot be negative.",
-      );
-    }
-
-    return customerRepository.create({
-      ...input,
-      name,
-      phone,
-      email,
-      address,
-      taxNumber,
-    });
+  async createCustomer(
+  input: CreateCustomerInput & {
+    operationId: string;
+    createdBy: string;
   },
+) {
+  const name = input.name.trim();
+
+  if (!input.businessId) {
+    throw new Error("Business context is required.");
+  }
+
+  if (!input.operationId?.trim()) {
+    throw new Error("Operation ID is required.");
+  }
+
+  if (!input.createdBy) {
+    throw new Error("User context is required.");
+  }
+
+  if (!name) {
+    throw new Error("Customer name is required.");
+  }
+
+  const phone = input.phone?.trim() || undefined;
+  const email = input.email?.trim() || undefined;
+  const address = input.address?.trim() || undefined;
+  const taxNumber = input.taxNumber?.trim() || undefined;
+
+  if (
+    input.creditLimit !== undefined &&
+    input.creditLimit < 0
+  ) {
+    throw new Error(
+      "Credit limit cannot be negative.",
+    );
+  }
+
+  const maxAttempts = 3;
+
+  for (
+    let attempt = 1;
+    attempt <= maxAttempts;
+    attempt++
+  ) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const operation =
+            await tx.operationRequest.create({
+              data: {
+                businessId:
+                  input.businessId,
+
+                operationId:
+                  input.operationId,
+
+                operation:
+                  "CUSTOMER_CREATE",
+
+                status:
+                  "PROCESSING",
+
+                entityType:
+                  "CUSTOMER",
+
+                createdBy:
+                  input.createdBy,
+              },
+            });
+
+          const customer =
+            await customerRepository.create(
+              {
+                businessId:
+                  input.businessId,
+                name,
+                phone,
+                email,
+                address,
+                taxNumber,
+                creditLimit:
+                  input.creditLimit,
+                currency:
+                  input.currency,
+              },
+              tx,
+            );
+
+          await tx.operationRequest.update({
+            where: {
+              id: operation.id,
+            },
+            data: {
+              status:
+                "COMPLETED",
+
+              entityType:
+                "CUSTOMER",
+
+              entityId:
+                customer.id,
+
+              response: {
+                customerId:
+                  customer.id,
+              },
+            },
+          });
+
+          return customer;
+        },
+        {
+          isolationLevel:
+            "Serializable",
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code ===
+          "P2034" &&
+        attempt < maxAttempts
+      ) {
+        continue;
+      }
+
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code ===
+          "P2002"
+      ) {
+        const existing =
+          await prisma.operationRequest.findUnique({
+            where: {
+              businessId_operationId: {
+                businessId:
+                  input.businessId,
+
+                operationId:
+                  input.operationId,
+              },
+            },
+          });
+
+        if (existing?.entityId) {
+          const customer =
+            await customerRepository.findById(
+              input.businessId,
+              existing.entityId,
+            );
+
+          if (customer) {
+            return customer;
+          }
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(
+    "Unable to complete customer creation after multiple concurrent attempts.",
+  );
+},
 
   async listCustomers(businessId: string) {
     if (!businessId) {

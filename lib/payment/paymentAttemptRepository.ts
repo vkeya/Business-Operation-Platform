@@ -58,6 +58,22 @@ export const paymentAttemptRepository = {
     });
   },
 
+    async findBySaleId(
+    businessId: string,
+    saleId: string,
+    client: PrismaTransactionClient = prisma,
+  ) {
+    return client.paymentAttempt.findFirst({
+      where: {
+        businessId,
+        saleId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  },
+
   async findByProviderReference(
     provider: string,
     providerReference: string,

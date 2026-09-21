@@ -34,6 +34,7 @@ export interface PosCart {
 }
 
 export interface PosCheckoutRequest {
+  operationId: string;
   branchId?: string;
   warehouseId: string;
   customerId?: string;

@@ -6,6 +6,10 @@ import {
 import {
   expenseService,
 } from "@/lib/expenses/expenseService";
+
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import type {
   CreateExpenseInput,
 } from "@/lib/expenses/expenseRepository";
@@ -18,6 +22,12 @@ export async function createExpenseAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "expenses.manage",
+);
 
   return expenseService.createExpense({
     ...input,
@@ -32,6 +42,12 @@ export async function getExpensesAction() {
   const context =
     await getCurrentBusinessContext();
 
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "expenses.read",
+);
+
   return expenseService.listExpenses(
     context.business.id,
   );
@@ -42,6 +58,12 @@ export async function getExpenseByReferenceAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "expenses.read",
+);
 
   return expenseService.findExpenseByReference(
     context.business.id,
@@ -54,6 +76,12 @@ export async function getExpenseByIdAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "expenses.read",
+);
 
   return expenseService.findExpenseById(
     context.business.id,
@@ -70,6 +98,12 @@ export async function updateExpensePaymentStatusAction(
 ) {
   const context =
     await getCurrentBusinessContext();
+
+	await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "expenses.manage",
+);
 
   return expenseService.updateExpensePaymentStatus(
     context.business.id,

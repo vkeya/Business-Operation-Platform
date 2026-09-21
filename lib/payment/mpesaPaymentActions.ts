@@ -7,7 +7,9 @@ import {
 import {
   getCurrentBusiness,
 } from "@/lib/business/currentBusiness";
-
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import {
   mpesaPaymentService,
 } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
@@ -24,6 +26,12 @@ export async function initiateMpesaPaymentAction(
 
   const userId =
     await getAuthenticatedUserId();
+
+	await requireBusinessPermission(
+  userId,
+  business.id,
+  "payments.manage",
+);
 
   return mpesaPaymentService.initiateSalePayment({
     businessId:

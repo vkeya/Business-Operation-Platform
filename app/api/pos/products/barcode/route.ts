@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { posProductService } from "@/lib/pos/posProductService";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 export async function GET(request: Request) {
   try {
     const context = await getCurrentBusinessContext();
+
+await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "inventory.read",
+);
 
     const { searchParams } = new URL(request.url);
 
@@ -53,6 +61,13 @@ export async function GET(request: Request) {
       product,
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "POS barcode lookup failed:",
       error,

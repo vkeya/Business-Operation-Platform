@@ -26,12 +26,14 @@ export async function POST(
 
 const stkCallback = payload?.Body?.stkCallback;
 
-console.log("M-Pesa callback received:", {
-  merchantRequestId: stkCallback?.MerchantRequestID,
-  checkoutRequestId: stkCallback?.CheckoutRequestID,
-  resultCode: stkCallback?.ResultCode,
-  resultDesc: stkCallback?.ResultDesc,
-});
+if (process.env.NODE_ENV !== "production") {
+  console.log("M-Pesa callback received:", {
+    merchantRequestId: stkCallback?.MerchantRequestID,
+    checkoutRequestId: stkCallback?.CheckoutRequestID,
+    resultCode: stkCallback?.ResultCode,
+    resultDesc: stkCallback?.ResultDesc,
+  });
+}
 
 const result =
   await mpesaCallbackService.process(payload);

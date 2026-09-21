@@ -5,6 +5,24 @@ export async function getGeneralLedger(
   businessId: string,
   accountId: string,
 ) {
+
+	  const account = await prisma.account.findFirst({
+    where: {
+      id: accountId,
+      businessId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!account) {
+    throw new Error(
+      "Account does not belong to the current business or is inactive.",
+    );
+  }
+
   const lines =
     await prisma.journalEntryLine.findMany({
       where: {

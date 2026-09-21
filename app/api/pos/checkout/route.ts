@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { executePosCheckout } from "@/lib/pos/posCheckoutAdapter";
 import type { PosCheckoutRequest } from "@/lib/pos/posTypes";
@@ -7,6 +10,12 @@ import type { PosCheckoutRequest } from "@/lib/pos/posTypes";
 export async function POST(request: Request) {
   try {
     const context = await getCurrentBusinessContext();
+
+await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "sales.manage",
+);
 
     const body =
       (await request.json()) as PosCheckoutRequest;
@@ -66,6 +75,13 @@ export async function POST(request: Request) {
       status: 201,
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "POS checkout failed:",
       error,

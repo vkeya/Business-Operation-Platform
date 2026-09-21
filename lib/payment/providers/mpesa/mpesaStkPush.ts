@@ -149,7 +149,14 @@ try {
     (await response.json()) as
       MpesaStkPushResponse;
 	  
-
+console.log("M-Pesa STK Push response:", {
+  httpStatus: response.status,
+  responseCode: body.ResponseCode,
+  responseDescription: body.ResponseDescription,
+  merchantRequestId: body.MerchantRequestID,
+  checkoutRequestId: body.CheckoutRequestID,
+  customerMessage: body.CustomerMessage,
+});
 
   if (!response.ok) {
   console.error("M-Pesa STK Push rejected:", {

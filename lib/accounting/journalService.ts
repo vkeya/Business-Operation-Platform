@@ -103,6 +103,17 @@ export const journalService = {
       }
     }
 
+	const existing =
+  await journalRepository.findByReference(
+    input.businessId,
+    input.reference.trim(),
+    client,
+  );
+
+if (existing) {
+  return existing;
+}
+
 
     return journalRepository.create(
   {

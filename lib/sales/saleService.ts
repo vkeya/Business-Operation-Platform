@@ -14,17 +14,33 @@ import { paymentRepository } from "@/lib/payment/paymentRepository";
 import { calculateTax } from "@/lib/tax/taxCalculationService";
 import { taxConfigurationService } from "@/lib/tax/taxConfigurationService";
 import { saleCompletionService } from "./saleCompletionService";
+import { prisma } from "@/lib/database/prisma";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export type CreateSaleServiceInput =
-  Omit<CreateSaleInput, "referenceNumber">;
+  Omit<CreateSaleInput, "referenceNumber"> & {
+    operationId: string;
+  };
 
 export const saleService = {
   async create(
-  input: CreateSaleServiceInput,
-) {
+    input: CreateSaleServiceInput,
+  ) {
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
+      );
+    }
+
+    if (!input.operationId?.trim()) {
+      throw new Error(
+        "Operation ID is required.",
       );
     }
 
@@ -89,58 +105,238 @@ export const saleService = {
         );
       }
     }
-	
-	const taxConfiguration =
-  await taxConfigurationService.get(
-    input.businessId,
-  );
 
-const taxCalculation = calculateTax({
-  subtotal: input.subtotal,
-  discountAmount: input.discountAmount,
-  taxEnabled: taxConfiguration.enabled,
-  taxRate: taxConfiguration.rate,
-  pricingMode: taxConfiguration.pricingMode,
-});
+    const taxConfiguration =
+      await taxConfigurationService.get(
+        input.businessId,
+      );
 
-const calculatedTaxAmount =
-  taxCalculation.taxAmount;
+    const taxCalculation =
+      calculateTax({
+        subtotal: input.subtotal,
+        discountAmount:
+          input.discountAmount,
+        taxEnabled:
+          taxConfiguration.enabled,
+        taxRate:
+          taxConfiguration.rate,
+        pricingMode:
+          taxConfiguration.pricingMode,
+      });
 
-const calculatedTotalAmount =
-  taxCalculation.totalAmount;
-  
-  const taxName =
-  taxConfiguration.enabled
-    ? taxConfiguration.name
-    : null;
+    const calculatedTaxAmount =
+      taxCalculation.taxAmount;
 
-const taxRate =
-  taxConfiguration.enabled
-    ? taxConfiguration.rate
-    : null;
+    const calculatedTotalAmount =
+      taxCalculation.totalAmount;
 
-const taxPricingMode =
-  taxConfiguration.enabled
-    ? taxConfiguration.pricingMode
-    : null;
+    const taxName =
+      taxConfiguration.enabled
+        ? taxConfiguration.name
+        : null;
 
-	const referenceNumber =
-  await generateBusinessReference({
-    businessId: input.businessId,
-    referenceType: "SALE",
-    prefix: "SALE",
+    const taxRate =
+      taxConfiguration.enabled
+        ? taxConfiguration.rate
+        : null;
+
+    const taxPricingMode =
+      taxConfiguration.enabled
+        ? taxConfiguration.pricingMode
+        : null;
+
+    const maxAttempts = 3;
+
+    for (
+      let attempt = 1;
+      attempt <= maxAttempts;
+      attempt++
+    ) {
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+			  if (input.customerId) {
+  const customer = await tx.customer.findFirst({
+    where: {
+      id: input.customerId,
+      businessId: input.businessId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
   });
 
-    return saleRepository.create({
-  ...input,
-  taxAmount: calculatedTaxAmount,
-  taxName,
-  taxRate,
-  taxPricingMode,
-  totalAmount: calculatedTotalAmount,
-  referenceNumber,
-});
+  if (!customer) {
+    throw new Error(
+      "Customer does not belong to the current business or is inactive.",
+    );
+  }
+}
+
+if (input.branchId) {
+  const branch = await tx.branch.findFirst({
+    where: {
+      id: input.branchId,
+      businessId: input.businessId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!branch) {
+    throw new Error(
+      "Branch does not belong to the current business or is inactive.",
+    );
+  }
+}
+
+            const operation =
+              await tx.operationRequest.create({
+                data: {
+                  businessId:
+                    input.businessId,
+
+                  operationId:
+                    input.operationId,
+
+                  operation:
+                    "SALE_CREATE",
+
+                  status:
+                    "PROCESSING",
+
+                  entityType:
+                    "SALE",
+
+                  createdBy:
+                    input.createdBy,
+                },
+              });
+
+            const referenceNumber =
+              await generateBusinessReference({
+                businessId:
+                  input.businessId,
+
+                referenceType:
+                  "SALE",
+
+                prefix:
+                  "SALE",
+
+                client: tx,
+              });
+
+            const sale =
+              await saleRepository.create(
+                {
+                  ...input,
+
+                  taxAmount:
+                    calculatedTaxAmount,
+
+                  taxName,
+
+                  taxRate,
+
+                  taxPricingMode,
+
+                  totalAmount:
+                    calculatedTotalAmount,
+
+                  referenceNumber,
+                },
+                tx,
+              );
+
+            await tx.operationRequest.update({
+              where: {
+                id: operation.id,
+              },
+
+              data: {
+                status:
+                  "COMPLETED",
+
+                entityType:
+                  "SALE",
+
+                entityId:
+                  sale.id,
+
+                response: {
+                  saleId:
+                    sale.id,
+
+                  referenceNumber:
+                    sale.referenceNumber,
+                },
+              },
+            });
+
+            return sale;
+          },
+          {
+            isolationLevel:
+              "Serializable",
+          },
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          (error as { code?: string }).code ===
+            "P2034" &&
+          attempt < maxAttempts
+        ) {
+          continue;
+        }
+
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          (error as { code?: string }).code ===
+            "P2002"
+        ) {
+          const existing =
+            await prisma.operationRequest.findUnique({
+              where: {
+                businessId_operationId: {
+                  businessId:
+                    input.businessId,
+
+                  operationId:
+                    input.operationId,
+                },
+              },
+            });
+
+          if (existing?.entityId) {
+            const sale =
+              await saleRepository.findById(
+                input.businessId,
+                existing.entityId,
+              );
+
+            if (sale) {
+              return sale;
+            }
+          }
+        }
+
+        throw error;
+      }
+    }
+
+    throw new Error(
+      "Unable to create sale after multiple concurrent attempts.",
+    );
   },
+
+
 
   async list(businessId: string) {
     if (!businessId) {
@@ -290,7 +486,7 @@ const taxPricingMode =
   );
 },
 
-      async reverse(
+        async reverse(
     businessId: string,
     saleId: string,
   ) {
@@ -306,172 +502,353 @@ const taxPricingMode =
       );
     }
 
-    const sale =
-      await saleRepository.findById(
-        businessId,
-        saleId,
-      );
+    const operationId =
+      `SALE_REVERSAL:${saleId}`;
 
-    if (!sale) {
-      throw new Error(
-        "Sale not found.",
-      );
-    }
+    const maxAttempts = 3;
 
-    if (sale.status !== "COMPLETED") {
-      throw new Error(
-        "Only completed sales can be reversed.",
-      );
-    }
+    for (
+      let attempt = 1;
+      attempt <= maxAttempts;
+      attempt++
+    ) {
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            const existingOperation =
+              await tx.operationRequest.findUnique({
+                where: {
+                  businessId_operationId: {
+                    businessId,
+                    operationId,
+                  },
+                },
+              });
 
-    if (!sale.warehouseId) {
-      throw new Error(
-        "Completed sale has no warehouse for stock reversal.",
-      );
-    }
+            if (
+              existingOperation?.status ===
+                "COMPLETED" &&
+              existingOperation.entityId
+            ) {
+              const existingSale =
+                await saleRepository.findById(
+                  businessId,
+                  existingOperation.entityId,
+                  tx,
+                );
 
-    const restaurantItems =
-      sale.items
-        .filter(
-          (item) => item.menuItemId,
-        )
-        .map((item) => ({
-          menuItemId:
-            item.menuItemId!,
-          quantity:
-            Number(item.quantity),
-        }));
+              if (existingSale) {
+                return existingSale;
+              }
+            }
 
-    const inventoryItems: Array<{
-      productId: string;
-      quantity: number;
-    }> = [];
-	
-	    const existingReversalMovements =
-      await inventoryService.findMovementsByReference(
-        businessId,
-        "SALE_REVERSAL",
-        sale.id,
-      );
+            if (
+              existingOperation?.status ===
+              "PROCESSING"
+            ) {
+              throw new Error(
+                "Sale reversal is already being processed.",
+              );
+            }
 
-    const inventoryAlreadyReversed =
-      existingReversalMovements.length > 0;
+            const sale =
+              await saleRepository.findById(
+                businessId,
+                saleId,
+                tx,
+              );
 
-    for (const item of sale.items) {
-      // Restaurant menu items are restored
-      // through their recipes.
-      if (item.menuItemId) {
-        continue;
-      }
+            if (!sale) {
+              throw new Error(
+                "Sale not found.",
+              );
+            }
 
-      let inventoryQuantity =
-        Number(item.quantity);
+            if (
+              sale.status === "REVERSED"
+            ) {
+              await tx.operationRequest.upsert({
+                where: {
+                  businessId_operationId: {
+                    businessId,
+                    operationId,
+                  },
+                },
+                create: {
+                  businessId,
+                  operationId,
+                  operation:
+                    "SALE_REVERSAL",
+                  status: "COMPLETED",
+                  entityType: "SALE",
+                  entityId: sale.id,
+                  createdBy:
+                    sale.createdBy,
+                  response: {
+                    saleId: sale.id,
+                    status: "REVERSED",
+                  },
+                },
+                update: {
+                  status: "COMPLETED",
+                  entityType: "SALE",
+                  entityId: sale.id,
+                  response: {
+                    saleId: sale.id,
+                    status: "REVERSED",
+                  },
+                },
+              });
 
-      if (item.sellingUnitId) {
-        const sellingUnit =
-          await productService.findSellingUnitById(
-            item.productId,
-            item.sellingUnitId,
-          );
+              return sale;
+            }
 
-        if (!sellingUnit) {
-          throw new Error(
-            `Selling unit not found for product "${item.productName}".`,
-          );
+            if (sale.status !== "COMPLETED") {
+              throw new Error(
+                "Only completed sales can be reversed.",
+              );
+            }
+
+            if (!sale.warehouseId) {
+              throw new Error(
+                "Completed sale has no warehouse for stock reversal.",
+              );
+            }
+
+            await tx.operationRequest.create({
+              data: {
+                businessId,
+                operationId,
+                operation:
+                  "SALE_REVERSAL",
+                status: "PROCESSING",
+                entityType: "SALE",
+                entityId: sale.id,
+                createdBy:
+                  sale.createdBy,
+              },
+            });
+
+            const restaurantItems =
+              sale.items
+                .filter(
+                  (item) => item.menuItemId,
+                )
+                .map((item) => ({
+                  menuItemId:
+                    item.menuItemId!,
+                  quantity:
+                    Number(item.quantity),
+                }));
+
+            const inventoryItems: Array<{
+              productId: string;
+              quantity: number;
+            }> = [];
+
+            for (const item of sale.items) {
+              if (item.menuItemId) {
+                continue;
+              }
+
+              let inventoryQuantity =
+                Number(item.quantity);
+
+              if (item.sellingUnitId) {
+                const sellingUnit =
+                  await productService.findSellingUnitById(
+  businessId,
+  item.productId,
+  item.sellingUnitId,
+);
+
+                if (!sellingUnit) {
+                  throw new Error(
+                    `Selling unit not found for product "${item.productName}".`,
+                  );
+                }
+
+                inventoryQuantity =
+                  Number(item.quantity) *
+                  sellingUnit.quantity;
+              }
+
+              inventoryItems.push({
+                productId:
+                  item.productId,
+                quantity:
+                  inventoryQuantity,
+              });
+            }
+
+            if (
+              restaurantItems.length > 0
+            ) {
+              const { recipeService } =
+                await import(
+                  "@/lib/restaurant/recipeService"
+                );
+
+              await recipeService.restoreSaleRecipes({
+                businessId,
+                warehouseId:
+                  sale.warehouseId,
+                currency:
+                  sale.currency,
+                createdBy:
+                  sale.createdBy,
+                referenceId:
+                  sale.id,
+                items:
+                  restaurantItems,
+                client: tx,
+              });
+            }
+
+            if (
+              inventoryItems.length > 0
+            ) {
+              await inventoryService.returnStockBatch(
+                {
+                  businessId,
+                  warehouseId:
+                    sale.warehouseId,
+                  currency:
+                    sale.currency,
+                  createdBy:
+                    sale.createdBy,
+                  referenceType:
+                    "SALE_REVERSAL",
+                  referenceId:
+                    sale.id,
+                  notes:
+                    `Stock restored from reversed sale ${sale.referenceNumber}.`,
+                  items:
+                    inventoryItems,
+                },
+                tx,
+              );
+            }
+
+            await reverseSaleAccounting({
+              businessId,
+              saleId: sale.id,
+              referenceNumber:
+                sale.referenceNumber,
+              totalAmount:
+                Number(sale.totalAmount),
+              currency:
+                sale.currency,
+              customerId:
+                sale.customerId,
+              createdBy:
+                sale.createdBy,
+              client: tx,
+            });
+
+            const payments =
+              await paymentRepository.listSalePayments(
+                businessId,
+                sale.id,
+                tx,
+              );
+
+            for (const payment of payments) {
+              await reversePaymentAccounting({
+                businessId,
+                paymentReference:
+                  payment.reference,
+                currency:
+                  payment.currency,
+                createdBy:
+                  payment.createdBy,
+                client: tx,
+              });
+            }
+
+            const reversedSale =
+              await saleRepository.updateStatus(
+                businessId,
+                saleId,
+                "REVERSED",
+                tx,
+              );
+
+            await tx.operationRequest.update({
+              where: {
+                businessId_operationId: {
+                  businessId,
+                  operationId,
+                },
+              },
+              data: {
+                status: "COMPLETED",
+                entityType: "SALE",
+                entityId: reversedSale.id,
+                response: {
+                  saleId:
+                    reversedSale.id,
+                  status:
+                    reversedSale.status,
+                },
+              },
+            });
+
+            return reversedSale;
+          },
+          {
+            isolationLevel:
+              "Serializable",
+          },
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "P2034" &&
+          attempt < maxAttempts
+        ) {
+          continue;
         }
 
-        inventoryQuantity =
-          Number(item.quantity) *
-          sellingUnit.quantity;
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "P2002"
+        ) {
+          const existingOperation =
+            await prisma.operationRequest.findUnique({
+              where: {
+                businessId_operationId: {
+                  businessId,
+                  operationId,
+                },
+              },
+            });
+
+          if (
+            existingOperation?.status ===
+              "COMPLETED" &&
+            existingOperation.entityId
+          ) {
+            const existingSale =
+              await saleRepository.findById(
+                businessId,
+                existingOperation.entityId,
+              );
+
+            if (existingSale) {
+              return existingSale;
+            }
+          }
+        }
+
+        throw error;
       }
-
-      inventoryItems.push({
-        productId:
-          item.productId,
-        quantity:
-          inventoryQuantity,
-      });
     }
 
-        if (
-      restaurantItems.length > 0 &&
-      !inventoryAlreadyReversed
-    ) {
-  const { recipeService } =
-    await import(
-      "@/lib/restaurant/recipeService"
-    );
-
-  await recipeService.restoreSaleRecipes({
-    businessId,
-    warehouseId:
-      sale.warehouseId,
-    currency:
-      sale.currency,
-    createdBy:
-      sale.createdBy,
-    referenceId:
-      sale.id,
-    items:
-      restaurantItems,
-  });
-}
-
-        if (
-      inventoryItems.length > 0 &&
-      !inventoryAlreadyReversed
-    ) {
-      await inventoryService.returnStockBatch({
-        businessId,
-        warehouseId:
-          sale.warehouseId,
-        currency:
-          sale.currency,
-        createdBy:
-          sale.createdBy,
-        referenceType:
-          "SALE_REVERSAL",
-        referenceId:
-          sale.id,
-        notes:
-          `Stock restored from reversed sale ${sale.referenceNumber}.`,
-        items:
-          inventoryItems,
-      });
-	}
-	  
-	      await reverseSaleAccounting({
-      businessId,
-      saleId: sale.id,
-      referenceNumber: sale.referenceNumber,
-      totalAmount: Number(sale.totalAmount),
-      currency: sale.currency,
-      customerId: sale.customerId,
-      createdBy: sale.createdBy,
-    });
-	
-	    const payments =
-      await paymentRepository.listSalePayments(
-        businessId,
-        sale.id,
-      );
-
-    for (const payment of payments) {
-      await reversePaymentAccounting({
-        businessId,
-        paymentReference:
-          payment.reference,
-        currency:
-          payment.currency,
-        createdBy:
-          payment.createdBy,
-      });
-    }
-
-    return saleRepository.updateStatus(
-      businessId,
-      saleId,
-      "REVERSED",
+    throw new Error(
+      "Sale reversal could not be completed after multiple concurrent attempts.",
     );
   },
 

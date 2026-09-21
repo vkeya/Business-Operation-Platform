@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 export interface CreateCustomerInput {
   businessId: string;
   name: string;
@@ -27,8 +34,11 @@ function serializeCustomer<T extends {
 }
 
 export const customerRepository = {
-  async create(input: CreateCustomerInput) {
-    const customer = await prisma.customer.create({
+  async create(
+  input: CreateCustomerInput,
+  client: PrismaTransactionClient = prisma,
+) {
+    const customer = await client.customer.create({
       data: {
         businessId: input.businessId,
         name: input.name,
@@ -143,7 +153,7 @@ export const customerRepository = {
   customerId: string,
   input: UpdateCustomerInput,
 ) {
- 
+
     const customer =
       await prisma.customer.updateMany({
         where: {

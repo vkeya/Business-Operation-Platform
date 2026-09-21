@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { posReceiptService } from "@/lib/pos/posReceiptService";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 interface RouteContext {
   params: Promise<{
@@ -16,6 +18,12 @@ export async function GET(
   try {
     const businessContext =
       await getCurrentBusinessContext();
+
+	  await requireBusinessPermission(
+  businessContext.user.id,
+  businessContext.business.id,
+  "sales.read",
+);
 
     const { saleId } = await context.params;
 
@@ -38,6 +46,13 @@ export async function GET(
       receipt,
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "POS receipt retrieval failed:",
       error,

@@ -40,7 +40,8 @@ export default function NewSupplierForm({
 
     try {
       await createSupplierAction({
-        name,
+  operationId: crypto.randomUUID(),
+  name,
         phone: phone || undefined,
         email: email || undefined,
         address: address || undefined,

@@ -2,25 +2,52 @@
 
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { prisma } from "@/lib/database/prisma";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
 import { productService } from "@/lib/inventory/productService";
 import type { CreateProductInput } from "@/lib/inventory/productRepository";
 
 export async function createProductAction(
   input: Omit<
-  CreateProductInput,
-  "businessId" | "sku"
->,
+    CreateProductInput,
+    "businessId" | "sku"
+  > & {
+    operationId: string;
+  },
 ) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return productService.createProduct({
-    ...input,
-    businessId: business.id,
-  });
+  ...input,
+  businessId: business.id,
+  createdBy: userId,
+});
 }
 
 export async function getProductDefaultsAction() {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   const {
     productCategoryService,
@@ -31,7 +58,10 @@ export async function getProductDefaultsAction() {
   const categories =
     await productCategoryService.listCategories(
       business.id,
+
     );
+
+
 
   return {
     currency: business.baseCurrency,
@@ -44,6 +74,15 @@ export async function updateProductAction(
   input: Omit<CreateProductInput, "businessId">,
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   return productService.updateProduct(
     business.id,
@@ -63,6 +102,15 @@ export async function createProductSellingUnitAction(
 ) {
   const business = await getCurrentBusiness();
 
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return productService.createSellingUnit(
     business.id,
     {
@@ -76,6 +124,15 @@ export async function deleteProductsAction(
   productIds: string[],
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   const ids = Array.from(
     new Set(
@@ -162,6 +219,15 @@ export async function restoreProductsAction(
   productIds: string[],
 ) {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   const ids = Array.from(
     new Set(

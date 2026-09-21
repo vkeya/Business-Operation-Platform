@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { executeInventoryImportTransaction } from "@/lib/import/services/inventoryTransactionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 interface InventoryImportRequest {
   rows?: Array<{
@@ -14,7 +15,13 @@ export async function POST(request: Request) {
   try {
     const businessContext =
   await getCurrentBusinessContext();
-  
+
+  await requireBusinessPermission(
+  businessContext.user.id,
+  businessContext.business.id,
+  "inventory.manage",
+);
+
     if (!businessContext?.business?.id) {
       return NextResponse.json(
         { error: "No active business found." },
@@ -50,6 +57,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Inventory import failed:",
       error,

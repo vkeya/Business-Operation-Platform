@@ -5,7 +5,9 @@ import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
 import { mpesaPaymentService } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
-
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import type {
   CreateSalePaymentInput,
 } from "@/lib/payment/paymentRepository";
@@ -30,6 +32,12 @@ export async function createSaleAction(
 const userId =
   await getAuthenticatedUserId();
 
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.manage",
+);
+
 return saleService.create({
   ...input,
   businessId: business.id,
@@ -40,6 +48,15 @@ return saleService.create({
 export async function getSalesAction() {
   const business =
     await getCurrentBusiness();
+
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.read",
+);
 
   return saleService.list(
     business.id,
@@ -52,6 +69,15 @@ export async function getSaleAction(
   const business =
     await getCurrentBusiness();
 
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.read",
+);
+
   return saleService.findById(
     business.id,
     saleId,
@@ -63,6 +89,15 @@ export async function getSaleByReferenceAction(
 ) {
   const business =
     await getCurrentBusiness();
+
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.read",
+);
 
   return saleService.findByReference(
     business.id,
@@ -81,6 +116,15 @@ export async function updateSaleStatusAction(
   const business =
     await getCurrentBusiness();
 
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.manage",
+);
+
   return saleService.updateStatus(
     business.id,
     saleId,
@@ -94,6 +138,15 @@ export async function cancelSaleAction(
   const business =
     await getCurrentBusiness();
 
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.manage",
+);
+
   return saleService.cancel(
     business.id,
     saleId,
@@ -105,6 +158,15 @@ export async function reverseSaleAction(
 ) {
   const business =
     await getCurrentBusiness();
+
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.manage",
+);
 
   return saleService.reverse(
     business.id,
@@ -118,6 +180,15 @@ export async function completeSaleAction(
   const business =
     await getCurrentBusiness();
 
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.manage",
+);
+
   return saleService.updateStatus(
     business.id,
     saleId,
@@ -130,6 +201,15 @@ export async function getSalePaymentsAction(
 ) {
   const business =
     await getCurrentBusiness();
+
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "sales.read",
+);
 
   return paymentService.listSalePayments(
     business.id,
@@ -146,8 +226,14 @@ export async function createSalePaymentAction(
   const business =
   await getCurrentBusiness();
 
-const userId =
+  const userId =
   await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "payments.manage",
+);
 
 return paymentService.createSalePayment({
   ...input,
@@ -163,6 +249,12 @@ export async function initiateMpesaSalePaymentAction(input: {
 }) {
   const business = await getCurrentBusiness();
   const userId = await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "payments.manage",
+);
 
   return mpesaPaymentService.initiateSalePayment({
     saleId: input.saleId,

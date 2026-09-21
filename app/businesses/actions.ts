@@ -5,6 +5,12 @@ import { postgresBusinessRepository } from "@/lib/business/postgresBusinessRepos
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getAuthenticatedUser } from "@/lib/auth/auth";
 import { productCategoryService } from "@/lib/inventory/productCategoryService";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
 
 const businessService = createBusinessService(
   postgresBusinessRepository,
@@ -21,6 +27,15 @@ export async function getBusinessesAction() {
 
 export async function ensureCurrentBoutiqueCategoriesAction() {
   const business = await getCurrentBusiness();
+
+  const userId =
+    await getAuthenticatedUserId();
+
+    await requireBusinessPermission(
+    userId,
+    business.id,
+    "inventory.manage",
+  );
 
   if (business.type !== "boutique") {
     throw new Error(

@@ -10,6 +10,7 @@ type PrismaTransactionClient =
 export interface CreatePurchasePaymentInput {
   businessId: string;
   purchaseId: string;
+  operationId: string;
 
   reference?: string;
 
@@ -24,6 +25,7 @@ export interface CreatePurchasePaymentInput {
 export interface CreateSalePaymentInput {
   businessId: string;
   saleId: string;
+  operationId: string;
 
   reference?: string;
 
@@ -55,67 +57,89 @@ function serializePayment<
 
 export const paymentRepository = {
   async createPurchasePayment(
-    input: CreatePurchasePaymentInput & {
-      reference: string;
-    },
-  ) {
-    const payment =
-      await prisma.payment.create({
-        data: {
-          businessId: input.businessId,
-          purchaseId: input.purchaseId,
-
-          reference: input.reference,
-          method: input.method,
-
-          amount: input.amount,
-          currency: input.currency,
-          exchangeRate:
-            input.exchangeRate,
-
-          status: "PAID",
-
-          notes: input.notes,
-          createdBy: input.createdBy,
-        },
-      });
-
-    return serializePayment(payment);
+  input: CreatePurchasePaymentInput & {
+    reference: string;
   },
-
-  async findPurchaseWithPayments(
-    businessId: string,
-    purchaseId: string,
-  ) {
-    return prisma.purchase.findFirst({
-      where: {
-        id: purchaseId,
-        businessId,
-      },
-      include: {
-        payments: true,
-      },
-    });
-  },
-
-  async updatePurchasePaymentStatus(
-    businessId: string,
-    purchaseId: string,
-    paymentStatus:
-      | "PENDING"
-      | "PARTIAL"
-      | "PAID",
-  ) {
-    return prisma.purchase.update({
-      where: {
-        id: purchaseId,
-        businessId,
-      },
+  client: PrismaTransactionClient = prisma,
+) {
+  const payment =
+    await client.payment.create({
       data: {
-        paymentStatus,
+
+        businessId: input.businessId,
+        purchaseId: input.purchaseId,
+
+        reference: input.reference,
+        method: input.method,
+
+        amount: input.amount,
+        currency: input.currency,
+        exchangeRate:
+          input.exchangeRate,
+
+        status: "PAID",
+
+        notes: input.notes,
+        createdBy: input.createdBy,
       },
     });
-  },
+
+  return serializePayment(payment);
+},
+
+async findPurchaseWithPayments(
+  businessId: string,
+  purchaseId: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.purchase.findFirst({
+    where: {
+      id: purchaseId,
+      businessId,
+    },
+    include: {
+      payments: true,
+    },
+  });
+},
+
+async updatePurchasePaymentStatus(
+  businessId: string,
+  purchaseId: string,
+  paymentStatus:
+    | "PENDING"
+    | "PARTIAL"
+    | "PAID",
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.purchase.update({
+    where: {
+      id: purchaseId,
+      businessId,
+    },
+    data: {
+      paymentStatus,
+    },
+  });
+},
+
+async findById(
+  businessId: string,
+  paymentId: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  const payment =
+    await client.payment.findFirst({
+      where: {
+        id: paymentId,
+        businessId,
+      },
+    });
+
+  return payment
+    ? serializePayment(payment)
+    : null;
+},
 
   async listPurchasePayments(
     businessId: string,

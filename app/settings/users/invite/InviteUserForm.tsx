@@ -219,7 +219,11 @@ Full name </label>
         Select a role
       </option>
 
-      {roles.map((role) => (
+      {roles
+  .filter(
+    (role) => role.name !== "Business Owner",
+  )
+  .map((role) => (
         <option
           key={role.id}
           value={role.id}

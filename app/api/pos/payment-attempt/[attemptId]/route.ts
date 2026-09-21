@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { mpesaPaymentService } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { paymentAttemptService } from "@/lib/payment/paymentAttemptService";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 export async function GET(
   _request: NextRequest,
@@ -27,6 +31,12 @@ export async function GET(
 
     const businessContext =
       await getCurrentBusinessContext();
+
+	  await requireBusinessPermission(
+  businessContext.user.id,
+  businessContext.business.id,
+  "payments.read",
+);
 
     const attempt =
       await paymentAttemptService.findById(
@@ -62,6 +72,13 @@ export async function GET(
       },
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Failed to retrieve payment attempt:",
       error,
@@ -108,6 +125,12 @@ export async function POST(
     const businessContext =
       await getCurrentBusinessContext();
 
+	  await requireBusinessPermission(
+  businessContext.user.id,
+  businessContext.business.id,
+  "payments.read",
+);
+
     const result =
       await mpesaPaymentService.queryPaymentAttempt(
         {
@@ -124,6 +147,13 @@ export async function POST(
       result,
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Failed to query M-Pesa payment:",
       error,

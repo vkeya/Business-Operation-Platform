@@ -7,6 +7,9 @@ import { productService } from "@/lib/inventory/productService";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 
 export async function getInventoryBalancesAction(
   productId?: string,
@@ -16,6 +19,12 @@ export async function getInventoryBalancesAction(
 
   const userId =
   await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
   return inventoryService.listBalances(
     business.id,
@@ -44,6 +53,12 @@ export async function getInventoryMovementsAction(
   const userId =
   await getAuthenticatedUserId();
 
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
+
   return inventoryService.listMovements(
   business.id,
   productId,
@@ -55,6 +70,7 @@ export async function getInventoryMovementsAction(
 }
 
 export async function receiveStockAction(input: {
+	operationId: string;
   productId: string;
   warehouseId: string;
   quantity: number;
@@ -67,7 +83,14 @@ export async function receiveStockAction(input: {
   const userId =
   await getAuthenticatedUserId();
 
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return inventoryService.receiveStock({
+	  operationId: input.operationId,
     businessId: business.id,
     productId: input.productId,
     warehouseId: input.warehouseId,
@@ -81,6 +104,15 @@ export async function receiveStockAction(input: {
 
 export async function getInventorySetupAction() {
   const business = await getCurrentBusiness();
+
+  const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.read",
+);
 
 
   const [products, warehouses] =
@@ -104,6 +136,7 @@ export async function getInventorySetupAction() {
 }
 
 export async function transferStockAction(input: {
+	operationId: string;
   productId: string;
   fromWarehouseId: string;
   toWarehouseId: string;
@@ -117,8 +150,15 @@ export async function transferStockAction(input: {
 	const userId =
   await getAuthenticatedUserId();
 
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return inventoryService.transferStock({
     businessId: business.id,
+	 operationId: input.operationId,
     productId: input.productId,
     fromWarehouseId:
       input.fromWarehouseId,
@@ -132,6 +172,7 @@ export async function transferStockAction(input: {
 }
 
 export async function adjustStockAction(input: {
+  operationId: string;
   productId: string;
   warehouseId: string;
   quantity: number;
@@ -144,8 +185,15 @@ export async function adjustStockAction(input: {
   const userId =
   await getAuthenticatedUserId();
 
+  await requireBusinessPermission(
+  userId,
+  business.id,
+  "inventory.manage",
+);
+
   return inventoryService.adjustStock({
-    businessId: business.id,
+  businessId: business.id,
+  operationId: input.operationId,
     productId: input.productId,
     warehouseId: input.warehouseId,
     quantity: input.quantity,

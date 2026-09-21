@@ -128,19 +128,30 @@ export default function ProductForm({
       };
 
       const savedProduct = isEdit
-        ? await (async () => {
-            if (!product?.id) {
-              throw new Error(
-                t.inventory.productIdRequired,
-              );
-            }
+  ? await (async () => {
+      if (!product?.id) {
+        throw new Error(
+          t.inventory.productIdRequired,
+        );
+      }
 
-            return updateProductAction(
-              product.id,
-              input,
-            );
-          })()
-        : await createProductAction(input);
+      return updateProductAction(
+        product.id,
+        input,
+      );
+    })()
+  : await createProductAction({
+      ...input,
+      operationId: crypto.randomUUID(),
+    });
+
+	if (!savedProduct) {
+  throw new Error(
+    isEdit
+      ? "Unable to update the product."
+      : "Unable to create the product.",
+  );
+}
 
       await Promise.all(
         sellingUnits.map((sellingUnit) =>

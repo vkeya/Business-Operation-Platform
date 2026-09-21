@@ -6,98 +6,258 @@ import { postExpenseToAccounting } from "@/lib/accounting/posting/expensePosting
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
+import { prisma } from "@/lib/database/prisma";
 
 export const expenseService = {
   async createExpense(
-    input: CreateExpenseInput,
+  input: CreateExpenseInput,
+) {
+  if (!input.businessId) {
+    throw new Error(
+      "Business context is required.",
+    );
+  }
+
+  if (!input.operationId?.trim()) {
+    throw new Error(
+      "Operation ID is required.",
+    );
+  }
+
+  if (!input.category.trim()) {
+    throw new Error(
+      "Expense category is required.",
+    );
+  }
+
+  if (!input.description.trim()) {
+    throw new Error(
+      "Expense description is required.",
+    );
+  }
+
+  if (input.amount <= 0) {
+    throw new Error(
+      "Expense amount must be greater than zero.",
+    );
+  }
+
+  if (!input.currency.trim()) {
+    throw new Error(
+      "Expense currency is required.",
+    );
+  }
+
+  if (
+    !(input.expenseDate instanceof Date) ||
+    Number.isNaN(
+      input.expenseDate.getTime(),
+    )
   ) {
-    if (!input.businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
-    }
+    throw new Error(
+      "A valid expense date is required.",
+    );
+  }
 
-    if (!input.category.trim()) {
-      throw new Error(
-        "Expense category is required.",
-      );
-    }
+  const maxAttempts = 3;
 
-    if (!input.description.trim()) {
-      throw new Error(
-        "Expense description is required.",
-      );
-    }
+  for (
+    let attempt = 1;
+    attempt <= maxAttempts;
+    attempt++
+  ) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
 
-    if (input.amount <= 0) {
-      throw new Error(
-        "Expense amount must be greater than zero.",
-      );
-    }
-
-    if (!input.currency.trim()) {
-      throw new Error(
-        "Expense currency is required.",
-      );
-    }
-
-    if (!(input.expenseDate instanceof Date) ||
-        Number.isNaN(
-          input.expenseDate.getTime(),
-        )) {
-      throw new Error(
-        "A valid expense date is required.",
-      );
-    }
-
-	const reference =
-  input.reference?.trim() ||
-  await generateBusinessReference({
-    businessId: input.businessId,
-    referenceType: "EXPENSE",
-    prefix: "EXP",
+			if (input.branchId) {
+  const branch = await tx.branch.findFirst({
+    where: {
+      id: input.branchId,
+      businessId: input.businessId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
   });
 
-    const expense =
-  await expenseRepository.create({
-    ...input,
-    reference,
-    category:
-      input.category.trim(),
-    description:
-      input.description.trim(),
-    currency:
-      input.currency.trim(),
-  });
+  if (!branch) {
+    throw new Error(
+      "Branch does not belong to the current business or is inactive.",
+    );
+  }
+}
+          const operation =
+            await tx.operationRequest.create({
+              data: {
+                businessId:
+                  input.businessId,
 
-await postExpenseToAccounting({
-  businessId:
-    expense.businessId,
+                operationId:
+                  input.operationId,
 
-  expenseId:
-    expense.id,
+                operation:
+                  "EXPENSE_CREATE",
 
-  reference:
-    expense.reference,
+                status:
+                  "PROCESSING",
 
-  category:
-    expense.category,
+                entityType:
+                  "EXPENSE",
 
-  description:
-    expense.description,
+                createdBy:
+                  input.createdBy,
+              },
+            });
 
-  amount:
-    expense.amount.toNumber(),
+          const reference =
+            input.reference?.trim() ||
+            await generateBusinessReference({
+              businessId:
+                input.businessId,
 
-  currency:
-    expense.currency,
+              referenceType:
+                "EXPENSE",
 
-  createdBy:
-    expense.createdBy,
-});
+              prefix: "EXP",
 
-return expense;
-  },
+              client: tx,
+            });
+
+          const expense =
+            await expenseRepository.create(
+              {
+                ...input,
+
+                reference,
+
+                category:
+                  input.category.trim(),
+
+                description:
+                  input.description.trim(),
+
+                currency:
+                  input.currency.trim(),
+              },
+              tx,
+            );
+
+          await postExpenseToAccounting(
+            {
+              businessId:
+                expense.businessId,
+
+              expenseId:
+                expense.id,
+
+              reference:
+                expense.reference,
+
+              category:
+                expense.category,
+
+              description:
+                expense.description,
+
+              amount:
+                expense.amount,
+
+              currency:
+                expense.currency,
+
+              createdBy:
+                expense.createdBy,
+            },
+            tx,
+          );
+
+          await tx.operationRequest.update({
+            where: {
+              id: operation.id,
+            },
+
+            data: {
+              status:
+                "COMPLETED",
+
+              entityType:
+                "EXPENSE",
+
+              entityId:
+                expense.id,
+
+              response: {
+                expenseId:
+                  expense.id,
+
+                reference:
+                  expense.reference,
+              },
+            },
+          });
+
+          return expense;
+        },
+        {
+          isolationLevel:
+            "Serializable",
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code ===
+          "P2034" &&
+        attempt < maxAttempts
+      ) {
+        continue;
+      }
+
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code ===
+          "P2002"
+      ) {
+        const existing =
+          await prisma.operationRequest.findUnique({
+            where: {
+              businessId_operationId: {
+                businessId:
+                  input.businessId,
+
+                operationId:
+                  input.operationId,
+              },
+            },
+          });
+
+        if (
+          existing?.entityId
+        ) {
+          const expense =
+            await expenseRepository.findById(
+              input.businessId,
+              existing.entityId,
+            );
+
+          if (expense) {
+            return expense;
+          }
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(
+    "Unable to complete expense after multiple concurrent attempts.",
+  );
+},
 
   async listExpenses(
     businessId: string,

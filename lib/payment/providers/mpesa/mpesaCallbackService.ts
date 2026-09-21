@@ -55,7 +55,7 @@ export const mpesaCallbackService = {
         `No payment attempt found for CheckoutRequestID ${callback.checkoutRequestId}.`,
       );
     }
-	
+
 	/*
  * Safaricom may retry callbacks.
  *
@@ -82,7 +82,7 @@ if (attempt.status === "FAILED") {
     attemptId: attempt.id,
   };
 }
-	
+
 	    /*
      * Bind the callback to the original Daraja request.
      *
@@ -134,7 +134,7 @@ if (
     "M-Pesa callback MerchantRequestID does not match the original payment request.",
   );
 }
-    
+
 
     /*
      * ResultCode !== 0 means the M-Pesa
@@ -210,14 +210,14 @@ if (
         "Successful M-Pesa callback did not contain a valid payment amount.",
       );
     }
-	
+
 
     if (!callback.mpesaReceiptNumber) {
       throw new Error(
         "Successful M-Pesa callback did not contain an M-Pesa receipt number.",
       );
     }
-	
+
 	const confirmedAmount = callback.amount;
 
     /*
@@ -413,6 +413,9 @@ if (
                 saleId:
                   attempt.saleId,
 
+				  operationId:
+    `MPESA_PAYMENT:${attempt.id}`,
+
                 paymentAttemptId:
                   attempt.id,
 
@@ -446,7 +449,7 @@ if (
             paymentStatus,
             tx,
           );
-		  
+
 		  console.log("M-Pesa callback: sale payment status updated", {
   saleId: attempt.saleId,
   paymentStatus,
@@ -477,19 +480,19 @@ if (
 
             type:
               "SALE",
-			  
+
 			  paymentMethod:
   "MPESA",
 
             client:
               tx,
           });
-		  
+
 		  console.log("M-Pesa callback: payment accounting posted", {
   paymentId: payment.id,
   paymentReference: payment.reference,
 });
-		  
+
 		  /*
  * POS M-Pesa payments create the sale as DRAFT.
  *
@@ -505,10 +508,11 @@ if (sale.status === "DRAFT") {
   });
 
   await saleCompletionService.completeDraftSaleWithTx(
-    tx,
-    attempt.businessId,
-    attempt.saleId,
-  );
+  tx,
+  attempt.businessId,
+  attempt.saleId,
+  `SALE_COMPLETE:${attempt.saleId}`,
+);
 
   console.log("M-Pesa callback: draft sale completed", {
     saleId: attempt.saleId,

@@ -15,6 +15,12 @@ import {
 } from "@/lib/accounting/actions";
 import { getAccountingMetrics } from "@/lib/accounting/dashboard/accountingMetrics";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import {
+  getAuthenticatedUserId,
+} from "@/lib/auth/auth";
+import {
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +34,15 @@ function formatAmount(value: number) {
 export default async function AccountingPage() {
   const business =
     await getCurrentBusiness();
+
+	const userId =
+  await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "accounting.read",
+);
 
   const accounts =
     await getAccountsAction();

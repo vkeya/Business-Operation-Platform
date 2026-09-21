@@ -150,6 +150,8 @@ export default function SaleReturnForm({
       return;
     }
 
+ const operationId = crypto.randomUUID();
+
     setSubmitting(true);
 
     try {
@@ -163,6 +165,7 @@ export default function SaleReturnForm({
                 "application/json",
             },
             body: JSON.stringify({
+				operationId,
               businessId,
               saleId,
               currency,

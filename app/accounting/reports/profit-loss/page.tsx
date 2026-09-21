@@ -1,11 +1,21 @@
 import { getProfitLoss } from "@/lib/accounting/reporting/profitLoss";
+import { getAuthenticatedUserId } from "@/lib/auth/auth";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfitLossPage() {
   const business =
     await getCurrentBusiness();
+
+	const userId = await getAuthenticatedUserId();
+
+await requireBusinessPermission(
+  userId,
+  business.id,
+  "accounting.read",
+);
 
   const report =
     await getProfitLoss(

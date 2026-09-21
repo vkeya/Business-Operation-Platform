@@ -6,11 +6,19 @@ import {
   inspectBusinessReferenceSequence,
   synchronizeBusinessReferenceSequence,
 } from "@/lib/business/reference/referenceSynchronizer";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 
 export async function GET() {
   try {
     const context =
       await getCurrentBusinessContext();
+
+	  await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "inventory.read",
+);
 
     const businessId = context.business.id;
 
@@ -27,7 +35,7 @@ export async function GET() {
           createdAt: "asc",
         },
       });
-	  
+
 	  const barcodeCounts =
   new Map<string, number>();
 
@@ -152,6 +160,13 @@ duplicateCount: duplicateBarcodes.length,
       },
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Reference sequence inspection failed:",
       error,
@@ -174,6 +189,12 @@ export async function POST() {
     const context =
       await getCurrentBusinessContext();
 
+	  await requireBusinessPermission(
+  context.user.id,
+  context.business.id,
+  "inventory.manage",
+);
+
     const businessId = context.business.id;
 
     const products =
@@ -186,7 +207,7 @@ export async function POST() {
           barcode: true,
         },
       });
-	  
+
 	  const barcodeCounts =
   new Map<string, number>();
 
@@ -243,6 +264,13 @@ const duplicateBarcodes =
       barcode: barcodeResult,
     });
   } catch (error) {
+
+	  if (error instanceof BusinessPermissionError) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: error.statusCode },
+  );
+}
     console.error(
       "Reference sequence synchronization failed:",
       error,

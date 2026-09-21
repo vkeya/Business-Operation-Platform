@@ -1,5 +1,13 @@
 import { accountRepository } from "@/lib/accounting/accountRepository";
 import { journalService } from "@/lib/accounting/journalService";
+import { prisma } from "@/lib/database/prisma";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 interface PostPurchaseInput {
   businessId: string;
@@ -8,8 +16,8 @@ interface PostPurchaseInput {
   totalAmount: number;
   currency: string;
   createdBy: string;
+  client?: PrismaTransactionClient;
 }
-
 
 export async function postPurchaseToAccounting(
   input: PostPurchaseInput,
@@ -18,14 +26,15 @@ export async function postPurchaseToAccounting(
     await accountRepository.findByCode(
       input.businessId,
       "1100",
+      input.client,
     );
 
   const payableAccount =
     await accountRepository.findByCode(
       input.businessId,
       "2000",
+      input.client,
     );
-
 
   if (!inventoryAccount) {
     throw new Error(
@@ -39,54 +48,56 @@ export async function postPurchaseToAccounting(
     );
   }
 
+  return journalService.create(
+    {
+      businessId:
+        input.businessId,
 
-  return journalService.create({
-    businessId:
-      input.businessId,
+      reference:
+        `PURCHASE-${input.referenceNumber}`,
 
-    reference:
-      `PURCHASE-${input.referenceNumber}`,
+      description:
+        `Purchase ${input.referenceNumber}`,
 
-    description:
-      `Purchase ${input.referenceNumber}`,
+      entryDate:
+        new Date(),
 
-    entryDate:
-      new Date(),
+      createdBy:
+        input.createdBy,
 
-    createdBy:
-      input.createdBy,
+      currency:
+        input.currency,
 
-    currency:
-      input.currency,
+      lines: [
+        {
+          accountId:
+            inventoryAccount.id,
 
-    lines: [
-      {
-        accountId:
-          inventoryAccount.id,
+          description:
+            "Inventory received",
 
-        description:
-          "Inventory received",
+          debit:
+            input.totalAmount,
 
-        debit:
-          input.totalAmount,
+          credit:
+            0,
+        },
 
-        credit:
-          0,
-      },
+        {
+          accountId:
+            payableAccount.id,
 
-      {
-        accountId:
-          payableAccount.id,
+          description:
+            "Supplier payable",
 
-        description:
-          "Supplier payable",
+          debit:
+            0,
 
-        debit:
-          0,
-
-        credit:
-          input.totalAmount,
-      },
-    ],
-  });
+          credit:
+            input.totalAmount,
+        },
+      ],
+    },
+    input.client,
+  );
 }

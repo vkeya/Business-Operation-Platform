@@ -1,4 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
+
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
+
 import { assertActiveProduct } from "@/lib/inventory/productStatus";
 
 export interface CreatePurchaseInput {
@@ -104,10 +112,187 @@ function serializePurchase<
   };
 }
 
+async function receivePurchaseWithClient(
+  businessId: string,
+  purchaseId: string,
+  tx: PrismaTransactionClient,
+) {
+  const purchase =
+    await tx.purchase.findFirst({
+      where: {
+        id: purchaseId,
+        businessId,
+      },
+      include: {
+        supplier: true,
+        items: true,
+      },
+    });
+
+  if (!purchase) {
+    throw new Error(
+      "Purchase not found.",
+    );
+  }
+
+  if (purchase.status !== "ORDERED") {
+    throw new Error(
+      "Only ordered purchases can be received.",
+    );
+  }
+
+  if (!purchase.warehouseId) {
+    throw new Error(
+      "A receiving warehouse is required.",
+    );
+  }
+
+  for (const item of purchase.items) {
+    const product = await tx.product.findFirst({
+  where: {
+    id: item.productId,
+    businessId,
+    status: "ACTIVE",
+  },
+  select: {
+    attributes: true,
+  },
+});
+
+if (!product) {
+  throw new Error(
+    "Purchase item product does not belong to the current business or is inactive.",
+  );
+}
+
+    const attributes =
+      product?.attributes &&
+      typeof product.attributes === "object" &&
+      !Array.isArray(product.attributes)
+        ? product.attributes as Record<
+            string,
+            string | number
+          >
+        : {};
+
+    const volume =
+      typeof attributes.volume === "number"
+        ? attributes.volume
+        : Number(attributes.volume);
+
+    const purchaseQuantity =
+      item.quantity.toNumber();
+
+    const quantity =
+      Number.isFinite(volume) && volume > 0
+        ? purchaseQuantity * volume
+        : purchaseQuantity;
+
+    const unitCost =
+      item.unitCost.toNumber();
+
+    const inventoryUnitCost =
+      Number.isFinite(volume) && volume > 0
+        ? unitCost / volume
+        : unitCost;
+
+    const existingBalance =
+      await tx.inventoryBalance.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId: item.productId,
+            warehouseId: purchase.warehouseId,
+          },
+        },
+      });
+
+    const previousQuantity =
+      existingBalance?.quantity.toNumber() ?? 0;
+
+    const previousAverageCost =
+      existingBalance?.averageCost.toNumber() ?? 0;
+
+    const newQuantity =
+      previousQuantity + quantity;
+
+    const newAverageCost =
+      newQuantity === 0
+        ? inventoryUnitCost
+        : (
+            previousQuantity *
+              previousAverageCost +
+            quantity *
+              inventoryUnitCost
+          ) / newQuantity;
+
+    await tx.inventoryMovement.create({
+      data: {
+        businessId,
+        productId: item.productId,
+        warehouseId: purchase.warehouseId,
+        type: "RECEIPT",
+        quantity,
+        unitCost: inventoryUnitCost,
+        totalCost:
+          quantity * inventoryUnitCost,
+        referenceType: "PURCHASE",
+        referenceId: purchase.id,
+        createdBy: purchase.createdBy,
+        notes:
+          `Received from purchase ${purchase.referenceNumber}`,
+      },
+    });
+
+    await tx.inventoryBalance.upsert({
+      where: {
+        productId_warehouseId: {
+          productId: item.productId,
+          warehouseId: purchase.warehouseId,
+        },
+      },
+      create: {
+        businessId,
+        productId: item.productId,
+        warehouseId: purchase.warehouseId,
+        quantity: newQuantity,
+        reservedQuantity: 0,
+        averageCost: newAverageCost,
+        currency: purchase.currency,
+      },
+      update: {
+        quantity: newQuantity,
+        averageCost: newAverageCost,
+        currency: purchase.currency,
+      },
+    });
+  }
+
+  const receivedPurchase =
+    await tx.purchase.update({
+      where: {
+        id: purchase.id,
+      },
+      data: {
+        status: "RECEIVED",
+      },
+      include: {
+        supplier: true,
+        items: true,
+      },
+    });
+
+  return serializePurchase(
+    receivedPurchase,
+  );
+}
+
 export const purchaseRepository = {
-  async create(input: CreatePurchaseInput) {
-    const purchase =
-      await prisma.purchase.create({
+  async create(
+  input: CreatePurchaseInput,
+  client: PrismaTransactionClient = prisma,
+) {
+  const purchase =
+    await client.purchase.create({
         data: {
           businessId: input.businessId,
           supplierId: input.supplierId,
@@ -260,171 +445,29 @@ export const purchaseRepository = {
     return serializePurchase(purchase);
   },
     async receivePurchase(
-    businessId: string,
-    purchaseId: string,
-  ) {
-    return prisma.$transaction(async (tx) => {
-      const purchase =
-        await tx.purchase.findFirst({
-          where: {
-            id: purchaseId,
-            businessId,
-          },
-          include: {
-            supplier: true,
-            items: true,
-          },
-        });
-
-      if (!purchase) {
-        throw new Error(
-          "Purchase not found.",
-        );
-      }
-
-      if (purchase.status !== "ORDERED") {
-        throw new Error(
-          "Only ordered purchases can be received.",
-        );
-      }
-
-      if (!purchase.warehouseId) {
-        throw new Error(
-          "A receiving warehouse is required.",
-        );
-      }
-
-      for (const item of purchase.items) {
-
-		  const product =
-  await tx.product.findUnique({
-    where: {
-      id: item.productId,
-    },
-    select: {
-      attributes: true,
-    },
+  businessId: string,
+  purchaseId: string,
+) {
+  return prisma.$transaction(async (tx) => {
+    return receivePurchaseWithClient(
+      businessId,
+      purchaseId,
+      tx,
+    );
   });
+},
 
-const attributes =
-  product?.attributes &&
-  typeof product.attributes === "object" &&
-  !Array.isArray(product.attributes)
-    ? product.attributes as Record<
-        string,
-        string | number
-      >
-    : {};
-
-const volume =
-  typeof attributes.volume === "number"
-    ? attributes.volume
-    : Number(attributes.volume);
-
-const purchaseQuantity =
-  item.quantity.toNumber();
-
-const quantity =
-  Number.isFinite(volume) && volume > 0
-    ? purchaseQuantity * volume
-    : purchaseQuantity;
-
-	const unitCost =
-  item.unitCost.toNumber();
-
-const inventoryUnitCost =
-  Number.isFinite(volume) && volume > 0
-    ? unitCost / volume
-    : unitCost;
-
-        const existingBalance =
-          await tx.inventoryBalance.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: purchase.warehouseId,
-              },
-            },
-          });
-
-        const previousQuantity =
-          existingBalance?.quantity.toNumber() ?? 0;
-
-        const previousAverageCost =
-          existingBalance?.averageCost.toNumber() ?? 0
-
-        const newQuantity =
-          previousQuantity + quantity;
-
-        const newAverageCost =
-  newQuantity === 0
-    ? inventoryUnitCost
-    : (
-        previousQuantity *
-          previousAverageCost +
-        quantity * inventoryUnitCost
-      ) / newQuantity;
-
-        await tx.inventoryMovement.create({
-          data: {
-            businessId,
-            productId: item.productId,
-            warehouseId: purchase.warehouseId,
-            type: "RECEIPT",
-            quantity,
-            unitCost: inventoryUnitCost,
-totalCost:
-  quantity * inventoryUnitCost,
-            referenceType: "PURCHASE",
-            referenceId: purchase.id,
-            createdBy: purchase.createdBy,
-            notes: `Received from purchase ${purchase.referenceNumber}`,
-          },
-        });
-
-        await tx.inventoryBalance.upsert({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: purchase.warehouseId,
-            },
-          },
-          create: {
-            businessId,
-            productId: item.productId,
-            warehouseId: purchase.warehouseId,
-            quantity: newQuantity,
-            reservedQuantity: 0,
-            averageCost: newAverageCost,
-            currency: purchase.currency,
-          },
-          update: {
-            quantity: newQuantity,
-            averageCost: newAverageCost,
-            currency: purchase.currency,
-          },
-        });
-      }
-
-      const receivedPurchase =
-        await tx.purchase.update({
-          where: {
-            id: purchase.id,
-          },
-          data: {
-            status: "RECEIVED",
-          },
-          include: {
-            supplier: true,
-            items: true,
-          },
-        });
-
-      return serializePurchase(
-        receivedPurchase,
-      );
-    });
-  },
+async receivePurchaseWithClient(
+  businessId: string,
+  purchaseId: string,
+  client: PrismaTransactionClient,
+) {
+  return receivePurchaseWithClient(
+    businessId,
+    purchaseId,
+    client,
+  );
+},
 
     async cancelPurchase(
     businessId: string,
