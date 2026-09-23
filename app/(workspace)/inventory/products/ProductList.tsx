@@ -21,6 +21,7 @@ interface Product {
   name: string;
   description: string | null;
   sku: string;
+  barcode: string | null;
   type: string;
   sellingPrice: number;
   currency: string;
@@ -485,12 +486,23 @@ export default function ProductList({
 
                     {/* Action */}
                     <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/inventory/products/${product.id}`}
-                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-80 shadow-sm transition hover:border-slate-300 hover:bg-slate-950 hover:text-white hover:opacity-100"
-                      >
-                        {t.inventory.edit}
-                      </Link>
+                      <div className="flex justify-end gap-2">
+  <Link
+    href={`/inventory/products/${product.id}`}
+    className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-80 shadow-sm transition hover:border-slate-300 hover:bg-slate-950 hover:text-white hover:opacity-100"
+  >
+    {t.inventory.edit}
+  </Link>
+
+  {product.barcode && (
+    <Link
+      href={`/inventory/barcode-labels?productId=${product.id}`}
+      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+    >
+      Print Labels
+    </Link>
+  )}
+</div>
                     </td>
                   </tr>
                 );

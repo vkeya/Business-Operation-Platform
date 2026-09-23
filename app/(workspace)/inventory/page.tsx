@@ -39,6 +39,13 @@ description: t.inventory.transferStockDescription,
 href: "/inventory/transfer",
 label: t.inventory.movement,
 },
+
+{
+  title: "Barcode Labels",
+  description: "Print barcode labels for your inventory.",
+  href: "/inventory/barcode-labels",
+  label: "Labels",
+},
 ];
 
 const balances = await inventoryService.listBalances(

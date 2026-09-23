@@ -51,8 +51,34 @@ model Business {
   saleReturns         SaleReturn[]
   suppliers           Supplier[]
   warehouses          Warehouse[]
+  
+  pharmacyProfile PharmacyProfile?
 
   @@index([status])
+}
+
+model PharmacyProfile {
+  id                   String   @id @default(cuid())
+  businessId           String   @unique
+
+  pharmacyName         String
+  licenseNumber        String?
+  registrationNumber   String?
+  pharmacistInCharge   String?
+  phone                String?
+  email                String?
+  address              String?
+  city                 String?
+  country              String   @default("Kenya")
+
+  isActive             Boolean  @default(true)
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  business             Business @relation(fields: [businessId],references: [id],onDelete: Cascade)
+
+  @@index([businessId])
 }
 
 model MpesaConfiguration {

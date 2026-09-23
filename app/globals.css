@@ -70,3 +70,107 @@ body {
     0 24px 80px rgba(15, 23, 42, 0.06);
   backdrop-filter: blur(20px);
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .barcode-print-area,
+  .barcode-print-area * {
+    visibility: visible;
+  }
+
+  .barcode-print-area {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+   .barcode-label {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0;
+    padding: 1mm;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5mm;
+
+    font-size: 2.4mm;
+    line-height: 1;
+  }
+
+  .barcode-label-50x25 {
+    width: 50mm;
+    height: 25mm;
+  }
+
+  .barcode-label-38x25 {
+    width: 38mm;
+    height: 25mm;
+    font-size: 2.1mm;
+  }
+
+  .barcode-product-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barcode-business,
+  .barcode-category {
+    font-size: 2mm;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barcode-bars {
+    width: 100%;
+    height: 10mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .barcode-bars svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 9mm;
+  }
+
+  .barcode-number {
+    font-family: monospace;
+    font-size: 2.2mm;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .barcode-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2mm;
+    width: 100%;
+    font-size: 2.1mm;
+    line-height: 1;
+  }
+
+  .barcode-footer span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
