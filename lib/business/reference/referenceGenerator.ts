@@ -14,6 +14,7 @@ export type BusinessReferenceType =
   | "SALE_RETURN"
   | "PURCHASE"
   | "PAYMENT"
+  | "PAYMENT_REFUND"
   | "EXPENSE"
   | "JOURNAL_ENTRY"
   | "INVENTORY_MOVEMENT";

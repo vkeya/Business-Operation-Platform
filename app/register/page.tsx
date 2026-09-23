@@ -34,6 +34,11 @@ useState("");
 const [submitting, setSubmitting] =
 useState(false);
 
+const [termsAccepted, setTermsAccepted] = useState(false);
+const [privacyAccepted, setPrivacyAccepted] = useState(false);
+const [acceptableUseAccepted, setAcceptableUseAccepted] =
+  useState(false);
+
 async function handleSubmit(
 event: FormEvent<HTMLFormElement>,
 ) {
@@ -52,10 +57,13 @@ try {
           "application/json",
       },
       body: JSON.stringify({
-        name,
-        email,
-        password,
-      }),
+  name,
+  email,
+  password,
+  termsAccepted,
+  privacyAccepted,
+  acceptableUseAccepted,
+}),
     });
 
   const data =
@@ -218,6 +226,80 @@ Create your account </h1>
           Must be at least 8 characters.
         </p>
       </div>
+	  
+	  <div className="space-y-4">
+  <label className="flex items-start gap-3 text-sm">
+    <input
+      type="checkbox"
+      checked={termsAccepted}
+      onChange={(event) =>
+        setTermsAccepted(event.target.checked)
+      }
+      className="mt-1"
+    />
+
+    <span>
+      I agree to the{" "}
+      <a
+        href="/legal/terms"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium underline"
+      >
+        Terms of Service
+      </a>
+      .
+    </span>
+  </label>
+
+  <label className="flex items-start gap-3 text-sm">
+    <input
+      type="checkbox"
+      checked={privacyAccepted}
+      onChange={(event) =>
+        setPrivacyAccepted(event.target.checked)
+      }
+      className="mt-1"
+    />
+
+    <span>
+      I acknowledge that I have read the{" "}
+      <a
+        href="/legal/privacy"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium underline"
+      >
+        Privacy Policy
+      </a>
+      .
+    </span>
+  </label>
+
+  <label className="flex items-start gap-3 text-sm">
+    <input
+      type="checkbox"
+      checked={acceptableUseAccepted}
+      onChange={(event) =>
+        setAcceptableUseAccepted(event.target.checked)
+      }
+      className="mt-1"
+    />
+
+    <span>
+      I agree to the{" "}
+      <a
+        href="/legal/acceptable-use"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium underline"
+      >
+        Acceptable Use Policy
+      </a>
+      .
+    </span>
+  </label>
+</div>
 
       <button
         type="submit"

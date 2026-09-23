@@ -21,8 +21,8 @@ model Business {
   updatedAt           DateTime                   @updatedAt
   logoUrl             String?
   accounts            Account[]
-  taxConfiguration TaxConfiguration?
-  paymentAttempts PaymentAttempt[]
+  taxConfiguration    TaxConfiguration?
+  paymentAttempts     PaymentAttempt[]
   auditEvents         AuditEvent[]
   branches            Branch[]
   events              BusinessEvent[]
@@ -35,9 +35,10 @@ model Business {
   inventoryBalances   InventoryBalance[]
   inventoryMovements  InventoryMovement[]
   journalEntries      JournalEntry[]
-  operationRequests OperationRequest[]
+  operationRequests   OperationRequest[]
   payments            Payment[]
-  mpesaConfiguration MpesaConfiguration?
+  refunds             PaymentRefund[]
+  mpesaConfiguration  MpesaConfiguration?
   products            Product[]
   productCategories   ProductCategory[]
   purchases           Purchase[]
@@ -47,7 +48,7 @@ model Business {
   restaurantMenuItems RestaurantMenuItem[]
   roles               Role[]
   sales               Sale[]
-  saleReturns     SaleReturn[]
+  saleReturns         SaleReturn[]
   suppliers           Supplier[]
   warehouses          Warehouse[]
 
@@ -55,25 +56,25 @@ model Business {
 }
 
 model MpesaConfiguration {
-  id                      String             @id @default(cuid())
-  businessId              String             @unique
+  id         String @id @default(cuid())
+  businessId String @unique
 
-  merchantType            MpesaMerchantType
-  shortcode               String
+  merchantType MpesaMerchantType
+  shortcode    String
 
-  environment             MpesaEnvironment  @default(SANDBOX)
+  environment MpesaEnvironment @default(SANDBOX)
 
   consumerKey             String
   encryptedConsumerSecret String
   encryptedPasskey        String
 
-  isActive                Boolean            @default(true)
-  verifiedAt              DateTime?
+  isActive   Boolean   @default(true)
+  verifiedAt DateTime?
 
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  business                Business           @relation(fields: [businessId],references: [id],onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
   @@index([shortcode])
@@ -84,10 +85,10 @@ model TaxConfiguration {
 
   businessId String @unique
 
-  enabled     Boolean         @default(false)
-  name        String          @default("VAT")
-  rate        Decimal         @default(0) @db.Decimal(8, 4)
-  pricingMode TaxPricingMode  @default(EXCLUSIVE)
+  enabled     Boolean        @default(false)
+  name        String         @default("VAT")
+  rate        Decimal        @default(0) @db.Decimal(8, 4)
+  pricingMode TaxPricingMode @default(EXCLUSIVE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,7 +134,7 @@ model Warehouse {
   inventoryMovements InventoryMovement[]
   purchases          Purchase[]
   sales              Sale[]
-  saleReturns     SaleReturn[]
+  saleReturns        SaleReturn[]
   branch             Branch?             @relation(fields: [branchId], references: [id])
   business           Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -154,6 +155,8 @@ model User {
   memberships    BusinessMembership[]
   branches       UserBranch[]
   roles          UserRole[]
+  legalAcceptances LegalAcceptance[]
+  dataSubjectRequests DataSubjectRequest[]
 
   @@index([email])
 }
@@ -294,11 +297,11 @@ model Product {
   recipeIngredients   RecipeIngredient[]
   restaurantMenuItems RestaurantMenuItem[]
 
-@@unique([businessId, sku])
-@@unique([businessId, barcode])
-@@index([businessId])
-@@index([categoryId])
-@@index([barcode])
+  @@unique([businessId, sku])
+  @@unique([businessId, barcode])
+  @@index([businessId])
+  @@index([categoryId])
+  @@index([barcode])
 }
 
 model ProductSellingUnit {
@@ -314,8 +317,8 @@ model ProductSellingUnit {
   product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   saleItems    SaleItem[]
 
-  @@index([productId])
   @@unique([productId, name, quantity, unit])
+  @@index([productId])
 }
 
 model ProductPrice {
@@ -401,10 +404,10 @@ model RecipeIngredient {
   product    Product  @relation(fields: [productId], references: [id])
   recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
+  @@unique([recipeId, productId])
   @@index([businessId])
   @@index([recipeId])
   @@index([productId])
-  @@unique([recipeId, productId])
 }
 
 model InventoryBalance {
@@ -507,24 +510,25 @@ model Sale {
   discountAmount  Decimal       @db.Decimal(18, 4)
   taxAmount       Decimal       @db.Decimal(18, 4)
 
-  taxName         String?
-  taxRate         Decimal?      @db.Decimal(8, 4)
-  taxPricingMode  TaxPricingMode?
+  taxName        String?
+  taxRate        Decimal?        @db.Decimal(8, 4)
+  taxPricingMode TaxPricingMode?
 
-  totalAmount     Decimal       @db.Decimal(18, 4)
+  totalAmount     Decimal          @db.Decimal(18, 4)
   notes           String?
   createdBy       String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   warehouseId     String?
   payments        Payment[]
   paymentAttempts PaymentAttempt[]
-  branch          Branch?       @relation(fields: [branchId], references: [id])
-  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer        Customer?     @relation(fields: [customerId], references: [id])
-  warehouse       Warehouse?    @relation(fields: [warehouseId], references: [id])
+  branch          Branch?          @relation(fields: [branchId], references: [id])
+  business        Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  warehouse       Warehouse?       @relation(fields: [warehouseId], references: [id])
   items           SaleItem[]
   returns         SaleReturn[]
+  refunds         PaymentRefund[]
 
   @@unique([businessId, referenceNumber])
   @@index([businessId])
@@ -558,28 +562,29 @@ model SaleItem {
 }
 
 model SaleReturn {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   businessId      String
   saleId          String
   warehouseId     String?
   referenceNumber String
   status          SaleReturnStatus
   currency        String
-  exchangeRate    Decimal?      @db.Decimal(18, 8)
-  subtotal        Decimal       @db.Decimal(18, 4)
-  discountAmount  Decimal       @db.Decimal(18, 4)
-  taxAmount       Decimal       @db.Decimal(18, 4)
-  totalAmount     Decimal       @db.Decimal(18, 4)
+  exchangeRate    Decimal?         @db.Decimal(18, 8)
+  subtotal        Decimal          @db.Decimal(18, 4)
+  discountAmount  Decimal          @db.Decimal(18, 4)
+  taxAmount       Decimal          @db.Decimal(18, 4)
+  totalAmount     Decimal          @db.Decimal(18, 4)
   reason          String?
   notes           String?
   createdBy       String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  sale            Sale          @relation(fields: [saleId], references: [id])
-  warehouse       Warehouse?    @relation(fields: [warehouseId], references: [id])
-  items           SaleReturnItem[]
+  business  Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sale      Sale             @relation(fields: [saleId], references: [id])
+  warehouse Warehouse?       @relation(fields: [warehouseId], references: [id])
+  items     SaleReturnItem[]
+  refunds   PaymentRefund[]
 
   @@unique([businessId, referenceNumber])
   @@index([businessId])
@@ -589,20 +594,20 @@ model SaleReturn {
 }
 
 model SaleReturnItem {
-  id              String      @id @default(cuid())
-  saleReturnId    String
-  saleItemId      String
-  productId       String
-  productName     String
-  sku             String?
-  quantity        Decimal     @db.Decimal(18, 4)
-  unitPrice       Decimal     @db.Decimal(18, 4)
-  discountAmount  Decimal     @db.Decimal(18, 4)
-  taxAmount       Decimal     @db.Decimal(18, 4)
-  totalAmount     Decimal     @db.Decimal(18, 4)
-  sellingUnitId   String?
+  id             String  @id @default(cuid())
+  saleReturnId   String
+  saleItemId     String
+  productId      String
+  productName    String
+  sku            String?
+  quantity       Decimal @db.Decimal(18, 4)
+  unitPrice      Decimal @db.Decimal(18, 4)
+  discountAmount Decimal @db.Decimal(18, 4)
+  taxAmount      Decimal @db.Decimal(18, 4)
+  totalAmount    Decimal @db.Decimal(18, 4)
+  sellingUnitId  String?
 
-  saleReturn      SaleReturn  @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  saleReturn SaleReturn @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
 
   @@index([saleReturnId])
   @@index([saleItemId])
@@ -662,25 +667,26 @@ model PurchaseItem {
 }
 
 model Payment {
-  id           String        @id @default(cuid())
-  businessId   String
-  saleId       String?
-  purchaseId   String?
-  reference    String
-  method       String
-  amount       Decimal       @db.Decimal(18, 4)
-  currency     String
-  exchangeRate Decimal?      @db.Decimal(18, 8)
-  status       PaymentStatus @default(PAID)
-  notes        String?
-  createdBy    String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  purchase     Purchase?     @relation(fields: [purchaseId], references: [id])
-  sale         Sale?         @relation(fields: [saleId], references: [id])
+  id               String          @id @default(cuid())
+  businessId       String
+  saleId           String?
+  purchaseId       String?
+  reference        String
+  method           String
+  amount           Decimal         @db.Decimal(18, 4)
+  currency         String
+  exchangeRate     Decimal?        @db.Decimal(18, 8)
+  status           PaymentStatus   @default(PAID)
+  notes            String?
+  createdBy        String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  business         Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchase         Purchase?       @relation(fields: [purchaseId], references: [id])
+  sale             Sale?           @relation(fields: [saleId], references: [id])
   paymentAttemptId String?
-  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId],references: [id])
+  paymentAttempt   PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id])
+  refunds          PaymentRefund[]
 
   @@unique([paymentAttemptId])
   @@unique([businessId, reference])
@@ -691,27 +697,59 @@ model Payment {
 }
 
 model PaymentAttempt {
-  id                String              @id @default(cuid())
+  id                String        @id @default(cuid())
   businessId        String
   saleId            String
   provider          String
   method            String
-  status            PaymentStatus       @default(PENDING)
-  amount            Decimal             @db.Decimal(18, 4)
+  status            PaymentStatus @default(PENDING)
+  amount            Decimal       @db.Decimal(18, 4)
   currency          String
   providerReference String?
   terminalReference String?
   providerResponse  Json?
   createdBy         String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  business          Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  sale              Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  payment Payment?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  business          Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sale              Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  payment           Payment?
 
+  @@unique([businessId, provider, providerReference])
   @@index([businessId])
   @@index([saleId])
-  @@unique([businessId, provider, providerReference])
+  @@index([createdAt])
+}
+
+model PaymentRefund {
+  id                    String              @id @default(cuid())
+  businessId            String
+  saleReturnId          String
+  saleId                String
+  paymentId             String
+  reference             String
+  provider              String
+  method                String
+  status                PaymentRefundStatus @default(PENDING)
+  amount                Decimal             @db.Decimal(18, 4)
+  currency              String
+  originalTransactionId String?
+  providerReference     String?
+  providerResponse      Json?
+  createdBy             String
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  saleReturn SaleReturn @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  payment    Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  sale       Sale       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, reference])
+  @@index([businessId])
+  @@index([saleReturnId])
+  @@index([paymentId])
+  @@index([provider, providerReference])
   @@index([createdAt])
 }
 
@@ -820,7 +858,7 @@ model BusinessReferenceCounter {
   businessId    String
   referenceType BusinessReferenceType
   currentValue  Int                   @default(0)
-   prefix        String?
+  prefix        String?
   padLength     Int?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
@@ -883,6 +921,81 @@ model ExchangeRate {
   @@index([effectiveAt])
 }
 
+model LegalDocument {
+  id            String            @id @default(cuid())
+  type          LegalDocumentType
+  version       String
+  title         String
+  effectiveAt   DateTime
+  publishedAt   DateTime?
+  isActive      Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  acceptances   LegalAcceptance[]
+
+  @@unique([type, version])
+  @@index([type, isActive])
+}
+
+model LegalAcceptance {
+  id              String        @id @default(cuid())
+  userId          String
+  documentId      String
+  documentVersion String
+  accepted        Boolean       @default(true)
+  acceptedAt      DateTime      @default(now())
+  ipAddress       String?
+  userAgent       String?
+
+  user            User          @relation(fields: [userId],references: [id],onDelete: Cascade)
+
+  document        LegalDocument @relation(fields: [documentId],references: [id])
+
+  @@unique([userId, documentId])
+  @@index([userId])
+  @@index([documentId])
+}
+
+model DataSubjectRequest {
+  id             String                   @id @default(cuid())
+  userId         String
+  type           DataSubjectRequestType
+  status         DataSubjectRequestStatus @default(PENDING)
+  requestedAt    DateTime                 @default(now())
+  completedAt    DateTime?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  notes          String?
+  resultReference String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([requestedAt])
+}
+
+enum DataSubjectRequestType {
+  ACCESS
+  CORRECTION
+  DELETION
+  EXPORT
+  RESTRICTION
+  OBJECTION
+}
+
+enum DataSubjectRequestStatus {
+  PENDING
+  IN_REVIEW
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 enum BusinessStatus {
   ACTIVE
   SUSPENDED
@@ -918,6 +1031,13 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+enum PaymentRefundStatus {
+  PENDING
+  SUBMITTED
+  COMPLETED
+  FAILED
 }
 
 enum PurchaseStatus {
@@ -975,6 +1095,7 @@ enum BusinessReferenceType {
   SALE_RETURN
   PURCHASE
   PAYMENT
+  PAYMENT_REFUND
   EXPENSE
   JOURNAL_ENTRY
   INVENTORY_MOVEMENT
@@ -988,4 +1109,14 @@ enum ProductPriceType {
   RATE_2
   RATE_3
   RATE_4
+}
+
+enum LegalDocumentType {
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  ACCEPTABLE_USE
+  COOKIE_POLICY
+  PAYMENT_REFUND
+  SERVICE_LEVEL
+  DPA
 }
