@@ -276,6 +276,7 @@ const allProductsSelected =
     width: 100%;
     font-size: 2.3mm;
     line-height: 1;
+	padding-right: 2mm;
   }
 
   .barcode-footer span {
