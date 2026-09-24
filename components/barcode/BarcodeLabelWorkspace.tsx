@@ -205,17 +205,17 @@ const allProductsSelected =
     width: ${labelSize === "50x25" ? "50mm" : "38mm"};
     height: 25mm;
     margin: 0;
-    padding: 1mm;
+    padding: 0.7mm;
     box-sizing: border-box;
     overflow: hidden;
 
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 0.5mm;
+    gap: 0.3mm;
 
     font-family: Arial, sans-serif;
-    font-size: 3mm;
+    font-size: 2.7mm;
     line-height: 1;
 
     break-inside: avoid;
@@ -238,7 +238,7 @@ const allProductsSelected =
 
   .barcode-business,
   .barcode-category {
-    font-size: 2.5mm;
+    font-size: 2.2mm;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -246,7 +246,7 @@ const allProductsSelected =
 
   .barcode-bars {
     width: 100%;
-    height: 12mm;
+    height: 10mm;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -257,12 +257,12 @@ const allProductsSelected =
     display: block;
     width: 100%;
     max-width: 100%;
-    height: 11mm;
+    height: 9mm;
   }
 
   .barcode-number {
     font-family: monospace;
-    font-size: 2.7mm;
+    font-size: 2.3mm;
     line-height: 1;
     text-align: center;
     white-space: nowrap;
@@ -272,9 +272,9 @@ const allProductsSelected =
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1.5mm;
+    gap: 1mm;
     width: 100%;
-    font-size: 2.7mm;
+    font-size: 2.3mm;
     line-height: 1;
   }
 
