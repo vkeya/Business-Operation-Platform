@@ -81,6 +81,73 @@ model PharmacyProfile {
   @@index([businessId])
 }
 
+model PharmacyProduct {
+  id                    String                    @id @default(cuid())
+  productId             String                    @unique
+  batches PharmacyBatch[]
+  medicineType          PharmacyMedicineType
+  prescriptionType      PharmacyPrescriptionType @default(OTC)
+
+  activeIngredient      String?
+  strength              String?
+  dosageForm            String?
+  routeOfAdministration String?
+
+  manufacturer          String?
+  registrationNumber    String?
+  packSize              String?
+
+  status                PharmacyProductStatus    @default(ACTIVE)
+
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  product               Product                   @relation(fields: [productId],references: [id],onDelete: Cascade)
+
+  @@index([medicineType])
+  @@index([prescriptionType])
+  @@index([status])
+  @@index([manufacturer])
+}
+
+model PharmacyBatch {
+  id                String   @id @default(cuid())
+  pharmacyProductId String
+
+  batchNumber       String
+  manufacturingDate DateTime?
+  expiryDate        DateTime
+
+  supplierId        String?
+  purchaseId        String?
+  purchaseItemId    String?
+
+  quantityReceived  Decimal  @db.Decimal(18, 4)
+  quantityRemaining Decimal  @db.Decimal(18, 4)
+
+  unitCost          Decimal? @db.Decimal(18, 4)
+
+  isRecalled        Boolean  @default(false)
+  recallReason      String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Cascade)
+
+  supplier Supplier? @relation(fields: [supplierId],references: [id],onDelete: SetNull)
+
+  purchase Purchase? @relation(fields: [purchaseId],references: [id],onDelete: SetNull)
+
+  @@unique([pharmacyProductId, batchNumber])
+  @@index([pharmacyProductId])
+  @@index([batchNumber])
+  @@index([expiryDate])
+  @@index([supplierId])
+  @@index([purchaseId])
+  @@index([isRecalled])
+}
+
 model MpesaConfiguration {
   id         String @id @default(cuid())
   businessId String @unique
@@ -322,6 +389,8 @@ model Product {
   sellingUnits        ProductSellingUnit[]
   recipeIngredients   RecipeIngredient[]
   restaurantMenuItems RestaurantMenuItem[]
+  
+  pharmacyProduct PharmacyProduct?
 
   @@unique([businessId, sku])
   @@unique([businessId, barcode])
@@ -517,6 +586,8 @@ model Supplier {
   purchases        Purchase[]
   business         Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  pharmacyBatches PharmacyBatch[]
+
   @@index([businessId])
   @@index([phone])
   @@index([email])
@@ -666,6 +737,7 @@ model Purchase {
   supplier              Supplier       @relation(fields: [supplierId], references: [id])
   warehouse             Warehouse?     @relation(fields: [warehouseId], references: [id])
   items                 PurchaseItem[]
+  pharmacyBatches PharmacyBatch[]
 
   @@unique([businessId, referenceNumber])
   @@index([businessId])
@@ -1145,4 +1217,24 @@ enum LegalDocumentType {
   PAYMENT_REFUND
   SERVICE_LEVEL
   DPA
+}
+
+enum PharmacyMedicineType {
+  MEDICINE
+  SUPPLEMENT
+  MEDICAL_DEVICE
+  PERSONAL_CARE
+  OTHER
+}
+
+enum PharmacyPrescriptionType {
+  OTC
+  PRESCRIPTION
+  CONTROLLED
+}
+
+enum PharmacyProductStatus {
+  ACTIVE
+  DISCONTINUED
+  RECALLED
 }

@@ -152,6 +152,30 @@ const allProductsSelected =
     return;
   }
 
+  const printStyle = document.createElement("style");
+  printStyle.id = "barcode-print-page-size";
+
+  const pageSize =
+    labelSize === "50x25"
+      ? "50mm 25mm"
+      : "38mm 25mm";
+
+  printStyle.textContent = `
+    @page {
+      size: ${pageSize};
+      margin: 0;
+    }
+  `;
+
+  document.head.appendChild(printStyle);
+
+  const cleanup = () => {
+    printStyle.remove();
+    window.removeEventListener("afterprint", cleanup);
+  };
+
+  window.addEventListener("afterprint", cleanup);
+
   window.print();
 }
 
@@ -498,7 +522,7 @@ const allProductsSelected =
           </h2>
         </div>
 
-        <div className="barcode-print-area flex flex-wrap gap-4">
+        <div className="barcode-print-area">
           {products
             .filter(
               (product) =>
