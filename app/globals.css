@@ -84,9 +84,9 @@ body {
   }
 
   .barcode-print-area {
-  position: absolute;
-  inset: 0;
+  position: static;
   display: block;
+  width: 100%;
   margin: 0;
   padding: 0;
 }
