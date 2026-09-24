@@ -72,24 +72,23 @@ body {
 }
 
 @media print {
-	
-	
-  body > * {
-  display: none !important;
-}
+  body * {
+    visibility: hidden;
+  }
 
-.barcode-print-area {
-  display: block !important;
-}
+  .barcode-print-area,
+  .barcode-print-area * {
+    visibility: visible;
+  }
 
   .barcode-print-area {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
 
    .barcode-label {
     break-inside: avoid;
