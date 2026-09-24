@@ -167,9 +167,9 @@ const allProductsSelected =
   }
 
   const pageSize =
-    labelSize === "50x25"
-      ? "50mm 25mm"
-      : "38mm 25mm";
+  labelSize === "50x25"
+    ? "50mm 26mm"
+    : "38mm 26mm";
 
 
   printWindow.document.open();
@@ -202,27 +202,27 @@ const allProductsSelected =
   }
 
   .barcode-label {
-    width: ${labelSize === "50x25" ? "50mm" : "38mm"};
-    height: 25mm;
-    margin: 0;
-    padding: 0.7mm;
-    box-sizing: border-box;
-    overflow: hidden;
+  width: ${labelSize === "50x25" ? "50mm" : "38mm"};
+  height: 25mm;
+  margin: 0;
+  padding: 0.7mm;
+  box-sizing: border-box;
+  overflow: hidden;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 0.3mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.3mm;
 
-    font-family: Arial, sans-serif;
-    font-size: 2.7mm;
-    line-height: 1;
+  font-family: Arial, sans-serif;
+  font-size: 2.7mm;
+  line-height: 1;
 
-    break-inside: avoid;
-    page-break-inside: avoid;
-    break-after: page;
-    page-break-after: always;
-  }
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-after: page;
+  page-break-after: always;
+}
 
   .barcode-label:last-child {
     break-after: auto;
