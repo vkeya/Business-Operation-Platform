@@ -152,31 +152,162 @@ const allProductsSelected =
     return;
   }
 
-  const printStyle = document.createElement("style");
-  printStyle.id = "barcode-print-page-size";
+  const printArea = document.querySelector(".barcode-print-area");
+
+  if (!printArea) {
+    return;
+  }
+
+  const printWindow = window.open("", "_blank", "width=800,height=600");
+
+  if (!printWindow) {
+    return;
+  }
 
   const pageSize =
     labelSize === "50x25"
       ? "50mm 25mm"
       : "38mm 25mm";
 
-  printStyle.textContent = `
-    @page {
-      size: ${pageSize};
-      margin: 0;
-    }
-  `;
 
-  document.head.appendChild(printStyle);
+  printWindow.document.open();
 
-  const cleanup = () => {
-    printStyle.remove();
-    window.removeEventListener("afterprint", cleanup);
-  };
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Barcode Labels</title>
+       
 
-  window.addEventListener("afterprint", cleanup);
+        <style>
+  @page {
+    size: ${pageSize};
+    margin: 0;
+  }
 
-  window.print();
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: ${labelSize === "50x25" ? "50mm" : "38mm"};
+    background: #fff !important;
+  }
+
+  .barcode-print-document {
+    width: ${labelSize === "50x25" ? "50mm" : "38mm"};
+    margin: 0;
+    padding: 0;
+  }
+
+  .barcode-label {
+    width: ${labelSize === "50x25" ? "50mm" : "38mm"};
+    height: 25mm;
+    margin: 0;
+    padding: 1mm;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5mm;
+
+    font-family: Arial, sans-serif;
+    font-size: 3mm;
+    line-height: 1;
+
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .barcode-label:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .barcode-product-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barcode-business,
+  .barcode-category {
+    font-size: 2.5mm;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barcode-bars {
+    width: 100%;
+    height: 12mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .barcode-bars svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 11mm;
+  }
+
+  .barcode-number {
+    font-family: monospace;
+    font-size: 2.7mm;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .barcode-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.5mm;
+    width: 100%;
+    font-size: 2.7mm;
+    line-height: 1;
+  }
+
+  .barcode-footer span {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barcode-footer span:last-child {
+    text-align: right;
+  }
+</style>
+      </head>
+
+      <body>
+        <div class="barcode-print-document">
+          ${printArea.innerHTML}
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+
+  printWindow.focus();
+
+  setTimeout(() => {
+    printWindow.print();
+
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
+  }, 500);
 }
 
   return (
