@@ -22,7 +22,8 @@ export default async function BarcodeLabelsPage() {
 
   return (
     <BarcodeLabelWorkspace
-      warehouses={warehouses}
-    />
+  warehouses={warehouses}
+  businessName={business.name}
+/>
   );
 }

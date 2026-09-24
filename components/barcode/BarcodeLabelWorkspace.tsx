@@ -28,10 +28,12 @@ interface Warehouse {
 
 interface BarcodeLabelWorkspaceProps {
   warehouses: Warehouse[];
+  businessName: string;
 }
 
 export function BarcodeLabelWorkspace({
   warehouses,
+  businessName,
 }: BarcodeLabelWorkspaceProps) {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -674,6 +676,7 @@ const allProductsSelected =
                     sellingPrice={product.sellingPrice}
                     currency={product.currency}
                     categoryName={product.categoryName}
+					businessName={businessName}
                     size={labelSize}
                     showProductName={showProductName}
                     showBarcode={showBarcode}
