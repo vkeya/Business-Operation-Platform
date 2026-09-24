@@ -84,8 +84,9 @@ body {
   }
 
   .barcode-print-area {
-  position: static;
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -109,6 +110,11 @@ body {
     font-size: 3mm;
     line-height: 1;
   }
+  
+  .barcode-label:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
 
   .barcode-label-50x25 {
     width: 50mm;
