@@ -77,6 +77,10 @@ export async function receiveStockAction(input: {
   unitCost: number;
   currency: string;
   notes?: string;
+  
+  batchNumber?: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
 }) {
   const business = await getCurrentBusiness();
 
@@ -99,6 +103,10 @@ export async function receiveStockAction(input: {
     currency: input.currency,
     createdBy: userId,
     notes: input.notes,
+	
+	batchNumber: input.batchNumber,
+    manufacturingDate: input.manufacturingDate,
+    expiryDate: input.expiryDate,
   });
 }
 

@@ -12,6 +12,7 @@ import type { TranslationSet } from "@/lib/i18n";
 import type {
   ProductConfiguration,
 } from "@/lib/business/productConfiguration";
+import type { BusinessType } from "@/types";
 
 interface ProductCategory {
   id: string;
@@ -23,6 +24,7 @@ interface NewProductFormProps {
   translations: TranslationSet;
   configuration: ProductConfiguration;
   categories: ProductCategory[];
+  businessType: BusinessType;
 }
 
 
@@ -69,6 +71,7 @@ export default function NewProductForm({
   translations: t,
   configuration,
   categories,
+  businessType
 }: NewProductFormProps) {
   const router = useRouter();
 
@@ -155,6 +158,20 @@ const visibleAttributes =
         ].includes(categoryName ?? "");
       }
 
+      // Pharmacy-specific attributes are rendered in the
+      // dedicated Pharmacy Information section below.
+      if (
+        businessType === "pharmacy" &&
+        [
+          "activeIngredient",
+          "strength",
+          "dosageForm",
+          "manufacturer",
+        ].includes(attribute.id)
+      ) {
+        return false;
+      }
+
       return true;
     },
   );
@@ -178,6 +195,46 @@ const visibleAttributes =
   const [attributes, setAttributes] = useState<
   Record<string, string>
 >({});
+	
+	  const [pharmacyMedicineType, setPharmacyMedicineType] =
+    useState<
+      | "MEDICINE"
+      | "SUPPLEMENT"
+      | "MEDICAL_DEVICE"
+      | "PERSONAL_CARE"
+      | "OTHER"
+    >("MEDICINE");
+
+  const [pharmacyPrescriptionType, setPharmacyPrescriptionType] =
+    useState<
+      | "OTC"
+      | "PRESCRIPTION"
+      | "CONTROLLED"
+    >("OTC");
+
+  const [activeIngredient, setActiveIngredient] =
+    useState("");
+
+  const [strength, setStrength] =
+    useState("");
+
+  const [dosageForm, setDosageForm] =
+    useState("");
+
+  const [routeOfAdministration, setRouteOfAdministration] =
+    useState("");
+
+  const [manufacturer, setManufacturer] =
+    useState("");
+
+  const [registrationNumber, setRegistrationNumber] =
+    useState("");
+
+  const [packSize, setPackSize] =
+    useState("");
+	
+  const isPharmacyBusiness =
+  businessType === "pharmacy";
 
 
 function updateAttribute(
@@ -305,6 +362,27 @@ useEffect(() => {
             ? undefined
             : Number(reorderLevel),
         attributes,
+
+pharmacy: isPharmacyBusiness
+  ? {
+      medicineType: pharmacyMedicineType,
+      prescriptionType: pharmacyPrescriptionType,
+      activeIngredient:
+        activeIngredient || undefined,
+      strength:
+        strength || undefined,
+      dosageForm:
+        dosageForm || undefined,
+      routeOfAdministration:
+        routeOfAdministration || undefined,
+      manufacturer:
+        manufacturer || undefined,
+      registrationNumber:
+        registrationNumber || undefined,
+      packSize:
+        packSize || undefined,
+    }
+  : undefined,
       });
 
 	  if (!product) {
@@ -662,6 +740,264 @@ useEffect(() => {
                   )}
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {isPharmacyBusiness && type === "PRODUCT" && (
+          <section className="border-t border-slate-200 pt-8">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Pharmacy information
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Add medicine and regulatory information for this pharmacy
+                product. Batch and expiry information is captured when stock
+                is received.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="pharmacyMedicineType"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Medicine type
+                </label>
+
+                <select
+                  id="pharmacyMedicineType"
+                  value={pharmacyMedicineType}
+                  onChange={(event) =>
+                    setPharmacyMedicineType(
+                      event.target.value as
+                        | "MEDICINE"
+                        | "SUPPLEMENT"
+                        | "MEDICAL_DEVICE"
+                        | "PERSONAL_CARE"
+                        | "OTHER",
+                    )
+                  }
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="MEDICINE">
+                    Medicine
+                  </option>
+                  <option value="SUPPLEMENT">
+                    Supplement
+                  </option>
+                  <option value="MEDICAL_DEVICE">
+                    Medical device
+                  </option>
+                  <option value="PERSONAL_CARE">
+                    Personal care
+                  </option>
+                  <option value="OTHER">
+                    Other
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="pharmacyPrescriptionType"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Prescription type
+                </label>
+
+                <select
+                  id="pharmacyPrescriptionType"
+                  value={pharmacyPrescriptionType}
+                  onChange={(event) =>
+                    setPharmacyPrescriptionType(
+                      event.target.value as
+                        | "OTC"
+                        | "PRESCRIPTION"
+                        | "CONTROLLED",
+                    )
+                  }
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="OTC">
+                    OTC — No prescription required
+                  </option>
+                  <option value="PRESCRIPTION">
+                    Prescription required
+                  </option>
+                  <option value="CONTROLLED">
+                    Controlled medicine
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="activeIngredient"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Active ingredient
+                </label>
+
+                <input
+                  id="activeIngredient"
+                  value={activeIngredient}
+                  onChange={(event) =>
+                    setActiveIngredient(event.target.value)
+                  }
+                  placeholder="e.g. Paracetamol"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="strength"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Strength
+                </label>
+
+                <input
+                  id="strength"
+                  value={strength}
+                  onChange={(event) =>
+                    setStrength(event.target.value)
+                  }
+                  placeholder="e.g. 500 mg"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="dosageForm"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Dosage form
+                </label>
+
+                <select
+                  id="dosageForm"
+                  value={dosageForm}
+                  onChange={(event) =>
+                    setDosageForm(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="">
+                    Select dosage form
+                  </option>
+                  <option value="TABLET">Tablet</option>
+                  <option value="CAPSULE">Capsule</option>
+                  <option value="SYRUP">Syrup</option>
+                  <option value="SUSPENSION">Suspension</option>
+                  <option value="INJECTION">Injection</option>
+                  <option value="CREAM">Cream</option>
+                  <option value="OINTMENT">Ointment</option>
+                  <option value="GEL">Gel</option>
+                  <option value="DROPS">Drops</option>
+                  <option value="INHALER">Inhaler</option>
+                  <option value="SUPPOSITORY">Suppository</option>
+                  <option value="POWDER">Powder</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="routeOfAdministration"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Route of administration
+                </label>
+
+                <select
+                  id="routeOfAdministration"
+                  value={routeOfAdministration}
+                  onChange={(event) =>
+                    setRouteOfAdministration(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="">
+                    Select route
+                  </option>
+                  <option value="ORAL">Oral</option>
+                  <option value="TOPICAL">Topical</option>
+                  <option value="INTRAVENOUS">Intravenous</option>
+                  <option value="INTRAMUSCULAR">Intramuscular</option>
+                  <option value="SUBCUTANEOUS">Subcutaneous</option>
+                  <option value="INHALATION">Inhalation</option>
+                  <option value="RECTAL">Rectal</option>
+                  <option value="VAGINAL">Vaginal</option>
+                  <option value="OPHTHALMIC">Ophthalmic</option>
+                  <option value="OTIC">Otic</option>
+                  <option value="NASAL">Nasal</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="manufacturer"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Manufacturer
+                </label>
+
+                <input
+                  id="manufacturer"
+                  value={manufacturer}
+                  onChange={(event) =>
+                    setManufacturer(event.target.value)
+                  }
+                  placeholder="e.g. GlaxoSmithKline"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="registrationNumber"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Registration number
+                </label>
+
+                <input
+                  id="registrationNumber"
+                  value={registrationNumber}
+                  onChange={(event) =>
+                    setRegistrationNumber(event.target.value)
+                  }
+                  placeholder="Optional regulatory registration number"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="packSize"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Pack size
+                </label>
+
+                <input
+                  id="packSize"
+                  value={packSize}
+                  onChange={(event) =>
+                    setPackSize(event.target.value)
+                  }
+                  placeholder="e.g. 20 tablets, 100 ml, 10 capsules"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
             </div>
           </section>
         )}

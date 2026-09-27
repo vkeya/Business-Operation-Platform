@@ -23,9 +23,11 @@ export interface CreateSaleInput {
   createdBy: string;
 
   items: Array<{
-  productId: string;
-  menuItemId?: string;
-  sellingUnitId?: string;
+    productId: string;
+    menuItemId?: string;
+    sellingUnitId?: string;
+    prescriptionId?: string;
+    prescriptionItemId?: string;
     productName: string;
     sku?: string;
 
@@ -88,6 +90,8 @@ function serializeSale<
   productId: string;
   menuItemId?: string | null;
   sellingUnitId?: string | null;
+  prescriptionId?: string | null;
+  prescriptionItemId?: string | null;
   productName: string;
   sku: string | null;
       quantity: { toNumber(): number };
@@ -168,6 +172,8 @@ export const saleRepository = {
                 productId: item.productId,
 				menuItemId: item.menuItemId,
 				sellingUnitId: item.sellingUnitId,
+				prescriptionId: item.prescriptionId,
+                prescriptionItemId: item.prescriptionItemId,
                 productName: item.productName,
                 sku: item.sku,
 

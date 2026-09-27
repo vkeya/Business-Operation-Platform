@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/database/prisma";
+
 import {
   productService,
 } from "@/lib/inventory/productService";
@@ -11,6 +13,27 @@ export interface PosProduct {
   name: string;
   sku: string;
   barcode?: string | null;
+  pharmacyProduct?: {
+    medicineType:
+      | "MEDICINE"
+      | "SUPPLEMENT"
+      | "MEDICAL_DEVICE"
+      | "PERSONAL_CARE"
+      | "OTHER";
+    prescriptionType:
+      | "OTC"
+      | "PRESCRIPTION"
+      | "CONTROLLED";
+    activeIngredient?: string | null;
+    strength?: string | null;
+    dosageForm?: string | null;
+    routeOfAdministration?: string | null;
+    manufacturer?: string | null;
+    status:
+      | "ACTIVE"
+      | "DISCONTINUED"
+      | "RECALLED";
+  } | null;
   category?: {
   id: string;
   name: string;
@@ -45,6 +68,27 @@ function toPosProduct(
     productId: product.id,
     name: product.name,
     sku: product.sku,
+    
+	pharmacyProduct: product.pharmacyProduct
+  ? {
+      medicineType:
+        product.pharmacyProduct.medicineType,
+      prescriptionType:
+        product.pharmacyProduct.prescriptionType,
+      activeIngredient:
+        product.pharmacyProduct.activeIngredient,
+      strength:
+        product.pharmacyProduct.strength,
+      dosageForm:
+        product.pharmacyProduct.dosageForm,
+      routeOfAdministration:
+        product.pharmacyProduct.routeOfAdministration,
+      manufacturer:
+        product.pharmacyProduct.manufacturer,
+      status:
+        product.pharmacyProduct.status,
+    }
+  : null,
     barcode: product.barcode,
 	category: product.category
   ? {

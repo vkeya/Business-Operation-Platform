@@ -13,6 +13,9 @@ interface PostPurchaseInput {
   businessId: string;
   purchaseId: string;
   referenceNumber: string;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
   totalAmount: number;
   currency: string;
   createdBy: string;
@@ -29,6 +32,13 @@ export async function postPurchaseToAccounting(
       input.client,
     );
 
+  const inputVatAccount =
+    await accountRepository.findByCode(
+      input.businessId,
+      "1205",
+      input.client,
+    );
+
   const payableAccount =
     await accountRepository.findByCode(
       input.businessId,
@@ -42,61 +52,59 @@ export async function postPurchaseToAccounting(
     );
   }
 
+  if (!inputVatAccount) {
+    throw new Error(
+      "Input VAT account not configured.",
+    );
+  }
+
   if (!payableAccount) {
     throw new Error(
       "Accounts Payable account not configured.",
     );
   }
 
+  const inventoryAmount =
+    input.subtotal - input.discountAmount;
+
+  if (inventoryAmount < 0) {
+    throw new Error(
+      "Purchase discount cannot exceed subtotal.",
+    );
+  }
+
+  const lines = [
+    {
+      accountId: inventoryAccount.id,
+      description: "Inventory received",
+      debit: inventoryAmount,
+      credit: 0,
+    },
+    {
+      accountId: inputVatAccount.id,
+      description: "Input VAT",
+      debit: input.taxAmount,
+      credit: 0,
+    },
+    {
+      accountId: payableAccount.id,
+      description: "Supplier payable",
+      debit: 0,
+      credit: input.totalAmount,
+    },
+  ];
+
   return journalService.create(
     {
-      businessId:
-        input.businessId,
-
+      businessId: input.businessId,
       reference:
         `PURCHASE-${input.referenceNumber}`,
-
       description:
         `Purchase ${input.referenceNumber}`,
-
-      entryDate:
-        new Date(),
-
-      createdBy:
-        input.createdBy,
-
-      currency:
-        input.currency,
-
-      lines: [
-        {
-          accountId:
-            inventoryAccount.id,
-
-          description:
-            "Inventory received",
-
-          debit:
-            input.totalAmount,
-
-          credit:
-            0,
-        },
-
-        {
-          accountId:
-            payableAccount.id,
-
-          description:
-            "Supplier payable",
-
-          debit:
-            0,
-
-          credit:
-            input.totalAmount,
-        },
-      ],
+      entryDate: new Date(),
+      createdBy: input.createdBy,
+      currency: input.currency,
+      lines,
     },
     input.client,
   );

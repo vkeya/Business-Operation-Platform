@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/database/prisma";
 
+type PrismaTransactionClient =
+  Parameters<typeof prisma.$transaction>[0] extends (
+    client: infer T,
+  ) => unknown
+    ? T
+    : never;
 
 export class BusinessPermissionError extends Error {
   readonly statusCode = 403;
@@ -14,6 +20,7 @@ export async function requireBusinessPermission(
   userId: string,
   businessId: string,
   permission: string,
+  client: PrismaTransactionClient = prisma,
 ) {
   if (!userId) {
     throw new Error("User context is required.");
@@ -28,7 +35,7 @@ export async function requireBusinessPermission(
   }
 
   const membership =
-    await prisma.businessMembership.findFirst({
+    await client.businessMembership.findFirst({
       where: {
         businessId,
         userId,
@@ -43,17 +50,17 @@ export async function requireBusinessPermission(
     });
 
   if (!membership) {
-  throw new BusinessPermissionError(
-    "You do not have access to this business.",
-  );
-}
+    throw new BusinessPermissionError(
+      "You do not have access to this business.",
+    );
+  }
 
   if (membership.isOwner) {
     return true;
   }
 
   const userRoles =
-    await prisma.userRole.findMany({
+    await client.userRole.findMany({
       where: {
         userId,
         role: {
@@ -76,10 +83,10 @@ export async function requireBusinessPermission(
     );
 
   if (!hasPermission) {
-  throw new BusinessPermissionError(
-    `You do not have permission to perform this action: ${permission}.`,
-  );
-}
+    throw new BusinessPermissionError(
+      `You do not have permission to perform this action: ${permission}.`,
+    );
+  }
 
   return true;
 }

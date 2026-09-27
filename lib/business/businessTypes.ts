@@ -55,6 +55,14 @@ export const businessTypeOptions: BusinessTypeOption[] = [
     description:
       "Manage boutique products, beauty services, customers, sales and appointments.",
   },
+  
+  {
+  value: "pharmacy",
+  label: "Pharmacy",
+  description:
+    "Manage medicines, prescriptions, batches, expiry, controlled dispensing, inventory, sales and purchasing.",
+  },
+  
   {
     value: "other",
     label: "Other Business",

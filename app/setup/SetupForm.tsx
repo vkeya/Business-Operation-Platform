@@ -431,6 +431,8 @@ const [taxPricingMode, setTaxPricingMode] =
                     t.setup.shop,
                   boutique:
                     t.setup.boutique,
+				  pharmacy:
+				    t.setup.pharmacy,
                   other:
                     t.setup.otherBusiness,
                 };
@@ -460,6 +462,9 @@ const [taxPricingMode, setTaxPricingMode] =
                   boutique:
                     t.setup
                       .boutiqueDescription,
+				  pharmacy:
+				    t.setup
+					   .pharmacyDescription,
                   other:
                     t.setup
                       .otherBusinessDescription,

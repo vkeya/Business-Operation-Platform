@@ -56,6 +56,9 @@ export interface PosProductSelection {
 
   sellingUnitId?: string;
 
+  prescriptionId?: string;
+  prescriptionItemId?: string;
+
   quantity: number;
   unitPrice: number;
   inventoryQuantity: number;

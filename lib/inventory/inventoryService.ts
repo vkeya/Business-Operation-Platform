@@ -145,7 +145,7 @@ if (!input.warehouseId) {
 },
 
 	async receiveStock(input: {
-		operationId: string;
+  operationId: string;
   businessId: string;
   productId: string;
   warehouseId: string;
@@ -154,6 +154,10 @@ if (!input.warehouseId) {
   currency: string;
   createdBy: string;
   notes?: string;
+
+  batchNumber?: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
 }) {
 
 	if (!input.operationId) {
@@ -201,6 +205,94 @@ if (!input.warehouseId) {
   if (!input.createdBy) {
     throw new Error("User context is required.");
   }
+  
+  const pharmacyProduct =
+  await prisma.pharmacyProduct.findUnique({
+    where: {
+      productId: input.productId,
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+if (pharmacyProduct) {
+  if (pharmacyProduct.status !== "ACTIVE") {
+    throw new Error(
+      "This pharmacy product is not active and cannot receive stock.",
+    );
+  }
+
+  if (!input.batchNumber?.trim()) {
+    throw new Error(
+      "Batch number is required for pharmacy products.",
+    );
+  }
+
+  if (!input.expiryDate) {
+    throw new Error(
+      "Expiry date is required for pharmacy products.",
+    );
+  }
+
+  const now = new Date();
+  const expiryDate = new Date(input.expiryDate);
+
+  if (Number.isNaN(expiryDate.getTime())) {
+    throw new Error(
+      "Expiry date is invalid.",
+    );
+  }
+
+  if (expiryDate <= now) {
+    throw new Error(
+      "Expiry date must be in the future.",
+    );
+  }
+
+  if (input.manufacturingDate) {
+    const manufacturingDate =
+      new Date(input.manufacturingDate);
+
+    if (Number.isNaN(manufacturingDate.getTime())) {
+      throw new Error(
+        "Manufacturing date is invalid.",
+      );
+    }
+
+    if (manufacturingDate > now) {
+      throw new Error(
+        "Manufacturing date cannot be in the future.",
+      );
+    }
+
+    if (manufacturingDate >= expiryDate) {
+      throw new Error(
+        "Manufacturing date must be before the expiry date.",
+      );
+    }
+  }
+
+  const existingBatch =
+    await prisma.pharmacyBatch.findUnique({
+      where: {
+        pharmacyProductId_batchNumber: {
+          pharmacyProductId: pharmacyProduct.id,
+          batchNumber: input.batchNumber.trim(),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (existingBatch) {
+    throw new Error(
+      `Batch ${input.batchNumber.trim()} already exists for this pharmacy product.`,
+    );
+  }
+}
 
   return inventoryRepository.receiveStock(input);
 },
@@ -409,6 +501,10 @@ await validateWarehouse(
     referenceType?: string;
     referenceId?: string;
     notes?: string;
+	
+	batchNumber?: string;
+    manufacturingDate?: string;
+    expiryDate?: string;
   }) {
     if (!input.businessId) {
       throw new Error(

@@ -35,16 +35,14 @@ export const posCartService = {
     cart: PosCart,
     selection: PosProductSelection,
   ): PosCart {
-    const existingIndex =
-      cart.items.findIndex(
-        (item) =>
-          item.productId ===
-            selection.productId &&
-          item.sellingUnitId ===
-            selection.sellingUnitId &&
-          item.unitPrice ===
-            selection.unitPrice,
-      );
+const existingIndex = cart.items.findIndex(
+  (item) =>
+    item.productId === selection.productId &&
+    item.sellingUnitId === selection.sellingUnitId &&
+    item.unitPrice === selection.unitPrice &&
+    item.prescriptionId === selection.prescriptionId &&
+    item.prescriptionItemId === selection.prescriptionItemId
+);
 
     const items = [...cart.items];
 

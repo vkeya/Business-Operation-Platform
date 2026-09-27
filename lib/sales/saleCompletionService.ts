@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/database/prisma";
-
+import { Prisma } from "@/generated/prisma/client";
 import { saleRepository } from "./saleRepository";
 import { postSaleToAccounting } from "@/lib/accounting/posting/salesPosting";
 import { inventoryRepository } from "@/lib/inventory/inventoryRepository";
 import { productService } from "@/lib/inventory/productService";
 import { recipeService } from "@/lib/restaurant/recipeService";
+import {
+  pharmacyDispensingService,
+} from "@/lib/pharmacy/dispensing/pharmacyDispensingService";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -251,43 +254,72 @@ await tx.operationRequest.create({
       }));
 
     const inventoryItems: Array<{
-      productId: string;
-      quantity: number;
-    }> = [];
+  productId: string;
+  quantity: number;
+}> = [];
+
+const pharmacyItems: Array<{
+  saleItemId: string;
+  productId: string;
+  quantity: number;
+  prescriptionId?: string | null;
+  prescriptionItemId?: string | null;
+}> = [];
 
     for (const item of sale.items) {
-      if (item.menuItemId) {
-        continue;
-      }
+  if (item.menuItemId) {
+    continue;
+  }
 
-      let inventoryQuantity =
-        Number(item.quantity);
+  let inventoryQuantity =
+    Number(item.quantity);
 
-      if (item.sellingUnitId) {
-        const sellingUnit =
-          await productService.findSellingUnitById(
-  businessId,
-  item.productId,
-  item.sellingUnitId,
-  tx,
-);
+  if (item.sellingUnitId) {
+    const sellingUnit =
+      await productService.findSellingUnitById(
+        businessId,
+        item.productId,
+        item.sellingUnitId,
+        tx,
+      );
 
-        if (!sellingUnit) {
-          throw new Error(
-            `Selling unit not found for product "${item.productName}".`,
-          );
-        }
-
-        inventoryQuantity =
-          Number(item.quantity) *
-          sellingUnit.quantity;
-      }
-
-      inventoryItems.push({
-        productId: item.productId,
-        quantity: inventoryQuantity,
-      });
+    if (!sellingUnit) {
+      throw new Error(
+        `Selling unit not found for product "${item.productName}".`,
+      );
     }
+
+    inventoryQuantity =
+      Number(item.quantity) *
+      sellingUnit.quantity;
+  }
+
+  const pharmacyProduct =
+    await tx.pharmacyProduct.findUnique({
+      where: {
+        productId: item.productId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+  if (pharmacyProduct) {
+   pharmacyItems.push({
+  saleItemId: item.id,
+  productId: item.productId,
+  quantity: inventoryQuantity,
+  prescriptionId: item.prescriptionId,
+  prescriptionItemId: item.prescriptionItemId,
+});
+  } else {
+    inventoryItems.push({
+      productId: item.productId,
+      quantity: inventoryQuantity,
+    });
+  }
+}
 
     if (restaurantItems.length > 0) {
       await recipeService.consumeSaleRecipes({
@@ -317,6 +349,32 @@ await tx.operationRequest.create({
         },
       );
     }
+	
+	if (pharmacyItems.length > 0) {
+  for (const item of pharmacyItems) {
+    await pharmacyDispensingService.dispense(
+      {
+        businessId,
+        productId: item.productId,
+        warehouseId: sale.warehouseId,
+		saleItemId: item.saleItemId,
+		customerId: sale.customerId ?? undefined,
+		prescriptionId: item.prescriptionId ?? undefined,
+        prescriptionItemId:
+           item.prescriptionItemId ?? undefined,
+        quantity: new Prisma.Decimal(item.quantity),
+        operationId:
+          `PHARMACY_DISPENSING:${sale.id}:${item.saleItemId}`,
+        createdBy: sale.createdBy,
+        referenceType: "SALE",
+        referenceId: sale.id,
+        notes:
+          `Pharmacy FEFO dispensing for sale ${sale.referenceNumber}.`,
+      },
+      tx,
+    );
+  }
+}
 
     await postSaleToAccounting({
       businessId,

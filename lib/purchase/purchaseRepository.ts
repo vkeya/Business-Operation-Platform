@@ -148,6 +148,21 @@ async function receivePurchaseWithClient(
   }
 
   for (const item of purchase.items) {
+	  
+	  const purchaseSubtotal =
+    purchase.subtotal.toNumber();
+
+  const purchaseDiscount =
+    purchase.discountAmount.toNumber();
+
+  const discountRatio =
+    purchaseSubtotal > 0
+      ? Math.min(
+          purchaseDiscount / purchaseSubtotal,
+          1,
+        )
+      : 0;
+	  
     const product = await tx.product.findFirst({
   where: {
     id: item.productId,
@@ -189,12 +204,15 @@ if (!product) {
         : purchaseQuantity;
 
     const unitCost =
-      item.unitCost.toNumber();
+  item.unitCost.toNumber();
 
-    const inventoryUnitCost =
-      Number.isFinite(volume) && volume > 0
-        ? unitCost / volume
-        : unitCost;
+const discountedUnitCost =
+  unitCost * (1 - discountRatio);
+
+const inventoryUnitCost =
+  Number.isFinite(volume) && volume > 0
+    ? discountedUnitCost / volume
+    : discountedUnitCost;
 
     const existingBalance =
       await tx.inventoryBalance.findUnique({

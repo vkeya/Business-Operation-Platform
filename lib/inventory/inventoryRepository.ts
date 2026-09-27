@@ -1,5 +1,6 @@
+import { pharmacyBatchReceivingService } from "@/lib/pharmacy/receiving/pharmacyBatchReceivingService";
 import { prisma } from "@/lib/database/prisma";
-import type { Prisma } from "../../generated/prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -226,8 +227,8 @@ export const inventoryRepository = {
                 currency: input.currency,
               },
             });
-
-          await tx.operationRequest.update({
+          
+		  await tx.operationRequest.update({
             where: {
               id: operation.id,
             },
@@ -322,16 +323,19 @@ export const inventoryRepository = {
 },
 
 	  async receiveStock(input: {
-    operationId: string;
-    businessId: string;
-    productId: string;
-    warehouseId: string;
-    quantity: number;
-    unitCost: number;
-    currency: string;
-    createdBy: string;
-    notes?: string;
-  }) {
+  operationId: string;
+  businessId: string;
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  unitCost: number;
+  currency: string;
+  createdBy: string;
+  notes?: string;
+  batchNumber?: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
+}) {
     if (input.quantity <= 0) {
       throw new Error(
         "Receipt quantity must be greater than zero.",
@@ -459,21 +463,25 @@ export const inventoryRepository = {
                   ) / newQuantity;
 
             const movement =
-              await tx.inventoryMovement.create({
-                data: {
-                  businessId: input.businessId,
-                  productId: input.productId,
-                  warehouseId: input.warehouseId,
-                  type: "RECEIPT",
-                  quantity: input.quantity,
-                  unitCost: input.unitCost,
-                  totalCost:
-                    input.quantity *
-                    input.unitCost,
-                  createdBy: input.createdBy,
-                  notes: input.notes,
-                },
-              });
+  await tx.inventoryMovement.create({
+    data: {
+      businessId: input.businessId,
+      productId: input.productId,
+      warehouseId: input.warehouseId,
+      type: "RECEIPT",
+      quantity: input.quantity,
+      unitCost: input.unitCost,
+      totalCost:
+        input.quantity *
+        input.unitCost,
+
+      referenceType: "MANUAL_RECEIPT",
+      referenceId: operationRequest.id,
+
+      createdBy: input.createdBy,
+      notes: input.notes,
+    },
+  });
 
             const balance =
               await tx.inventoryBalance.upsert({
@@ -500,6 +508,131 @@ export const inventoryRepository = {
                   currency: input.currency,
                 },
               });
+			  
+			  
+			// Pharmacy batch tracking
+const pharmacyProduct =
+  await tx.pharmacyProduct.findUnique({
+    where: {
+      productId: input.productId,
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+if (pharmacyProduct) {
+  if (pharmacyProduct.status !== "ACTIVE") {
+    throw new Error(
+      "This pharmacy product is not active and cannot receive inventory.",
+    );
+  }
+
+  if (
+    !input.batchNumber?.trim() ||
+    !input.expiryDate
+  ) {
+    throw new Error(
+      "Batch number and expiry date are required when receiving a pharmacy product.",
+    );
+  }
+
+  const expiryDate = new Date(input.expiryDate);
+
+  if (Number.isNaN(expiryDate.getTime())) {
+    throw new Error(
+      "Invalid batch expiry date.",
+    );
+  }
+
+  if (expiryDate <= new Date()) {
+    throw new Error(
+      "Pharmacy batch expiry date must be in the future.",
+    );
+  }
+
+  let manufacturingDate:
+    | Date
+    | undefined;
+
+  if (input.manufacturingDate) {
+    manufacturingDate =
+      new Date(input.manufacturingDate);
+
+    if (
+      Number.isNaN(
+        manufacturingDate.getTime(),
+      )
+    ) {
+      throw new Error(
+        "Invalid manufacturing date.",
+      );
+    }
+
+    if (manufacturingDate > new Date()) {
+      throw new Error(
+        "Manufacturing date cannot be in the future.",
+      );
+    }
+
+    if (manufacturingDate >= expiryDate) {
+      throw new Error(
+        "Manufacturing date must be before the expiry date.",
+      );
+    }
+  }
+
+  const batchNumber =
+    input.batchNumber.trim();
+
+  const existingBatch =
+    await tx.pharmacyBatch.findUnique({
+      where: {
+        pharmacyProductId_batchNumber: {
+          pharmacyProductId:
+            pharmacyProduct.id,
+          batchNumber,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (existingBatch) {
+    throw new Error(
+      `Batch ${batchNumber} already exists for this pharmacy product.`,
+    );
+  }
+
+  await tx.pharmacyBatch.create({
+    data: {
+      pharmacyProductId:
+        pharmacyProduct.id,
+
+      warehouseId:
+        input.warehouseId,
+
+      batchNumber,
+
+      manufacturingDate,
+
+      expiryDate,
+
+      quantityReceived:
+        input.quantity,
+
+      quantityRemaining:
+        input.quantity,
+
+      unitCost:
+        input.unitCost,
+
+      isRecalled: false,
+    },
+  });
+}
 
             await tx.operationRequest.update({
               where: {

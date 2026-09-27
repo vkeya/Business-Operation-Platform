@@ -12,7 +12,8 @@ export type NavigationModule =
   | "menu"
   | "expenses"
   | "services"
-  | "pos";
+  | "pos"
+  | "pharmacy";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -59,6 +60,14 @@ export const appNavigation: NavigationItem[] = [
     descriptionKey: "navigationDescriptions.inventory",
     href: "/inventory",
   },
+  
+  {
+  id: "pharmacy",
+  labelKey: "pharmacy",
+  descriptionKey: "navigationDescriptions.pharmacy",
+  href: "/pharmacy/dashboard",
+  },
+  
   {
     id: "purchases",
     labelKey: "purchases",

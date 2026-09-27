@@ -26,6 +26,7 @@ const capabilityToNavigationModule:
   reports: "reports",
   menu: "menu",
   services: "services",
+  pharmacy: "pharmacy",
 };
 
 export function getBusinessNavigation(

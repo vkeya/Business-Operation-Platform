@@ -53,6 +53,8 @@ model Business {
   warehouses          Warehouse[]
   
   pharmacyProfile PharmacyProfile?
+  pharmacyPrescriptions PharmacyPrescription[]
+  pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([status])
 }
@@ -104,6 +106,8 @@ model PharmacyProduct {
 
   product               Product                   @relation(fields: [productId],references: [id],onDelete: Cascade)
 
+  controlledDispensingRecords PharmacyControlledDispensingRecord[]
+
   @@index([medicineType])
   @@index([prescriptionType])
   @@index([status])
@@ -113,6 +117,7 @@ model PharmacyProduct {
 model PharmacyBatch {
   id                String   @id @default(cuid())
   pharmacyProductId String
+  warehouseId String
 
   batchNumber       String
   manufacturingDate DateTime?
@@ -132,12 +137,16 @@ model PharmacyBatch {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  
+  controlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Cascade)
 
   supplier Supplier? @relation(fields: [supplierId],references: [id],onDelete: SetNull)
 
   purchase Purchase? @relation(fields: [purchaseId],references: [id],onDelete: SetNull)
+
+  warehouse Warehouse @relation(fields: [warehouseId],references: [id],onDelete: Restrict)
 
   @@unique([pharmacyProductId, batchNumber])
   @@index([pharmacyProductId])
@@ -146,6 +155,118 @@ model PharmacyBatch {
   @@index([supplierId])
   @@index([purchaseId])
   @@index([isRecalled])
+}
+
+model PharmacyPrescription {
+  id                    String   @id @default(cuid())
+  businessId            String
+  customerId            String?
+  saleId                String?
+  prescriptionNumber    String
+  prescriptionDate      DateTime
+  expiryDate            DateTime?
+  prescriberName        String
+  prescriberLicense     String?
+  diagnosis             String?
+  notes                 String?
+  status                PharmacyPrescriptionStatus @default(ACTIVE)
+  createdBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  business              Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sale                  Sale?      @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  items                 PharmacyPrescriptionItem[]
+  
+  saleItems SaleItem[]
+
+  controlledDispensingRecords PharmacyControlledDispensingRecord[]
+
+  @@unique([businessId, prescriptionNumber])
+  @@index([businessId])
+  @@index([customerId])
+  @@index([saleId])
+  @@index([prescriptionDate])
+  @@index([expiryDate])
+  @@index([status])
+}
+
+model PharmacyPrescriptionItem {
+  id                   String   @id @default(cuid())
+  prescriptionId       String
+  productId            String
+  quantityPrescribed  Decimal  @db.Decimal(18, 4)
+  quantityDispensed   Decimal  @default(0) @db.Decimal(18, 4)
+  dosageInstructions  String?
+  duration             String?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  saleItems SaleItem[]
+
+  prescription PharmacyPrescription @relation(fields: [prescriptionId],references: [id],onDelete: Cascade)
+
+  product Product @relation(fields: [productId],references: [id],onDelete: Restrict)
+
+  controlledDispensingRecords PharmacyControlledDispensingRecord[]
+
+  @@index([prescriptionId])
+  @@index([productId])
+}
+
+model PharmacyControlledDispensingRecord {
+  id                    String   @id @default(cuid())
+  businessId            String
+  saleId                String
+  saleItemId            String
+  pharmacyProductId     String
+  pharmacyBatchId       String
+  prescriptionId        String?
+  prescriptionItemId    String?
+  customerId            String?
+  quantity              Decimal  @db.Decimal(18, 4)
+  dispensedBy           String
+  pharmacistName        String?
+  pharmacistLicense     String?
+  registerReference     String?
+  reason                String?
+  status                PharmacyControlledRecordStatus @default(DISPENSED)
+  dispensedAt           DateTime @default(now())
+  reversedAt            DateTime?
+  reversalReason        String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  business              Business @relation(fields: [businessId],references: [id],onDelete: Cascade)
+
+  sale                  Sale @relation(fields: [saleId],references: [id],onDelete: Restrict)
+
+  saleItem              SaleItem @relation(fields: [saleItemId],references: [id],onDelete: Restrict)
+
+  pharmacyProduct       PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Restrict)
+
+  pharmacyBatch         PharmacyBatch @relation(fields: [pharmacyBatchId],references: [id],onDelete: Restrict)
+
+  prescription          PharmacyPrescription? @relation(fields: [prescriptionId],references: [id],onDelete: SetNull)
+
+  prescriptionItem      PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId],references: [id],onDelete: SetNull)
+
+  customer              Customer? @relation(fields: [customerId],references: [id],onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([saleId])
+  @@index([saleItemId])
+  @@index([pharmacyProductId])
+  @@index([pharmacyBatchId])
+  @@index([prescriptionId])
+  @@index([prescriptionItemId])
+  @@index([customerId])
+  @@index([dispensedBy])
+  @@index([dispensedAt])
+  @@index([status])
+  @@index([registerReference])
 }
 
 model MpesaConfiguration {
@@ -230,6 +351,8 @@ model Warehouse {
   saleReturns        SaleReturn[]
   branch             Branch?             @relation(fields: [branchId], references: [id])
   business           Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  pharmacyBatches PharmacyBatch[]
 
   @@unique([businessId, code])
   @@index([businessId])
@@ -391,6 +514,7 @@ model Product {
   restaurantMenuItems RestaurantMenuItem[]
   
   pharmacyProduct PharmacyProduct?
+  pharmacyPrescriptionItems PharmacyPrescriptionItem[]
 
   @@unique([businessId, sku])
   @@unique([businessId, barcode])
@@ -564,6 +688,9 @@ model Customer {
   updatedAt   DateTime @updatedAt
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sales       Sale[]
+  
+  pharmacyPrescriptions PharmacyPrescription[]
+  pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([businessId])
   @@index([phone])
@@ -626,6 +753,9 @@ model Sale {
   items           SaleItem[]
   returns         SaleReturn[]
   refunds         PaymentRefund[]
+  
+  pharmacyPrescriptions PharmacyPrescription[]
+  pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@unique([businessId, referenceNumber])
   @@index([businessId])
@@ -636,26 +766,35 @@ model Sale {
 }
 
 model SaleItem {
-  id             String              @id @default(cuid())
-  saleId         String
-  productId      String
-  productName    String
-  sku            String?
-  quantity       Decimal             @db.Decimal(18, 4)
-  unitPrice      Decimal             @db.Decimal(18, 4)
-  discountAmount Decimal             @db.Decimal(18, 4)
-  taxAmount      Decimal             @db.Decimal(18, 4)
-  totalAmount    Decimal             @db.Decimal(18, 4)
-  menuItemId     String?
-  sellingUnitId  String?
-  menuItem       RestaurantMenuItem? @relation(fields: [menuItemId], references: [id])
-  sale           Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  sellingUnit    ProductSellingUnit? @relation(fields: [sellingUnitId], references: [id])
+  id                  String              @id @default(cuid())
+  saleId              String
+  productId           String
+  productName         String
+  sku                 String?
+  quantity            Decimal             @db.Decimal(18, 4)
+  unitPrice           Decimal             @db.Decimal(18, 4)
+  discountAmount      Decimal             @db.Decimal(18, 4)
+  taxAmount           Decimal             @db.Decimal(18, 4)
+  totalAmount         Decimal             @db.Decimal(18, 4)
+  menuItemId          String?
+  sellingUnitId       String?
+  prescriptionId      String?
+  prescriptionItemId  String?
+
+  menuItem            RestaurantMenuItem?     @relation(fields: [menuItemId], references: [id])
+  sale                Sale                    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sellingUnit         ProductSellingUnit?     @relation(fields: [sellingUnitId], references: [id])
+  prescription        PharmacyPrescription?   @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  prescriptionItem    PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
+
+  pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([saleId])
   @@index([productId])
   @@index([menuItemId])
   @@index([sellingUnitId])
+  @@index([prescriptionId])
+  @@index([prescriptionItemId])
 }
 
 model SaleReturn {
@@ -1197,6 +1336,8 @@ enum BusinessReferenceType {
   EXPENSE
   JOURNAL_ENTRY
   INVENTORY_MOVEMENT
+  PHARMACY_PRESCRIPTION
+  PHARMACY_CONTROLLED_DISPENSING
 }
 
 enum ProductPriceType {
@@ -1237,4 +1378,18 @@ enum PharmacyProductStatus {
   ACTIVE
   DISCONTINUED
   RECALLED
+}
+
+enum PharmacyPrescriptionStatus {
+  ACTIVE
+  PARTIALLY_DISPENSED
+  FULLY_DISPENSED
+  CANCELLED
+  EXPIRED
+}
+
+enum PharmacyControlledRecordStatus {
+  DISPENSED
+  REVERSED
+  CANCELLED
 }

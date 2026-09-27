@@ -9,6 +9,12 @@ import { useRouter } from "next/navigation";
 import {
   createPurchaseAction,
 } from "../action";
+import type {
+  TaxConfiguration,
+} from "@/lib/tax/taxConfigurationService";
+import {
+  calculateTax,
+} from "@/lib/tax/taxCalculationService";
 
 interface Product {
   id: string;
@@ -40,6 +46,7 @@ interface PurchaseFormProps {
   warehouses: Warehouse[];
   currency: string;
   initialProductId?: string;
+  taxConfiguration: TaxConfiguration;
 }
 
 interface PurchaseItem {
@@ -98,6 +105,7 @@ export default function PurchaseForm({
   suppliers,
   warehouses,
   currency: defaultCurrency,
+  taxConfiguration,
   initialProductId,
 }: PurchaseFormProps) {
   const router = useRouter();
@@ -116,11 +124,14 @@ export default function PurchaseForm({
 
   const [notes, setNotes] =
     useState("");
+	
+  const [discountAmount, setDiscountAmount] =
+  useState("");
 
   const [items, setItems] =
   useState<PurchaseItem[]>([
     {
-      id: crypto.randomUUID(),
+      id: "initial-purchase-item",
       productId:
         initialProductId ?? "",
       quantity: "",
@@ -155,6 +166,26 @@ export default function PurchaseForm({
       ),
     [items],
   );
+  
+  const purchaseTax = useMemo(
+  () =>
+    calculateTax({
+      subtotal,
+      discountAmount:
+        Number(discountAmount || 0),
+      taxEnabled:
+        taxConfiguration.enabled,
+      taxRate:
+        taxConfiguration.rate,
+      pricingMode:
+        taxConfiguration.pricingMode,
+    }),
+  [
+    subtotal,
+    discountAmount,
+    taxConfiguration,
+  ],
+);
 
   function updateItem(
     id: string,
@@ -302,9 +333,9 @@ if (!currency) {
           };
         }),
         subtotal,
-        discountAmount: 0,
-        taxAmount: 0,
-        totalAmount: subtotal,
+        discountAmount: purchaseTax.discountAmount,
+        taxAmount: purchaseTax.taxAmount,
+        totalAmount: purchaseTax.totalAmount,
       });
 
       router.push("/purchases");
@@ -648,42 +679,115 @@ if (!currency) {
       </section>
 
       <section className="border-t border-slate-200 pt-8">
-        <div className="ml-auto max-w-sm space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500">
-              Subtotal
-            </span>
+  <div className="ml-auto max-w-sm space-y-3">
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-slate-500">
+        Subtotal
+      </span>
 
-            <span className="font-medium text-slate-900">
-              {currency}{" "}
-              {subtotal.toLocaleString(
-                undefined,
-                {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                },
-              )}
-            </span>
-          </div>
+      <span className="font-medium text-slate-900">
+        {currency}{" "}
+        {subtotal.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </span>
+    </div>
 
-          <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-            <span className="font-semibold text-slate-900">
-              Total
-            </span>
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <label
+        htmlFor="discountAmount"
+        className="text-slate-500"
+      >
+        Discount
+      </label>
 
-            <span className="text-xl font-semibold text-slate-900">
-              {currency}{" "}
-              {subtotal.toLocaleString(
-                undefined,
-                {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                },
-              )}
-            </span>
-          </div>
-        </div>
-      </section>
+      <div className="flex items-center">
+        <span className="mr-2 text-slate-500">
+          {currency}
+        </span>
+
+        <input
+          id="discountAmount"
+          type="number"
+          min="0"
+          step="0.01"
+          max={subtotal}
+          value={discountAmount}
+          onChange={(event) =>
+            setDiscountAmount(event.target.value)
+          }
+          placeholder="0.00"
+          className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm text-slate-900"
+        />
+      </div>
+    </div>
+
+    {Number(discountAmount || 0) > 0 && (
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-500">
+          Taxable amount
+        </span>
+
+        <span className="font-medium text-slate-900">
+          {currency}{" "}
+          {purchaseTax.taxableAmount.toLocaleString(
+            undefined,
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            },
+          )}
+        </span>
+      </div>
+    )}
+
+    {taxConfiguration.enabled && (
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-500">
+          {taxConfiguration.name}{" "}
+          ({taxConfiguration.rate}%)
+        </span>
+
+        <span className="font-medium text-slate-900">
+          {currency}{" "}
+          {purchaseTax.taxAmount.toLocaleString(
+            undefined,
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            },
+          )}
+        </span>
+      </div>
+    )}
+
+    {taxConfiguration.enabled && (
+      <p className="text-right text-xs text-slate-400">
+        {taxConfiguration.pricingMode === "INCLUSIVE"
+          ? `${taxConfiguration.name} inclusive`
+          : `${taxConfiguration.name} exclusive`}
+      </p>
+    )}
+
+    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+      <span className="font-semibold text-slate-900">
+        Total
+      </span>
+
+      <span className="text-xl font-semibold text-slate-900">
+        {currency}{" "}
+        {purchaseTax.totalAmount.toLocaleString(
+          undefined,
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          },
+        )}
+      </span>
+    </div>
+  </div>
+</section>
 
       <section className="border-t border-slate-200 pt-8">
         <label

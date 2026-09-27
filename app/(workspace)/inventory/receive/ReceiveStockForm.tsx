@@ -15,6 +15,13 @@ interface Product {
   type: string;
   trackInventory: boolean;
   currency: string;
+  
+  pharmacyProduct?: {
+    id: string;
+    medicineType: string;
+    prescriptionType: string;
+    status: string;
+  } | null;
 }
 
 interface Warehouse {
@@ -48,6 +55,10 @@ export default function ReceiveStockForm({
 
   const [notes, setNotes] =
     useState("");
+	
+  const [batchNumber, setBatchNumber] = useState("");
+  const [manufacturingDate, setManufacturingDate] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
 
   const [submitting, setSubmitting] =
     useState(false);
@@ -62,6 +73,12 @@ export default function ReceiveStockForm({
     products.find(
       (product) => product.id === productId,
     );
+	
+	const isPharmacyProduct =
+  Boolean(
+    selectedProduct?.pharmacyProduct &&
+    selectedProduct.pharmacyProduct.status === "ACTIVE",
+  );
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -106,6 +123,59 @@ export default function ReceiveStockForm({
       );
       return;
     }
+	
+	if (isPharmacyProduct) {
+  if (!batchNumber.trim()) {
+    setError(
+      "Batch number is required for pharmacy products.",
+    );
+    return;
+  }
+
+  if (!expiryDate) {
+    setError(
+      "Expiry date is required for pharmacy products.",
+    );
+    return;
+  }
+
+  const expiry = new Date(expiryDate);
+
+  if (!Number.isFinite(expiry.getTime())) {
+    setError("Please enter a valid expiry date.");
+    return;
+  }
+
+  if (expiry <= new Date()) {
+    setError(
+      "Expiry date must be in the future.",
+    );
+    return;
+  }
+
+  if (manufacturingDate) {
+    const manufacturing =
+      new Date(manufacturingDate);
+
+    if (
+      !Number.isFinite(
+        manufacturing.getTime(),
+      )
+    ) {
+      setError(
+        "Please enter a valid manufacturing date.",
+      );
+      return;
+    }
+
+    if (manufacturing >= expiry) {
+      setError(
+        "Manufacturing date must be earlier than expiry date.",
+      );
+      return;
+    }
+  }
+}
 
     if (!selectedProduct) {
       setError("Selected product was not found.");
@@ -118,15 +188,30 @@ export default function ReceiveStockForm({
 
 		const operationId = crypto.randomUUID();
 
-      await receiveStockAction({
-		  operationId,
-        productId,
-        warehouseId,
-        quantity: parsedQuantity,
-        unitCost: parsedUnitCost,
-        currency: selectedProduct.currency,
-        notes: notes.trim() || undefined,
-      });
+await receiveStockAction({
+  operationId,
+  productId,
+  warehouseId,
+  quantity: parsedQuantity,
+  unitCost: parsedUnitCost,
+  currency: selectedProduct.currency,
+  notes: notes.trim() || undefined,
+
+  batchNumber:
+    isPharmacyProduct
+      ? batchNumber.trim()
+      : undefined,
+
+  manufacturingDate:
+    isPharmacyProduct && manufacturingDate
+      ? manufacturingDate
+      : undefined,
+
+  expiryDate:
+    isPharmacyProduct
+      ? expiryDate
+      : undefined,
+});
 
       setSuccess(
         `Successfully received ${parsedQuantity} ${selectedProduct.name}.`,
@@ -135,6 +220,9 @@ export default function ReceiveStockForm({
       setQuantity("");
       setUnitCost("");
       setNotes("");
+	  setBatchNumber("");
+      setManufacturingDate("");
+      setExpiryDate("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -287,6 +375,79 @@ export default function ReceiveStockForm({
           </span>
         </p>
       )}
+	  
+	  {isPharmacyProduct && (
+  <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div>
+      <h3 className="text-sm font-semibold text-slate-900">
+        Pharmacy batch
+      </h3>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Batch and expiry information is required for pharmacy stock.
+      </p>
+    </div>
+
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label
+          htmlFor="batchNumber"
+          className="block text-sm font-medium text-slate-900"
+        >
+          Batch number
+        </label>
+
+        <input
+          id="batchNumber"
+          value={batchNumber}
+          onChange={(event) =>
+            setBatchNumber(event.target.value)
+          }
+          placeholder="e.g. PCM20260901"
+          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="manufacturingDate"
+          className="block text-sm font-medium text-slate-900"
+        >
+          Manufacturing date
+        </label>
+
+        <input
+          id="manufacturingDate"
+          type="date"
+          value={manufacturingDate}
+          onChange={(event) =>
+            setManufacturingDate(event.target.value)
+          }
+          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="expiryDate"
+          className="block text-sm font-medium text-slate-900"
+        >
+          Expiry date
+        </label>
+
+        <input
+          id="expiryDate"
+          type="date"
+          value={expiryDate}
+          onChange={(event) =>
+            setExpiryDate(event.target.value)
+          }
+          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+        />
+      </div>
+    </div>
+  </div>
+)}
 
       <div>
         <label

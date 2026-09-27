@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import {
   saleRepository,
   type CreateSaleInput,
@@ -105,6 +106,147 @@ export const saleService = {
         );
       }
     }
+	
+	const pharmacyProductIds = input.items.map(
+  (item) => item.productId,
+);
+
+const pharmacyProducts =
+  await prisma.pharmacyProduct.findMany({
+    where: {
+      productId: {
+        in: pharmacyProductIds,
+      },
+      status: "ACTIVE",
+    },
+    select: {
+      productId: true,
+      prescriptionType: true,
+    },
+  });
+
+const pharmacyProductMap = new Map(
+  pharmacyProducts.map((product) => [
+    product.productId,
+    product,
+  ]),
+);
+
+for (const item of input.items) {
+  const pharmacyProduct =
+    pharmacyProductMap.get(item.productId);
+
+  if (!pharmacyProduct) {
+    continue;
+  }
+
+  if (
+    pharmacyProduct.prescriptionType ===
+      "PRESCRIPTION" ||
+    pharmacyProduct.prescriptionType ===
+      "CONTROLLED"
+  ) {
+    if (
+      !item.prescriptionId ||
+      !item.prescriptionItemId
+    ) {
+      throw new Error(
+        `Prescription identity is required for pharmacy product "${item.productId}".`,
+      );
+    }
+  }
+}
+
+for (const item of input.items) {
+  const pharmacyProduct =
+    pharmacyProductMap.get(item.productId);
+
+  if (
+    !pharmacyProduct ||
+    pharmacyProduct.prescriptionType === "OTC"
+  ) {
+    continue;
+  }
+
+  if (
+    !item.prescriptionId ||
+    !item.prescriptionItemId
+  ) {
+    throw new Error(
+      `Prescription identity is required for pharmacy product "${item.productId}".`,
+    );
+  }
+
+  const prescription =
+    await prisma.pharmacyPrescription.findFirst({
+      where: {
+        id: item.prescriptionId,
+        businessId: input.businessId,
+        status: {
+          in: [
+            "ACTIVE",
+            "PARTIALLY_DISPENSED",
+          ],
+        },
+      },
+      select: {
+        id: true,
+        expiryDate: true,
+      },
+    });
+
+  if (!prescription) {
+    throw new Error(
+      `Prescription ${item.prescriptionId} does not belong to this business or is not active.`,
+    );
+  }
+
+  if (
+    prescription.expiryDate &&
+    prescription.expiryDate <= new Date()
+  ) {
+    throw new Error(
+      `Prescription ${item.prescriptionId} has expired.`,
+    );
+  }
+
+  const prescriptionItem =
+    await prisma.pharmacyPrescriptionItem.findFirst({
+      where: {
+        id: item.prescriptionItemId,
+        prescriptionId:
+          prescription.id,
+        productId:
+          item.productId,
+      },
+      select: {
+        id: true,
+        quantityPrescribed: true,
+        quantityDispensed: true,
+      },
+    });
+
+  if (!prescriptionItem) {
+    throw new Error(
+      `Prescription item does not match prescription ${prescription.id} and product ${item.productId}.`,
+    );
+  }
+
+  const remaining =
+    prescriptionItem.quantityPrescribed.sub(
+      prescriptionItem.quantityDispensed,
+    );
+
+  if (
+    remaining.lessThan(
+      new Prisma.Decimal(item.quantity),
+    )
+  ) {
+    throw new Error(
+      `Sale quantity exceeds the remaining prescribed quantity for product "${item.productId}".`,
+    );
+  }
+}
 
     const taxConfiguration =
       await taxConfigurationService.get(
@@ -642,44 +784,73 @@ if (input.branchId) {
                 }));
 
             const inventoryItems: Array<{
-              productId: string;
-              quantity: number;
-            }> = [];
+  productId: string;
+  quantity: number;
+}> = [];
+
+const pharmacyItems: Array<{
+  saleItemId: string;
+  productId: string;
+  quantity: number;
+  prescriptionId?: string | null;
+  prescriptionItemId?: string | null;
+}> = [];
 
             for (const item of sale.items) {
-              if (item.menuItemId) {
-                continue;
-              }
+  if (item.menuItemId) {
+    continue;
+  }
 
-              let inventoryQuantity =
-                Number(item.quantity);
+  let inventoryQuantity =
+    Number(item.quantity);
 
-              if (item.sellingUnitId) {
-                const sellingUnit =
-                  await productService.findSellingUnitById(
-  businessId,
-  item.productId,
-  item.sellingUnitId,
-);
+  if (item.sellingUnitId) {
+    const sellingUnit =
+      await productService.findSellingUnitById(
+        businessId,
+        item.productId,
+        item.sellingUnitId,
+        tx,
+      );
 
-                if (!sellingUnit) {
-                  throw new Error(
-                    `Selling unit not found for product "${item.productName}".`,
-                  );
-                }
+    if (!sellingUnit) {
+      throw new Error(
+        `Selling unit not found for product "${item.productName}".`,
+      );
+    }
 
-                inventoryQuantity =
-                  Number(item.quantity) *
-                  sellingUnit.quantity;
-              }
+    inventoryQuantity =
+      Number(item.quantity) *
+      sellingUnit.quantity;
+  }
 
-              inventoryItems.push({
-                productId:
-                  item.productId,
-                quantity:
-                  inventoryQuantity,
-              });
-            }
+  const pharmacyProduct =
+    await tx.pharmacyProduct.findUnique({
+      where: {
+        productId: item.productId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (pharmacyProduct) {
+    pharmacyItems.push({
+  saleItemId: item.id,
+  productId: item.productId,
+  quantity: inventoryQuantity,
+  prescriptionId: item.prescriptionId,
+  prescriptionItemId: item.prescriptionItemId,
+});
+
+    continue;
+  }
+
+  inventoryItems.push({
+    productId: item.productId,
+    quantity: inventoryQuantity,
+  });
+}
 
             if (
               restaurantItems.length > 0
@@ -729,6 +900,248 @@ if (input.branchId) {
                 tx,
               );
             }
+			
+			if (pharmacyItems.length > 0) {
+  for (const item of pharmacyItems) {
+    const operationId =
+  `PHARMACY_DISPENSING:${sale.id}:${item.saleItemId}`;
+
+    const dispensingOperation =
+      await tx.operationRequest.findUnique({
+        where: {
+          businessId_operationId: {
+            businessId,
+            operationId,
+          },
+        },
+      });
+
+    if (
+      !dispensingOperation ||
+      !dispensingOperation.response
+    ) {
+      throw new Error(
+        `Pharmacy dispensing record not found for product ${item.productId}.`,
+      );
+    }
+
+    const response =
+      dispensingOperation.response as {
+        allocations?: Array<{
+          batchId: string;
+          batchNumber: string;
+          quantity: string;
+          expiryDate: string;
+        }>;
+      };
+
+    if (
+      !response.allocations ||
+      response.allocations.length === 0
+    ) {
+      throw new Error(
+        `Pharmacy batch allocation history is missing for product ${item.productId}.`,
+      );
+    }
+
+    const restoredQuantity =
+      response.allocations.reduce(
+        (total, allocation) =>
+          total.plus(
+            new Prisma.Decimal(
+              allocation.quantity,
+            ),
+          ),
+        new Prisma.Decimal(0),
+      );
+
+    const expectedQuantity =
+      new Prisma.Decimal(item.quantity);
+
+    if (!restoredQuantity.equals(expectedQuantity)) {
+      throw new Error(
+        `Pharmacy reversal quantity mismatch for product ${item.productId}.`,
+      );
+    }
+
+    for (const allocation of response.allocations) {
+      const quantity =
+        new Prisma.Decimal(
+          allocation.quantity,
+        );
+
+      const batch =
+        await tx.pharmacyBatch.findFirst({
+          where: {
+            id: allocation.batchId,
+            warehouseId:
+              sale.warehouseId!,
+          },
+          select: {
+            id: true,
+            quantityRemaining: true,
+          },
+        });
+
+      if (!batch) {
+        throw new Error(
+          `Pharmacy batch ${allocation.batchNumber} was not found.`,
+        );
+      }
+
+      await tx.pharmacyBatch.update({
+        where: {
+          id: batch.id,
+        },
+        data: {
+          quantityRemaining: {
+            increment: quantity,
+          },
+        },
+      });
+    }
+
+    await tx.inventoryBalance.update({
+      where: {
+        productId_warehouseId: {
+          productId: item.productId,
+          warehouseId: sale.warehouseId!,
+        },
+      },
+      data: {
+        quantity: {
+          increment: expectedQuantity,
+        },
+      },
+    });
+
+    await tx.inventoryMovement.create({
+      data: {
+        businessId,
+        productId: item.productId,
+        warehouseId: sale.warehouseId!,
+        type: "RETURN",
+        quantity: expectedQuantity,
+        referenceType: "SALE_REVERSAL",
+        referenceId: sale.id,
+        createdBy: sale.createdBy,
+        notes:
+          `Pharmacy batches restored from reversed sale ${sale.referenceNumber}.`,
+      },
+    });
+	
+	await tx.pharmacyControlledDispensingRecord.updateMany({
+  where: {
+    businessId,
+    saleId: sale.id,
+    saleItemId: item.saleItemId,
+    status: "DISPENSED",
+  },
+  data: {
+    status: "REVERSED",
+    reversedAt: new Date(),
+    reversalReason:
+      `Controlled medicine dispensing reversed with sale ${sale.referenceNumber}.`,
+  },
+});
+	
+	if (item.prescriptionId && item.prescriptionItemId) {
+  const prescriptionItem =
+    await tx.pharmacyPrescriptionItem.findFirst({
+      where: {
+        id: item.prescriptionItemId,
+        prescriptionId: item.prescriptionId,
+        productId: item.productId,
+      },
+    });
+
+  if (!prescriptionItem) {
+    throw new Error(
+      `Prescription item ${item.prescriptionItemId} was not found.`,
+    );
+  }
+
+  const previousQuantityDispensed =
+    prescriptionItem.quantityDispensed;
+
+  if (
+    previousQuantityDispensed.lessThan(
+      expectedQuantity,
+    )
+  ) {
+    throw new Error(
+      `Prescription item ${prescriptionItem.id} has insufficient dispensed quantity to reverse.`,
+    );
+  }
+
+  const newQuantityDispensed =
+    previousQuantityDispensed.sub(
+      expectedQuantity,
+    );
+
+  const prescriptionUpdate =
+    await tx.pharmacyPrescriptionItem.updateMany({
+      where: {
+        id: prescriptionItem.id,
+        prescriptionId:
+          prescriptionItem.prescriptionId,
+        productId:
+          prescriptionItem.productId,
+        quantityDispensed:
+          previousQuantityDispensed,
+      },
+      data: {
+        quantityDispensed:
+          newQuantityDispensed,
+      },
+    });
+
+  if (prescriptionUpdate.count !== 1) {
+    throw new Error(
+      "Prescription quantity changed while reversing the sale. Please retry the reversal.",
+    );
+  }
+
+  const prescriptionItems =
+  await tx.pharmacyPrescriptionItem.findMany({
+    where: {
+      prescriptionId:
+        prescriptionItem.prescriptionId,
+    },
+    select: {
+      quantityPrescribed: true,
+      quantityDispensed: true,
+    },
+  });
+
+const allFullyDispensed =
+  prescriptionItems.length > 0 &&
+  prescriptionItems.every((item) =>
+    item.quantityDispensed.equals(
+      item.quantityPrescribed,
+    ),
+  );
+
+const anyDispensed =
+  prescriptionItems.some((item) =>
+    item.quantityDispensed.greaterThan(0),
+  );
+
+await tx.pharmacyPrescription.update({
+  where: {
+    id: prescriptionItem.prescriptionId,
+  },
+  data: {
+    status: allFullyDispensed
+      ? "FULLY_DISPENSED"
+      : anyDispensed
+        ? "PARTIALLY_DISPENSED"
+        : "ACTIVE",
+  },
+});
+}
+  }
+}
 
             await reverseSaleAccounting({
               businessId,

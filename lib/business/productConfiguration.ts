@@ -179,29 +179,34 @@ const productConfigurations: Record<
       "Accessories",
     ],
     attributes: [
-      {
-        id: "clothingSize",
-        label: "Clothing Size",
-        type: "select",
-        options: clothingSizes,
-      },
-      {
-        id: "shoeSize",
-        label: "Shoe Size",
-        type: "select",
-        options: shoeSizes,
-      },
-      {
-        id: "color",
-        label: "Color",
-        type: "text",
-      },
-      {
-        id: "brand",
-        label: "Brand",
-        type: "text",
-      },
-    ],
+  {
+    id: "clothingSize",
+    label: "Clothing Size",
+    type: "select",
+    options: clothingSizes,
+  },
+  {
+    id: "shoeSize",
+    label: "Shoe Size",
+    type: "select",
+    options: shoeSizes,
+  },
+  {
+    id: "color",
+    label: "Color",
+    type: "text",
+  },
+  {
+    id: "material",
+    label: "Material",
+    type: "text",
+  },
+  {
+    id: "brand",
+    label: "Brand",
+    type: "text",
+  },
+],
     supportsInventory: true,
     supportsServices: true,
   },
@@ -356,6 +361,54 @@ const productConfigurations: Record<
     supportsInventory: true,
     supportsServices: true,
   },
+  
+    pharmacy: {
+    sellingUnits: [
+      "Tablet",
+      "Capsule",
+      "Bottle",
+      "Sachet",
+      "Tube",
+      "Box",
+      "Pack",
+      "Piece",
+      "Vial",
+      "Ampoule",
+    ],
+    productCategories: [
+      "Prescription Medicines",
+      "OTC Medicines",
+      "Supplements",
+      "Medical Devices",
+      "Personal Care",
+      "Baby Care",
+      "Other",
+    ],
+    attributes: [
+      {
+        id: "activeIngredient",
+        label: "Active Ingredient",
+        type: "text",
+      },
+      {
+        id: "strength",
+        label: "Strength",
+        type: "text",
+      },
+      {
+        id: "dosageForm",
+        label: "Dosage Form",
+        type: "text",
+      },
+      {
+        id: "manufacturer",
+        label: "Manufacturer",
+        type: "text",
+      },
+    ],
+    supportsInventory: true,
+    supportsServices: false,
+  }, 
 };
 
 export function getProductConfiguration(

@@ -1,4 +1,3 @@
-
 import { prisma } from "@/lib/database/prisma";
 import {
   purchaseRepository,
@@ -9,6 +8,10 @@ import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
 import { assertActiveProduct } from "@/lib/inventory/productStatus";
+import {
+  pharmacyBatchReceivingService,
+} from "@/lib/pharmacy/receiving/pharmacyBatchReceivingService";
+import { Prisma } from "@/generated/prisma/client";
 
 export const purchaseService = {
   async createPurchase(
@@ -388,6 +391,15 @@ export const purchaseService = {
   async receivePurchase(
   businessId: string,
   purchaseId: string,
+  pharmacyBatches: Array<{
+    purchaseItemId: string;
+    productId: string;
+    batchNumber: string;
+    expiryDate: Date;
+    manufacturingDate?: Date;
+    quantity: Prisma.Decimal;
+    unitCost: Prisma.Decimal;
+  }> = [],
 ) {
   if (!businessId) {
     throw new Error(
@@ -401,7 +413,8 @@ export const purchaseService = {
     );
   }
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+  async (tx) => {
     const purchase =
       await tx.purchase.findFirst({
         where: {
@@ -432,6 +445,20 @@ export const purchaseService = {
     purchaseId,
     tx,
   );
+  
+  if (pharmacyBatches.length > 0) {
+  await pharmacyBatchReceivingService.receive(
+    {
+      businessId,
+      purchaseId,
+      warehouseId: purchase.warehouseId!,
+      supplierId: purchase.supplierId,
+      createdBy: purchase.createdBy,
+      batches: pharmacyBatches,
+    },
+    tx,
+  );
+}
 
 await postPurchaseToAccounting({
   businessId:
@@ -442,6 +469,15 @@ await postPurchaseToAccounting({
 
   referenceNumber:
     purchase.referenceNumber,
+
+  subtotal:
+    purchase.subtotal.toNumber(),
+
+  discountAmount:
+    purchase.discountAmount.toNumber(),
+
+  taxAmount:
+    purchase.taxAmount.toNumber(),
 
   totalAmount:
     purchase.totalAmount.toNumber(),
@@ -456,7 +492,11 @@ await postPurchaseToAccounting({
 });
 
 return receivedPurchase;
-  });
+  },
+  {
+    timeout: 15000,
+  },
+);
 },
 
     async cancelPurchase(

@@ -26,6 +26,14 @@ const defaultAccounts = [
     description:
       "Inventory assets",
   },
+  
+    {
+    code: "1205",
+    name: "Input VAT",
+    type: "ASSET" as const,
+    description:
+      "VAT paid on purchases recoverable from tax authorities",
+  },
 
   {
   code: "1200",

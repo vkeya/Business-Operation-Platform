@@ -1,20 +1,66 @@
 import {
-BarChart3,
-Boxes,
-CreditCard,
-ReceiptText,
-TrendingUp,
+  BarChart3,
+  Boxes,
+  CreditCard,
+  ReceiptText,
+  TrendingUp,
 } from "lucide-react";
 
 import {
-getBusinessReportAction,
+  getBusinessReportAction,
+  getPharmacyBatchMovementReportAction,
+  getPharmacyBatchStockValuationAction,
+  getPharmacyControlledDispensingRegisterAction,
+  getPharmacyExpiryReportAction,
+  getPharmacyPrescriptionDispensingReportAction,
+  getPharmacyRecallReportAction,
 } from "@/lib/reports/actions";
+
+import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-const report =
-await getBusinessReportAction();
+  const business =
+    await getCurrentBusiness();
+
+  const report =
+    await getBusinessReportAction();
+
+  const controlledDispensingRegister =
+    business.type === "pharmacy"
+      ? await getPharmacyControlledDispensingRegisterAction()
+      : [];
+	  
+    const prescriptionDispensingReport =
+    business.type === "pharmacy"
+      ? await getPharmacyPrescriptionDispensingReportAction()
+      : [];
+	  
+	  const pharmacyExpiryReport =
+    business.type === "pharmacy"
+      ? await getPharmacyExpiryReportAction()
+      : [];
+	  
+	const pharmacyBatchMovementReport =
+  business.type === "pharmacy"
+    ? await getPharmacyBatchMovementReportAction()
+    : [];
+	
+	const pharmacyBatchStockValuation =
+  business.type === "pharmacy"
+    ? await getPharmacyBatchStockValuationAction()
+    : {
+        rows: [],
+        totalStockValue: 0,
+        totalUnits: 0,
+      };
+	  
+	const pharmacyRecallReport =
+  business.type === "pharmacy"
+    ? await getPharmacyRecallReportAction()
+    : [];
 
 return ( <div className="space-y-6">
 {/* Reports hero */} <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-slate-950 to-cyan-950 px-6 py-7 text-white shadow-xl shadow-slate-950/10 sm:px-8 sm:py-8"> <div className="pointer-events-none absolute inset-0"> <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" /> <div className="absolute bottom-0 left-1/3 h-40 w-80 rounded-full bg-violet-500/10 blur-3xl" /> </div>
@@ -300,6 +346,818 @@ return ( <div className="space-y-6">
       />
     </div>
   </section>
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Pharmacy compliance
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+            Controlled Medicine Register
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Controlled medicine dispensing activity, batch traceability,
+            prescription and pharmacist records.
+          </p>
+        </div>
+      </div>
+
+      {controlledDispensingRegister.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No controlled medicine dispensing records found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1500px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">Register</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Sale</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Date</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Medicine</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Batch</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Expiry</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Qty</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Prescription</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Customer</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Pharmacist</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">License</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">Status</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {controlledDispensingRegister.map((record) => (
+                <tr key={record.id} className="hover:bg-slate-50">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {record.registerReference ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.saleReference}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.dispensedAt.toLocaleDateString()}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {record.productName}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {record.sku ?? "No SKU"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.batchNumber}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.expiryDate.toLocaleDateString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {record.quantity.toLocaleString()}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {record.prescriptionNumber ?? "—"}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {record.prescriberName ?? "No prescriber"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.customerName ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.pharmacistName ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.pharmacistLicense ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span
+                      className={[
+                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                        record.status === "DISPENSED"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-slate-100 text-slate-600",
+                      ].join(" ")}
+                    >
+                      {record.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Pharmacy compliance
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+            Prescription Dispensing Report
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Prescription quantities, dispensing progress, prescriber,
+            customer and sale information.
+          </p>
+        </div>
+      </div>
+
+      {prescriptionDispensingReport.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No prescription dispensing records found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1400px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Prescription
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Date
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Product
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Customer
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Prescriber
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Prescribed
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Dispensed
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Remaining
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Sale
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Status
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {prescriptionDispensingReport.map((record) => (
+                <tr key={record.id} className="hover:bg-slate-50">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {record.prescriptionNumber}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {record.expiryDate
+                        ? `Expires ${record.expiryDate.toLocaleDateString()}`
+                        : "No expiry"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.prescriptionDate.toLocaleDateString()}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {record.productName}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {record.sku ?? "No SKU"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.customerName ?? "—"}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {record.prescriberName}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {record.prescriberLicense ?? "No license"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {record.quantityPrescribed.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-emerald-700">
+                    {record.quantityDispensed.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-amber-700">
+                    {record.quantityRemaining.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {record.saleReference ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {record.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Pharmacy inventory
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+            Batch Expiry Report
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Batch-level expiry dates, remaining stock, supplier,
+            warehouse and stock valuation.
+          </p>
+        </div>
+      </div>
+
+      {pharmacyExpiryReport.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No pharmacy batch expiry records found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1500px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Product
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Batch
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Manufacturing
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Expiry
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Days
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Remaining
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Unit Cost
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Stock Value
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Warehouse
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Supplier
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Status
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {pharmacyExpiryReport.map((batch) => {
+                const expiryTone =
+                  batch.daysToExpiry < 0
+                    ? "bg-red-50 text-red-700"
+                    : batch.daysToExpiry <= 30
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-emerald-50 text-emerald-700";
+
+                const expiryLabel =
+                  batch.daysToExpiry < 0
+                    ? "EXPIRED"
+                    : batch.daysToExpiry <= 30
+                      ? "EXPIRING SOON"
+                      : "ACTIVE";
+
+                return (
+                  <tr
+                    key={batch.id}
+                    className="hover:bg-slate-50"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-950">
+                        {batch.productName}
+                      </div>
+
+                      <div className="text-xs text-slate-400">
+                        {batch.sku ?? "No SKU"}
+                      </div>
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {batch.batchNumber}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {batch.manufacturingDate
+                        ? batch.manufacturingDate.toLocaleDateString()
+                        : "—"}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                      {batch.expiryDate.toLocaleDateString()}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${expiryTone}`}
+                      >
+                        {batch.daysToExpiry < 0
+                          ? `${Math.abs(batch.daysToExpiry)} days overdue`
+                          : `${batch.daysToExpiry} days`}
+                      </span>
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                      {batch.quantityRemaining.toLocaleString()}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {batch.unitCost.toLocaleString()}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                      {batch.stockValue.toLocaleString()}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {batch.warehouseName}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {batch.supplierName ?? "—"}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${expiryTone}`}
+                      >
+                        {batch.isRecalled
+                          ? "RECALLED"
+                          : expiryLabel}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Pharmacy inventory
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+            Batch Movement Report
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Pharmacy batch adjustments, quantities, costs, references and
+            audit information.
+          </p>
+        </div>
+      </div>
+
+      {pharmacyBatchMovementReport.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No pharmacy batch movement records found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1300px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Date
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Product
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Warehouse
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Movement
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Unit Cost
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Total Cost
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Reference
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Created By
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Notes
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {pharmacyBatchMovementReport.map((movement) => (
+                <tr
+                  key={movement.id}
+                  className="hover:bg-slate-50"
+                >
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {movement.createdAt.toLocaleDateString()}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {movement.productName}
+                    </div>
+
+                    <div className="text-xs text-slate-400">
+                      {movement.sku ?? "No SKU"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {movement.warehouseName}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {movement.movementType}
+                    </span>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {movement.quantity.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {movement.unitCost?.toLocaleString() ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {movement.totalCost?.toLocaleString() ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {movement.referenceId ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {movement.createdBy}
+                  </td>
+
+                  <td className="max-w-xs px-4 py-3 text-slate-600">
+                    {movement.notes ?? "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              Pharmacy inventory
+            </p>
+
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+              Stock Valuation by Batch
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Current pharmacy inventory value calculated from remaining
+              batch quantities and batch unit costs.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-slate-950 px-4 py-3 text-white">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                Stock value
+              </p>
+
+              <p className="mt-1 text-xl font-semibold">
+                {pharmacyBatchStockValuation.totalStockValue.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                Units
+              </p>
+
+              <p className="mt-1 text-xl font-semibold text-slate-950">
+                {pharmacyBatchStockValuation.totalUnits.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {pharmacyBatchStockValuation.rows.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No pharmacy stock valuation records found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1250px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Product
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Batch
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Expiry
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Remaining
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Unit Cost
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Stock Value
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Warehouse
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Supplier
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Status
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {pharmacyBatchStockValuation.rows.map((batch) => (
+                <tr
+                  key={batch.id}
+                  className="hover:bg-slate-50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {batch.productName}
+                    </div>
+
+                    <div className="text-xs text-slate-400">
+                      {batch.sku ?? "No SKU"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.batchNumber}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.expiryDate.toLocaleDateString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {batch.quantityRemaining.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.unitCost.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-950">
+                    {batch.stockValue.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.warehouseName}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.supplierName ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span
+                      className={[
+                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                        batch.isRecalled
+                          ? "bg-red-50 text-red-700"
+                          : "bg-emerald-50 text-emerald-700",
+                      ].join(" ")}
+                    >
+                      {batch.isRecalled ? "RECALLED" : "ACTIVE"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
+    {business.type === "pharmacy" && (
+    <section className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
+      <div className="border-b border-red-100 bg-red-50/50 px-5 py-5 sm:px-6 sm:py-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-600">
+            Pharmacy safety
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+            Batch Recall Report
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-600">
+            Recalled medicines, affected batches, remaining quantities,
+            suppliers and recall reasons.
+          </p>
+        </div>
+      </div>
+
+      {pharmacyRecallReport.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No recalled pharmacy batches found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1400px] w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Product
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Batch
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Manufacturing
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Expiry
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Received
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Remaining
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Stock Value
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Warehouse
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Supplier
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Recall Reason
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Recalled
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {pharmacyRecallReport.map((batch) => (
+                <tr
+                  key={batch.id}
+                  className="bg-red-50/20 hover:bg-red-50/50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-950">
+                      {batch.productName}
+                    </div>
+
+                    <div className="text-xs text-slate-400">
+                      {batch.sku ?? "No SKU"}
+                    </div>
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-red-700">
+                    {batch.batchNumber}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.manufacturingDate
+                      ? batch.manufacturingDate.toLocaleDateString()
+                      : "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.expiryDate.toLocaleDateString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.quantityReceived.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {batch.quantityRemaining.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-950">
+                    {batch.stockValue.toLocaleString()}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.warehouseName}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.supplierName ?? "—"}
+                  </td>
+
+                  <td className="max-w-sm px-4 py-3 text-slate-600">
+                    {batch.recallReason ?? "No reason recorded"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    {batch.recalledAt.toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )}
+  
 </div>
 
 
@@ -363,21 +1221,21 @@ borderTone,
 }
 
 function SummaryItem({
-label,
-value,
+  label,
+  value,
 }: {
-label: string;
-value: number;
+  label: string;
+  value: number;
 }) {
-return ( <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-5"> <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-{label} </p>
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-5">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </p>
 
-
-  <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
-    {value.toLocaleString()}
-  </p>
-</div>
-
-
-);
+      <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+        {value.toLocaleString()}
+      </p>
+    </div>
+  );
 }

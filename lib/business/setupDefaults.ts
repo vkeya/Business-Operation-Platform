@@ -24,6 +24,7 @@ export function getSetupDefaults(
 	businessType === "boutique"
       ? "Main Store"
       : "Main Warehouse";
+	businessType === "pharmacy"
 
   return {
     branchName,

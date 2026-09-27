@@ -31,6 +31,28 @@ export interface CreateProductInput {
   trackInventory: boolean;
   minimumStock?: number;
   reorderLevel?: number;
+  
+    pharmacy?: {
+    medicineType:
+      | "MEDICINE"
+      | "SUPPLEMENT"
+      | "MEDICAL_DEVICE"
+      | "PERSONAL_CARE"
+      | "OTHER";
+
+    prescriptionType:
+      | "OTC"
+      | "PRESCRIPTION"
+      | "CONTROLLED";
+
+    activeIngredient?: string;
+    strength?: string;
+    dosageForm?: string;
+    routeOfAdministration?: string;
+    manufacturer?: string;
+    registrationNumber?: string;
+    packSize?: string;
+  };
 }
 
  export interface CreateProductSellingUnitInput {
@@ -105,11 +127,11 @@ function serializeProduct<
 }
 
 export const productRepository = {
-  async create(
-  input: CreateProductInput,
-  client: PrismaTransactionClient = prisma,
-) {
-  const product = await client.product.create({
+    async create(
+    input: CreateProductInput,
+    client: PrismaTransactionClient = prisma,
+  ) {
+    const product = await client.product.create({
       data: {
         businessId: input.businessId,
         categoryId: input.categoryId,
@@ -119,7 +141,7 @@ export const productRepository = {
         type: input.type,
         description: input.description,
         unit: input.unit,
-		attributes: input.attributes,
+        attributes: input.attributes,
         costPrice: input.costPrice,
         sellingPrice: input.sellingPrice,
         currency: input.currency,
@@ -130,6 +152,43 @@ export const productRepository = {
         reorderLevel: input.reorderLevel,
       },
     });
+
+    if (input.pharmacy) {
+      await client.pharmacyProduct.create({
+        data: {
+          productId: product.id,
+
+          medicineType:
+            input.pharmacy.medicineType,
+
+          prescriptionType:
+            input.pharmacy.prescriptionType,
+
+          activeIngredient:
+            input.pharmacy.activeIngredient,
+
+          strength:
+            input.pharmacy.strength,
+
+          dosageForm:
+            input.pharmacy.dosageForm,
+
+          routeOfAdministration:
+            input.pharmacy.routeOfAdministration,
+
+          manufacturer:
+            input.pharmacy.manufacturer,
+
+          registrationNumber:
+            input.pharmacy.registrationNumber,
+
+          packSize:
+            input.pharmacy.packSize,
+
+          status: "ACTIVE",
+        },
+      });
+    }
 
     return serializeProduct(product);
   },
@@ -251,15 +310,16 @@ export const productRepository = {
   },
   include: {
   category: true,
+  pharmacyProduct: true,
   sellingUnits: {
-      where: {
-        isActive: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      name: "asc",
     },
   },
+},
   orderBy: {
     name: "asc",
   },
@@ -374,8 +434,17 @@ async listByTypeAndCategory(
       ],
     },
 	include: {
-    category: true,
+  category: true,
+  pharmacyProduct: true,
+  sellingUnits: {
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
   },
+},
     orderBy: {
       name: "asc",
     },
@@ -405,13 +474,24 @@ async listByTypeAndCategory(
     barcode: string,
   ) {
     const product =
-      await prisma.product.findFirst({
+  await prisma.product.findFirst({
+    where: {
+      businessId,
+      barcode,
+      status: "ACTIVE",
+    },
+    include: {
+      pharmacyProduct: true,
+      sellingUnits: {
         where: {
-  businessId,
-  barcode,
-  status: "ACTIVE",
-},
-      });
+          isActive: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+  });
 
     return product
       ? serializeProduct(product)

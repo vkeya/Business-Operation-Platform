@@ -13,6 +13,8 @@ export type BusinessReferenceType =
   | "SALE"
   | "SALE_RETURN"
   | "PURCHASE"
+  | "PHARMACY_PRESCRIPTION"
+  | "PHARMACY_CONTROLLED_DISPENSING"
   | "PAYMENT"
   | "PAYMENT_REFUND"
   | "EXPENSE"

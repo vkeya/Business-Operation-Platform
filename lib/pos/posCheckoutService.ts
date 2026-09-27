@@ -99,6 +99,8 @@ export interface PosCheckoutResult {
 function validateCheckoutInput(
   input: PosCheckoutInput,
 ) {
+	
+	
 
   if (!input.operationId?.trim()) {
   throw new Error("Checkout operation ID is required.");
@@ -187,6 +189,210 @@ function validateCheckoutInput(
     if (item.unitPrice < 0) {
       throw new Error(
         "Item unit price cannot be negative.",
+      );
+    }
+  }
+}
+
+async function validatePharmacyCheckoutItems(
+  input: PosCheckoutInput,
+) {
+  const productIds = [
+    ...new Set(
+      input.items.map(
+        (item) => item.productId,
+      ),
+    ),
+  ];
+
+  const products =
+    await prisma.product.findMany({
+      where: {
+        id: {
+          in: productIds,
+        },
+        businessId: input.businessId,
+      },
+      select: {
+        id: true,
+        pharmacyProduct: {
+          select: {
+            prescriptionType: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+  const productMap = new Map(
+    products.map((product) => [
+      product.id,
+      product,
+    ]),
+  );
+
+  for (const item of input.items) {
+    const product =
+      productMap.get(item.productId);
+
+    if (!product) {
+      throw new Error(
+        "One or more POS products do not belong to the current business.",
+      );
+    }
+
+    const pharmacyProduct =
+      product.pharmacyProduct;
+
+    if (!pharmacyProduct) {
+      if (
+        item.prescriptionId ||
+        item.prescriptionItemId
+      ) {
+        throw new Error(
+          "A prescription can only be attached to a pharmacy product.",
+        );
+      }
+
+      continue;
+    }
+
+    if (
+      pharmacyProduct.status !== "ACTIVE"
+    ) {
+      throw new Error(
+        "One or more pharmacy products are not active.",
+      );
+    }
+
+    const requiresPrescription =
+      pharmacyProduct.prescriptionType ===
+        "PRESCRIPTION" ||
+      pharmacyProduct.prescriptionType ===
+        "CONTROLLED";
+
+    if (!requiresPrescription) {
+      if (
+        item.prescriptionId ||
+        item.prescriptionItemId
+      ) {
+        throw new Error(
+          "OTC pharmacy products cannot be linked to a prescription.",
+        );
+      }
+
+      continue;
+    }
+
+    if (
+      !item.prescriptionId ||
+      !item.prescriptionItemId
+    ) {
+      throw new Error(
+        `${item.productName} requires a valid prescription before checkout.`,
+      );
+    }
+
+    const prescription =
+  await prisma.pharmacyPrescription.findFirst({
+    where: {
+      id: item.prescriptionId,
+      businessId: input.businessId,
+    },
+        select: {
+  id: true,
+  customerId: true,
+  status: true,
+  expiryDate: true,
+},
+      });
+
+if (
+  prescription &&
+  prescription.customerId &&
+  prescription.customerId !== input.customerId
+) {
+  throw new Error(
+    "The selected prescription belongs to a different customer.",
+  );
+}
+
+if (
+  prescription &&
+  !input.customerId &&
+  prescription.customerId
+) {
+  throw new Error(
+    "A customer must be selected before using this prescription.",
+  );
+}
+
+    if (!prescription) {
+      throw new Error(
+        "The selected prescription does not belong to the current business.",
+      );
+    }
+
+    if (
+      prescription.status !== "ACTIVE" &&
+      prescription.status !==
+        "PARTIALLY_DISPENSED"
+    ) {
+      throw new Error(
+        "The selected prescription is not available for dispensing.",
+      );
+    }
+
+    if (
+      prescription.expiryDate &&
+      prescription.expiryDate <= new Date()
+    ) {
+      throw new Error(
+        "The selected prescription has expired.",
+      );
+    }
+
+    const prescriptionItem =
+      await prisma.pharmacyPrescriptionItem.findFirst({
+        where: {
+          id: item.prescriptionItemId,
+          prescriptionId:
+            prescription.id,
+          productId: item.productId,
+        },
+        select: {
+          id: true,
+          quantityPrescribed: true,
+          quantityDispensed: true,
+        },
+      });
+
+    if (!prescriptionItem) {
+      throw new Error(
+        `${item.productName} is not authorized by the selected prescription.`,
+      );
+    }
+
+    const remaining =
+      prescriptionItem.quantityPrescribed.sub(
+        prescriptionItem.quantityDispensed,
+      );
+
+    if (
+      remaining.lessThanOrEqualTo(0)
+    ) {
+      throw new Error(
+        `The prescribed quantity for ${item.productName} has already been fully dispensed.`,
+      );
+    }
+
+    if (
+      remaining.lessThan(
+        item.quantity,
+      )
+    ) {
+      throw new Error(
+        `The requested quantity for ${item.productName} exceeds the remaining prescribed quantity.`,
       );
     }
   }
@@ -576,6 +782,8 @@ export async function checkoutPosSale(
   input: PosCheckoutInput,
 ): Promise<PosCheckoutResult> {
   validateCheckoutInput(input);
+  
+  await validatePharmacyCheckoutItems(input);
 
   const existingOperation =
   await findExistingCheckoutOperation(input);

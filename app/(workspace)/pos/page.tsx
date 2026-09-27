@@ -48,6 +48,35 @@ interface Warehouse {
   code: string;
 }
 
+interface PosPrescriptionItem {
+  id: string;
+  productId: string;
+  productName?: string;
+  quantityPrescribed: number;
+  quantityDispensed: number;
+  quantityRemaining: number;
+  dosageInstructions?: string | null;
+  duration?: string | null;
+  notes?: string | null;
+}
+
+interface PosPrescription {
+  id: string;
+  prescriptionNumber: string;
+  prescriptionDate: string;
+  expiryDate?: string | null;
+  prescriberName: string;
+  status: string;
+  customerId?: string | null;
+  items: PosPrescriptionItem[];
+}
+
+interface PharmacyBatchPreview {
+  batchNumber: string;
+  expiryDate: string;
+  quantityRemaining: number;
+}
+
 const paymentMethods: Array<{
   value: PosPaymentMethod;
   label: string;
@@ -119,6 +148,24 @@ export default function PosPage() {
 
   const [selectedCustomer, setSelectedCustomer] =
   useState<PosCustomer | null>(null);
+  
+  const [prescriptionQuery, setPrescriptionQuery] =
+  useState("");
+
+  const [prescriptionResults, setPrescriptionResults] =
+    useState<PosPrescription[]>([]);
+  
+  const [prescriptionLoading, setPrescriptionLoading] =
+    useState(false);
+  
+  const [selectedPrescriptionItem, setSelectedPrescriptionItem] =
+     useState<{
+    prescriptionId: string;
+    prescriptionItemId: string;
+  } | null>(null);
+  
+  const [pendingPrescriptionProduct, setPendingPrescriptionProduct] =
+  useState<PosProduct | null>(null);
 
   const [paymentMethod, setPaymentMethod] =
     useState<PosPaymentMethod>("CASH");
@@ -145,6 +192,10 @@ export default function PosPage() {
 
   const [searchLoading, setSearchLoading] =
     useState(false);
+
+  const [pharmacyBatchPreviews, setPharmacyBatchPreviews] =
+    useState<Record<string, PharmacyBatchPreview[]>>({});
+
 
   const [checkoutLoading, setCheckoutLoading] =
     useState(false);
@@ -229,6 +280,24 @@ const [paymentPolling, setPaymentPolling] =
       controller.abort();
     };
   }, [warehouseId, productQuery]);
+  
+  useEffect(() => {
+  const trimmedQuery =
+    prescriptionQuery.trim();
+
+  if (!trimmedQuery) {
+    setPrescriptionResults([]);
+    return;
+  }
+
+  const timer = window.setTimeout(() => {
+    void searchPrescriptions(trimmedQuery);
+  }, 250);
+
+  return () => {
+    window.clearTimeout(timer);
+  };
+}, [prescriptionQuery]);
 
   useEffect(() => {
     async function loadWarehouses() {
@@ -532,7 +601,7 @@ const [paymentPolling, setPaymentPolling] =
   const change =
     paymentAmountNumber > checkoutCart.totalAmount
       ? paymentAmountNumber -
-        cart.totalAmount
+        checkoutCart.totalAmount
       : 0;
 
     const canCheckout =
@@ -544,12 +613,174 @@ const [paymentPolling, setPaymentPolling] =
     !paymentPolling &&
     !pendingPaymentAttemptId;
 
+async function searchPrescriptions(
+  query: string,
+) {
+  const trimmedQuery = query.trim();
 
+  if (!trimmedQuery) {
+    setPrescriptionResults([]);
+    return;
+  }
+
+  try {
+    setPrescriptionLoading(true);
+    setError("");
+
+    const params = new URLSearchParams({
+      prescriptionNumber: trimmedQuery,
+    });
+
+    const response = await fetch(
+      `/api/pharmacy/prescriptions?${params.toString()}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+          "Unable to search prescriptions.",
+      );
+    }
+
+    setPrescriptionResults(
+      Array.isArray(result.prescriptions)
+        ? result.prescriptions
+        : [],
+    );
+  } catch (prescriptionError) {
+    setPrescriptionResults([]);
+    setError(
+      prescriptionError instanceof Error
+        ? prescriptionError.message
+        : "Unable to search prescriptions.",
+    );
+  } finally {
+    setPrescriptionLoading(false);
+  }
+}
+
+  async function loadPharmacyBatchPreview(product: PosProduct) {
+    if (!product.pharmacyProduct || !warehouseId) {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        productId: product.productId,
+        warehouseId,
+      });
+
+      const response = await fetch(
+        `/api/pos/pharmacy-batches?${params.toString()}`,
+        { cache: "no-store" },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+            "Unable to load pharmacy batch information.",
+        );
+      }
+
+      setPharmacyBatchPreviews((current) => ({
+        ...current,
+        [product.productId]: Array.isArray(result.batches)
+          ? result.batches
+          : [],
+      }));
+    } catch (batchError) {
+      console.error(
+        "Unable to load pharmacy batch preview:",
+        batchError,
+      );
+    }
+  }
+
+  function handleProductSelection(product: PosProduct) {
+    if (product.pharmacyProduct) {
+      void loadPharmacyBatchPreview(product);
+    }
+
+  const prescriptionType =
+    product.pharmacyProduct?.prescriptionType;
+
+  if (
+    prescriptionType === "PRESCRIPTION" ||
+    prescriptionType === "CONTROLLED"
+  ) {
+    setPendingPrescriptionProduct(product);
+    setPrescriptionQuery("");
+    setPrescriptionResults([]);
+    setSelectedPrescriptionItem(null);
+    setError("");
+    return;
+  }
+
+  addProduct(product);
+}
 
   function addProduct(
   product: PosProduct,
   sellingUnitId?: string,
+  prescriptionSelection?: {
+    prescriptionId: string;
+    prescriptionItemId: string;
+  },
 ) {
+	
+	if (prescriptionSelection) {
+  const prescription =
+    prescriptionResults.find(
+      (item) =>
+        item.id ===
+        prescriptionSelection.prescriptionId,
+    );
+
+  const prescriptionItem =
+    prescription?.items.find(
+      (item) =>
+        item.id ===
+        prescriptionSelection.prescriptionItemId,
+    );
+
+  if (!prescriptionItem) {
+    setError(
+      "The selected prescription item could not be found.",
+    );
+    return;
+  }
+
+  const existingPrescriptionQuantity =
+    cart.items
+      .filter(
+        (item) =>
+          item.prescriptionItemId ===
+          prescriptionSelection.prescriptionItemId,
+      )
+      .reduce(
+        (total, item) =>
+          total + item.quantity,
+        0,
+      );
+
+  if (
+    existingPrescriptionQuantity + 1 >
+    prescriptionItem.quantityRemaining
+  ) {
+    setError(
+      `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
+    );
+    return;
+  }
+}
+
   const sellingUnit = sellingUnitId
     ? product.sellingUnits.find(
         (unit) => unit.id === sellingUnitId,
@@ -610,28 +841,81 @@ const [paymentPolling, setPaymentPolling] =
       productName: product.name,
       sku: product.sku,
       sellingUnitId,
+
+      prescriptionId:
+        prescriptionSelection?.prescriptionId,
+      
+      prescriptionItemId:
+        prescriptionSelection?.prescriptionItemId,
+      
       quantity: 1,
       inventoryQuantity,
       unitPrice,
       discountAmount: 0,
-taxAmount: 0,
-totalAmount: 0,
+      taxAmount: 0,
+      totalAmount: 0,
     }),
   );
 }
 
   function updateQuantity(
-    lineId: string,
-    quantity: number,
-  ) {
-    setCart(
-      posCartService.updateQuantity(
-        cart,
-        lineId,
-        quantity,
-      ),
-    );
+  lineId: string,
+  quantity: number,
+) {
+  const item = cart.items.find(
+    (cartItem) =>
+      cartItem.lineId === lineId,
+  );
+
+  if (!item) {
+    return;
   }
+
+  if (
+    item.prescriptionItemId &&
+    quantity > item.quantity
+  ) {
+    const prescription =
+      prescriptionResults.find(
+        (result) =>
+          result.id ===
+          item.prescriptionId,
+      );
+
+    const prescriptionItem =
+      prescription?.items.find(
+        (prescriptionItem) =>
+          prescriptionItem.id ===
+          item.prescriptionItemId,
+      );
+
+    if (!prescriptionItem) {
+      setError(
+        "Prescription details could not be found for this cart item.",
+      );
+      return;
+    }
+
+    if (
+      quantity >
+      prescriptionItem.quantityRemaining
+    ) {
+      setError(
+        `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
+      );
+      return;
+    }
+  }
+
+  setCart(
+    posCartService.updateQuantity(
+      cart,
+      lineId,
+      quantity,
+    ),
+  );
+}
+ 
 
   function removeItem(lineId: string) {
     setCart(
@@ -861,7 +1145,10 @@ setPendingPaymentSaleId(saleId);
               </label>
               <select
                 value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
+                onChange={(event) => {
+                  setWarehouseId(event.target.value);
+                  setPharmacyBatchPreviews({});
+                }}
                 className="h-10 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-xs font-bold text-white outline-none focus:border-violet-400"
               >
                 <option value="">Select warehouse</option>
@@ -950,10 +1237,10 @@ setPendingPaymentSaleId(saleId);
                           key={product.productId}
                           type="button"
                           onClick={() => {
-                            addProduct(product);
-                            setProductQuery("");
-                            setSearchResults([]);
-                          }}
+  handleProductSelection(product);
+  setProductQuery("");
+  setSearchResults([]);
+}}
                           className="flex min-h-16 w-full items-center justify-between gap-4 border-b border-slate-800 px-4 py-3 text-left last:border-b-0 hover:bg-slate-800 active:bg-slate-800"
                         >
                           <div className="min-w-0">
@@ -974,9 +1261,215 @@ setPendingPaymentSaleId(saleId);
               )}
 
               <PosBarcodeInput
-                warehouseId={warehouseId}
-                onProductFound={addProduct}
-              />
+  warehouseId={warehouseId}
+  onProductFound={handleProductSelection}
+/>
+{pendingPrescriptionProduct && (
+  <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-700">
+          Prescription required
+        </p>
+
+        <h3 className="mt-1 text-sm font-black text-slate-950">
+          {pendingPrescriptionProduct.name}
+        </h3>
+
+        <p className="mt-1 text-[10px] font-bold text-slate-500">
+          {pendingPrescriptionProduct.pharmacyProduct?.prescriptionType ===
+          "CONTROLLED"
+            ? "Controlled medicine"
+            : "Prescription medicine"}
+        </p>
+
+        {pendingPrescriptionProduct.pharmacyProduct?.prescriptionType ===
+          "CONTROLLED" && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
+              Controlled dispensing
+            </p>
+            <p className="mt-1 text-[10px] font-bold leading-4 text-red-700">
+              A valid prescription and authorized controlled-medicine
+              dispensing are required. SmatPic will record the dispensing
+              against the selected prescription and FEFO batch.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setPendingPrescriptionProduct(null);
+          setPrescriptionQuery("");
+          setPrescriptionResults([]);
+          setSelectedPrescriptionItem(null);
+        }}
+        className="rounded-lg px-2 py-1 text-[9px] font-black uppercase text-slate-500 hover:bg-amber-100"
+      >
+        Cancel
+      </button>
+    </div>
+
+    <div className="mt-4">
+      <label className="mb-1 block text-[8px] font-black uppercase tracking-[0.16em] text-amber-700">
+        Prescription number
+      </label>
+
+      <input
+        value={prescriptionQuery}
+        onChange={(event) =>
+          setPrescriptionQuery(event.target.value)
+        }
+        placeholder="Enter prescription number..."
+        autoComplete="off"
+        className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
+      />
+    </div>
+
+    {prescriptionQuery.trim() && (
+      <div className="mt-3 overflow-hidden rounded-xl border border-amber-200 bg-white">
+        {prescriptionLoading ? (
+          <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
+            Searching prescription...
+          </div>
+        ) : prescriptionResults.length === 0 ? (
+          <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
+            No active prescription found
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-y-auto">
+            {prescriptionResults.map((prescription) => {
+              const matchingItems =
+                prescription.items.filter(
+                  (item) =>
+                    item.productId ===
+                    pendingPrescriptionProduct.productId,
+                );
+
+              if (matchingItems.length === 0) {
+                return null;
+              }
+
+              return (
+                <div
+                  key={prescription.id}
+                  className="border-b border-slate-100 p-3 last:border-b-0"
+                >
+                  <div>
+                    <p className="text-xs font-black text-slate-900">
+                      {prescription.prescriptionNumber}
+                    </p>
+
+                    <p className="mt-0.5 text-[9px] font-bold text-slate-500">
+                      Prescriber: {prescription.prescriberName}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 space-y-2">
+                    {matchingItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPrescriptionItem({
+                            prescriptionId:
+                              prescription.id,
+                            prescriptionItemId:
+                              item.id,
+                          });
+                        }}
+                        className={`w-full rounded-xl border px-3 py-3 text-left ${
+                          selectedPrescriptionItem
+                            ?.prescriptionItemId === item.id
+                            ? "border-violet-500 bg-violet-50"
+                            : "border-slate-200 bg-slate-50 hover:border-violet-300"
+                        }`}
+                      >
+                        <p className="text-xs font-black text-slate-900">
+                          {pendingPrescriptionProduct.name}
+                        </p>
+
+                        <p className="mt-1 text-[9px] font-bold text-slate-500">
+                          Prescribed:{" "}
+                          {item.quantityPrescribed}{" "}
+                          • Remaining:{" "}
+                          {item.quantityRemaining}
+                        </p>
+
+                        {item.dosageInstructions && (
+                          <p className="mt-1 text-[9px] text-slate-500">
+                            {item.dosageInstructions}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    )}
+
+    {selectedPrescriptionItem && (
+      <button
+        type="button"
+        onClick={() => {
+  if (!pendingPrescriptionProduct) {
+    return;
+  }
+
+  const prescription =
+    prescriptionResults.find((item) =>
+      item.items.some(
+        (prescriptionItem) =>
+          prescriptionItem.id ===
+          selectedPrescriptionItem?.prescriptionItemId,
+      ),
+    );
+
+  const prescriptionItem =
+    prescription?.items.find(
+      (item) =>
+        item.id ===
+        selectedPrescriptionItem?.prescriptionItemId,
+    );
+
+  if (!prescriptionItem) {
+    setError(
+      "The selected prescription item could not be found.",
+    );
+    return;
+  }
+
+  if (prescriptionItem.quantityRemaining < 1) {
+    setError(
+      "This prescription item has no remaining quantity.",
+    );
+    return;
+  }
+
+  addProduct(
+    pendingPrescriptionProduct,
+    undefined,
+    selectedPrescriptionItem,
+  );
+
+  setPendingPrescriptionProduct(null);
+  setPrescriptionQuery("");
+  setPrescriptionResults([]);
+  setSelectedPrescriptionItem(null);
+}}
+        className="mt-3 h-11 w-full rounded-xl bg-violet-600 text-xs font-black uppercase tracking-wider text-white hover:bg-violet-700"
+      >
+        Add Prescribed Medicine
+      </button>
+    )}
+  </div>
+)}
             </div>
 
             <div className="p-3 sm:p-4">
@@ -1003,6 +1496,48 @@ setPendingPaymentSaleId(saleId);
                           <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-slate-400">
                             {item.sku} • {formatAmount(item.unitPrice, currency)} each
                           </p>
+
+                          {item.prescriptionId && (
+                            <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-amber-700">
+                              Prescription attached
+                            </span>
+                          )}
+
+                          {item.prescriptionId &&
+                            pharmacyBatchPreviews[item.productId] &&
+                            pharmacyBatchPreviews[item.productId].length > 0 &&
+                            pharmacyBatchPreviews[item.productId] && (
+                              <span className="ml-1 mt-1 inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-violet-700">
+                                FEFO
+                              </span>
+                            )}
+                          {pharmacyBatchPreviews[item.productId]?.length ? (
+                            <div className="mt-2 rounded-lg border border-violet-100 bg-violet-50 px-2.5 py-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-violet-700">
+                                  FEFO batch
+                                </span>
+                                <span className="text-[8px] font-bold text-violet-500">
+                                  Auto-selected at checkout
+                                </span>
+                              </div>
+                              {pharmacyBatchPreviews[item.productId]
+                                .slice(0, 2)
+                                .map((batch) => (
+                                  <div
+                                    key={batch.batchNumber}
+                                    className="mt-1 flex items-center justify-between gap-3 text-[9px] font-bold text-slate-600"
+                                  >
+                                    <span>
+                                      Batch {batch.batchNumber}
+                                    </span>
+                                    <span>
+                                      {batch.quantityRemaining} available · exp {new Date(batch.expiryDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="flex items-center rounded-xl border border-slate-200 bg-white p-1">

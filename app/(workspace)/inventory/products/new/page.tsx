@@ -26,9 +26,10 @@ export default async function NewProductPage() {
 
   return (
     <NewProductForm
-      translations={t}
-      configuration={configuration}
-      categories={categories}
-    />
+  translations={t}
+  configuration={configuration}
+  categories={categories}
+   businessType={business.type as BusinessType}
+/>
   );
 }

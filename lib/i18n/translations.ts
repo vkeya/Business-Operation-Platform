@@ -22,6 +22,7 @@ export interface TranslationSet {
     settings: string;
 	services: string;
 	pos: string;
+	pharmacy: string;
   };
 
   common: {
@@ -664,52 +665,53 @@ unableToSaveSupplier: string;
     currency: string;
     continue: string;
 	businessInformation: string;
-businessInformationDescription: string;
-businessNamePlaceholder: string;
-businessTypeDescription: string;
-regionalSettings: string;
-regionalSettingsDescription: string;
-baseCurrency: string;
-firstLocation: string;
-firstLocationDescription: string;
-branchName: string;
-mainBranchPlaceholder: string;
-branchCode: string;
-inventoryLocation: string;
-mainWarehousePlaceholder: string;
-locationCode: string;
-setupSummary: string;
-business: string;
-type: string;
-
-branch: string;
-notProvided: string;
-setupReady: string;
-checkInformation: string;
-unableToSaveSetup: string;
-restaurant: string;
-restaurantDescription: string;
-bar: string;
-barDescription: string;
-winesSpirits: string;
-winesSpiritsDescription: string;
-hotel: string;
-hotelDescription: string;
-hospitalClinic: string;
-hospitalClinicDescription: string;
-supermarket: string;
-supermarketDescription: string;
-shop: string;
-shopDescription: string;
-boutique: string;
-boutiqueDescription: string;
-otherBusiness: string;
-otherBusinessDescription: string;
-heading: string;
-description: string;
-language: string;
-timezone: string;
-
+    businessInformationDescription: string;
+    businessNamePlaceholder: string;
+    businessTypeDescription: string;
+    regionalSettings: string;
+    regionalSettingsDescription: string;
+    baseCurrency: string;
+    firstLocation: string;
+    firstLocationDescription: string;
+    branchName: string;
+    mainBranchPlaceholder: string;
+    branchCode: string;
+    inventoryLocation: string;
+    mainWarehousePlaceholder: string;
+    locationCode: string;
+    setupSummary: string;
+    business: string;
+    type: string;
+    
+    branch: string;
+    notProvided: string;
+    setupReady: string;
+    checkInformation: string;
+    unableToSaveSetup: string;
+    restaurant: string;
+    restaurantDescription: string;
+    bar: string;
+    barDescription: string;
+    winesSpirits: string;
+    winesSpiritsDescription: string;
+    hotel: string;
+    hotelDescription: string;
+    hospitalClinic: string;
+    hospitalClinicDescription: string;
+    supermarket: string;
+    supermarketDescription: string;
+    shop: string;
+    shopDescription: string;
+    boutique: string;
+    boutiqueDescription: string;
+    otherBusiness: string;
+    otherBusinessDescription: string;
+    heading: string;
+    description: string;
+    language: string;
+    timezone: string;
+    pharmacy: string;
+    pharmacyDescription: string;
   };
 
 restaurantDashboard: {
@@ -903,6 +905,7 @@ export const translations: Record<Locale, TranslationSet> = {
       settings: "Settings",
 	  services: "services",
 	  pos: "POS",
+	  pharmacy: "Pharmacy",
     },
     common: {
       add: "Add",
@@ -1675,6 +1678,9 @@ description:
   "Tell us about your business so we can configure the right tools for you.",
 language: "Language",
 timezone: "Timezone",
+pharmacy: "Pharmacy",
+pharmacyDescription:
+  "Manage medicines, prescriptions, batches, expiry, controlled dispensing, inventory, sales and purchasing.",
  },
 
 restaurantDashboard: {
@@ -1892,6 +1898,7 @@ categoryName: "Category Name",
       settings: "Paramètres",
 	  services: "Services",
 	  pos: "POS",
+	  pharmacy: "Pharmacie",
     },
     common: {
       add: "Ajouter",
@@ -2684,6 +2691,9 @@ description:
   "Parlez-nous de votre entreprise afin que nous puissions configurer les outils adaptés.",
 language: "Langue",
 timezone: "Fuseau horaire",
+pharmacy: "Pharmacie",
+pharmacyDescription:
+  "Gérez les médicaments, les ordonnances, les lots, les expirations, la délivrance des médicaments contrôlés, les stocks, les ventes et les achats.",
  },
 restaurantDashboard: {
   restaurantOverviewBreadcrumb: "Restaurant / Vue d’ensemble",
@@ -2903,6 +2913,7 @@ categoryName: "Nom de la catégorie",
       settings: "ቅንብሮች",
 	  services: "አገልግሎቶች",
 	  pos: "POS",
+	  pharmacy: "ፋርማሲ",
     },
     common: {
       add: "አክል",
@@ -3697,6 +3708,9 @@ description:
   "ለንግድዎ ተስማሚ መሣሪያዎችን ለማዘጋጀት ስለ ንግድዎ መረጃ ያስገቡ።",
 language: "ቋንቋ",
 timezone: "የሰዓት ክልል",
+pharmacy: "ፋርማሲ",
+pharmacyDescription:
+  "መድኃኒቶችን፣ ማዘዣዎችን፣ ባችዎችን፣ የማብቂያ ጊዜዎችን፣ ቁጥጥር ያላቸውን መድኃኒቶች አሰጣጥ፣ እቃ ክምችት፣ ሽያጭ እና ግዢ ያስተዳድሩ።",
 
    },
 restaurantDashboard: {

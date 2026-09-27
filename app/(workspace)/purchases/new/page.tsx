@@ -35,12 +35,13 @@ export default async function NewPurchasePage({
       </div>
 
       <PurchaseForm
-        suppliers={defaults.suppliers}
-        products={defaults.products}
-        warehouses={defaults.warehouses}
-        currency={defaults.currency}
-        initialProductId={productId}
-      />
+  suppliers={defaults.suppliers}
+  products={defaults.products}
+  warehouses={defaults.warehouses}
+  currency={defaults.currency}
+  taxConfiguration={defaults.taxConfiguration}
+  initialProductId={productId}
+/>
     </div>
   );
 }
