@@ -1112,7 +1112,7 @@ if (!sale) {
               sale.id,
 
 			  operationId:
-  input.operationId,
+  `SALE_PAYMENT:${input.operationId}`,
 
             reference:
               input.payment.reference,
