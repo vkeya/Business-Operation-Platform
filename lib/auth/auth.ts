@@ -122,6 +122,21 @@ async jwt({ token, user }) {
   if (user?.id) {
     token.id = user.id;
     token.sub = user.id;
+
+    const authenticatedUser =
+      await prisma.user.findUnique({
+        where: {
+          id: user.id,
+        },
+        select: {
+          passwordChangedAt: true,
+        },
+      });
+
+    token.passwordChangedAt =
+      authenticatedUser?.passwordChangedAt
+        ? authenticatedUser.passwordChangedAt.toISOString()
+        : null;
   }
 
   return token;

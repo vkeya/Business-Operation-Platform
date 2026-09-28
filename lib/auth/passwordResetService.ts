@@ -28,13 +28,29 @@ export async function createPasswordResetToken(
         1000,
   );
 
-  await prisma.passwordResetToken.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt,
-    },
-  });
+  /*
+   * Only one active password-reset token
+   * should exist for a user at a time.
+   */
+  await prisma.$transaction([
+    prisma.passwordResetToken.updateMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    }),
+
+    prisma.passwordResetToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+    }),
+  ]);
 
   return rawToken;
 }
