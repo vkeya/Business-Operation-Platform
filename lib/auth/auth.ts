@@ -152,6 +152,10 @@ async session({ session, token }) {
 
   if (session.user && userId) {
     session.user.id = userId;
+    session.user.passwordChangedAt =
+      typeof token.passwordChangedAt === "string"
+        ? token.passwordChangedAt
+        : null;
   }
 
   return session;
@@ -172,39 +176,86 @@ secret: process.env.NEXTAUTH_SECRET,
 };
 
 export async function getAuthenticatedUser() {
-const session =
-await getServerSession(authOptions);
+  const session =
+    await getServerSession(authOptions);
 
-if (!session?.user) {
-throw new Error(
-"Authentication is required.",
-);
-}
+  if (!session?.user) {
+    throw new Error(
+      "Authentication is required.",
+    );
+  }
 
-const userId =
-typeof session.user.id === "string"
-? session.user.id
-: null;
+  const userId =
+    typeof session.user.id === "string"
+      ? session.user.id
+      : null;
 
-const email =
-typeof session.user.email === "string"
-? session.user.email
-: "";
+  const email =
+    typeof session.user.email === "string"
+      ? session.user.email
+      : "";
 
-if (!userId || !email) {
-throw new Error(
-"Authentication is required.",
-);
-}
+  if (!userId || !email) {
+    throw new Error(
+      "Authentication is required.",
+    );
+  }
 
-return {
-id: userId,
-email,
-name:
-typeof session.user.name === "string"
-? session.user.name
-: undefined,
-};
+  const authenticatedUser =
+    await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isActive: true,
+        passwordChangedAt: true,
+      },
+    });
+
+  if (
+    !authenticatedUser ||
+    !authenticatedUser.isActive
+  ) {
+    throw new Error(
+      "Authentication is required.",
+    );
+  }
+
+  /*
+   * A password change invalidates an older
+   * authentication state.
+   */
+  if (authenticatedUser.passwordChangedAt) {
+    const sessionPasswordChangedAt =
+      session.user.passwordChangedAt
+        ? new Date(
+            session.user.passwordChangedAt,
+          ).getTime()
+        : null;
+
+    const currentPasswordChangedAt =
+      authenticatedUser.passwordChangedAt.getTime();
+
+    if (
+      sessionPasswordChangedAt === null ||
+      currentPasswordChangedAt >
+        sessionPasswordChangedAt
+    ) {
+      throw new Error(
+        "Authentication is required.",
+      );
+    }
+  }
+
+  return {
+    id: authenticatedUser.id,
+    email: authenticatedUser.email,
+    name:
+      authenticatedUser.name ?? undefined,
+  };
 }
 
 export async function getAuthenticatedUserId() {
