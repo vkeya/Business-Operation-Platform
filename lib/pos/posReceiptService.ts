@@ -1,5 +1,11 @@
 import { saleService } from "@/lib/sales/saleService";
 import { paymentService } from "@/lib/payment/paymentService";
+import { createBusinessService } from "@/lib/business/businessService";
+import { postgresBusinessRepository } from "@/lib/business/postgresBusinessRepository";
+
+const businessService = createBusinessService(
+  postgresBusinessRepository,
+);
 
 export interface PosReceiptItem {
   productName: string;
@@ -9,6 +15,14 @@ export interface PosReceiptItem {
   discountAmount: number;
   taxAmount: number;
   totalAmount: number;
+}
+
+export interface PosReceiptBusiness {
+  id: string;
+  name: string;
+  legalName?: string;
+  country: string;
+  baseCurrency: string;
 }
 
 export interface PosReceiptPayment {
@@ -26,6 +40,8 @@ export interface PosReceipt {
   createdAt: Date;
   currency: string;
 
+  business: PosReceiptBusiness;
+
   customer: {
     id: string;
     name: string;
@@ -39,14 +55,17 @@ export interface PosReceipt {
     code: string;
   } | null;
 
-    items: PosReceiptItem[];
+  items: PosReceiptItem[];
 
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
   taxName: string | null;
   taxRate: number | null;
-  taxPricingMode: "EXCLUSIVE" | "INCLUSIVE" | null;
+  taxPricingMode:
+    | "EXCLUSIVE"
+    | "INCLUSIVE"
+    | null;
   totalAmount: number;
 
   payments: PosReceiptPayment[];
@@ -58,6 +77,7 @@ export const posReceiptService = {
   async getReceipt(
     businessId: string,
     saleId: string,
+    userId: string,
   ): Promise<PosReceipt> {
     if (!businessId) {
       throw new Error(
@@ -68,6 +88,24 @@ export const posReceiptService = {
     if (!saleId) {
       throw new Error(
         "Sale is required.",
+      );
+    }
+
+    if (!userId) {
+      throw new Error(
+        "User context is required.",
+      );
+    }
+
+    const business =
+      await businessService.getBusiness(
+        businessId,
+        userId,
+      );
+
+    if (!business) {
+      throw new Error(
+        "Business not found.",
       );
     }
 
@@ -117,6 +155,14 @@ export const posReceiptService = {
       createdAt: sale.createdAt,
       currency: sale.currency,
 
+      business: {
+  id: business.id,
+  name: business.name,
+  legalName: business.legalName,
+  country: business.country,
+  baseCurrency: business.baseCurrency,
+},
+
       customer: sale.customer
         ? {
             id: sale.customer.id,
@@ -144,7 +190,9 @@ export const posReceiptService = {
           unitPrice:
             Number(item.unitPrice),
           discountAmount:
-            Number(item.discountAmount),
+            Number(
+              item.discountAmount,
+            ),
           taxAmount:
             Number(item.taxAmount),
           totalAmount:
@@ -154,18 +202,26 @@ export const posReceiptService = {
 
       subtotal:
         Number(sale.subtotal),
+
       discountAmount:
-        Number(sale.discountAmount),
+        Number(
+          sale.discountAmount,
+        ),
+
       taxAmount:
         Number(sale.taxAmount),
+
       taxName:
         sale.taxName ?? null,
+
       taxRate:
         sale.taxRate !== null
           ? Number(sale.taxRate)
           : null,
+
       taxPricingMode:
         sale.taxPricingMode ?? null,
+
       totalAmount:
         Number(sale.totalAmount),
 

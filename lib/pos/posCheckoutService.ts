@@ -150,13 +150,14 @@ function validateCheckoutInput(
   }
 
   if (
-    input.payment.amount >
+  input.payment.method !== "CASH" &&
+  input.payment.amount >
     input.totalAmount
-  ) {
-    throw new Error(
-      "Payment amount cannot exceed the sale total.",
-    );
-  }
+) {
+  throw new Error(
+    "Payment amount cannot exceed the sale total.",
+  );
+}
 
   if (
     input.payment.method === "MPESA" &&
@@ -1150,5 +1151,11 @@ if (!sale) {
         payment,
       };
     },
+	
+	  {
+    maxWait: 10000,
+    timeout: 15000,
+  },
+	
   );
 }

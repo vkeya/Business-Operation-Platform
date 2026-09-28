@@ -37,10 +37,11 @@ export async function GET(
     }
 
     const receipt =
-      await posReceiptService.getReceipt(
-        businessContext.business.id,
-        saleId.trim(),
-      );
+  await posReceiptService.getReceipt(
+    businessContext.business.id,
+    saleId.trim(),
+    businessContext.user.id,
+  );
 
     return NextResponse.json({
       receipt,

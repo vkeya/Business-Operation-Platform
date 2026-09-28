@@ -85,11 +85,14 @@ async function createSalePaymentWithTx(
     );
   }
 
-  if (input.amount > outstandingAmount) {
-    throw new Error(
-      "Payment amount exceeds the outstanding sale balance.",
-    );
-  }
+  if (
+  input.amount > outstandingAmount &&
+  input.method !== "CASH"
+) {
+  throw new Error(
+    "Payment amount exceeds the outstanding sale balance.",
+  );
+}
 
   const newPaidAmount =
     paidAmount + input.amount;
