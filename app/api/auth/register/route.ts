@@ -6,6 +6,9 @@ import {
   validateRequiredLegalAcceptance,
   recordRequiredLegalAcceptance,
 } from "@/lib/legal/legalAcceptanceService";
+import { createEmailVerificationToken } from "@/lib/auth/emailVerificationService";
+import { sendTransactionalEmail } from "@/lib/email/emailService";
+import { verificationEmailTemplate } from "@/lib/email/emailTemplates";
 
 export async function POST(request: Request) {
   try {
@@ -72,7 +75,10 @@ export async function POST(request: Request) {
     const existingUser =
       await prisma.user.findUnique({
         where: { email },
-        select: { id: true },
+        select: {
+          id: true,
+          emailVerifiedAt: true,
+        },
       });
 
     if (existingUser) {
@@ -133,8 +139,42 @@ export async function POST(request: Request) {
         return createdUser;
       });
 
+    const verificationToken =
+  await createEmailVerificationToken(user.id);
+
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.APP_URL ||
+  "https://smatpic.com";
+
+const verificationUrl =
+  `${appUrl}/verify-email?token=${encodeURIComponent(
+    verificationToken,
+  )}`;
+
+const verificationEmail =
+  verificationEmailTemplate({
+    name: user.name,
+    verificationUrl,
+  });
+
+await sendTransactionalEmail({
+  to: user.email,
+  subject: verificationEmail.subject,
+  html: verificationEmail.html,
+  text: verificationEmail.text,
+});
+
     return NextResponse.json(
-      { user },
+      {
+        message:
+          "Account created. Please check your email to verify your account.",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+      },
       { status: 201 },
     );
   } catch (error) {

@@ -360,21 +360,53 @@ model Warehouse {
 }
 
 model User {
-  id             String               @id @default(cuid())
-  name           String
-  email          String               @unique
-  isActive       Boolean              @default(true)
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  passwordHash   String?
-  authIdentities AuthIdentity[]
-  memberships    BusinessMembership[]
-  branches       UserBranch[]
-  roles          UserRole[]
-  legalAcceptances LegalAcceptance[]
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  isActive            Boolean              @default(true)
+  emailVerifiedAt     DateTime?
+  passwordChangedAt   DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  passwordHash        String?
+  authIdentities      AuthIdentity[]
+  memberships         BusinessMembership[]
+  branches            UserBranch[]
+  roles               UserRole[]
+  legalAcceptances    LegalAcceptance[]
   dataSubjectRequests DataSubjectRequest[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([email])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AuthIdentity {

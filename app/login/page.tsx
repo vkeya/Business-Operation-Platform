@@ -68,11 +68,16 @@ try {
   );
 
   if (!result?.ok) {
+  if (result?.error === "EMAIL_NOT_VERIFIED") {
     setError(
-      "Invalid email or password.",
+      "Please verify your email address before signing in.",
     );
-    return;
+  } else {
+    setError("Invalid email or password.");
   }
+
+  return;
+}
 
   router.push(
     getDestination(),

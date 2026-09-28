@@ -53,23 +53,27 @@ name: "Credentials",
         },
       });
 
-    if (!user || !user.isActive) {
-      return null;
-    }
+   if (!user || !user.isActive) {
+  return null;
+}
 
-    if (!user.passwordHash) {
-      return null;
-    }
+if (!user.passwordHash) {
+  return null;
+}
 
-    const passwordMatches =
-      await verifyPassword(
-        password,
-        user.passwordHash,
-      );
+const passwordMatches =
+  await verifyPassword(
+    password,
+    user.passwordHash,
+  );
 
-    if (!passwordMatches) {
-      return null;
-    }
+if (!passwordMatches) {
+  return null;
+}
+
+if (!user.emailVerifiedAt) {
+  throw new Error("EMAIL_NOT_VERIFIED");
+}
 
     return {
       id: user.id,
