@@ -377,6 +377,110 @@ ${APP_TAGLINE}`,
   };
 }
 
+export function passwordResetEmailTemplate(input: {
+  name: string;
+  resetUrl: string;
+}) {
+  return {
+    subject: "Reset your SmatPic password",
+
+    text: `Hi ${input.name},
+
+We received a request to reset the password for your SmatPic account.
+
+Reset your password by opening the link below:
+
+${input.resetUrl}
+
+This password reset link will expire after 1 hour.
+
+If you did not request a password reset, you can safely ignore this email. Your password will not change.
+
+Regards,
+SmatPic
+`,
+
+    html: `
+      <div style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+        <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;">
+
+            <div style="padding:28px 32px;border-bottom:1px solid #e2e8f0;">
+              <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">
+                SmatPic
+              </div>
+
+              <div style="margin-top:4px;font-size:12px;color:#64748b;">
+                Business Operations Platform
+              </div>
+            </div>
+
+            <div style="padding:36px 32px;">
+
+              <div style="display:inline-block;padding:7px 12px;background:#f1f5f9;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:0.12em;color:#64748b;text-transform:uppercase;">
+                Password reset
+              </div>
+
+              <h1 style="margin:22px 0 12px;font-size:28px;line-height:1.2;letter-spacing:-0.03em;color:#0f172a;">
+                Reset your password
+              </h1>
+
+              <p style="margin:0;font-size:15px;line-height:1.7;color:#475569;">
+                Hi ${escapeHtml(input.name)},
+              </p>
+
+              <p style="margin:16px 0 0;font-size:15px;line-height:1.7;color:#475569;">
+                We received a request to reset the password for your SmatPic account.
+              </p>
+
+              <div style="margin:28px 0;">
+                <a
+                  href="${escapeHtml(input.resetUrl)}"
+                  style="display:inline-block;padding:14px 22px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;"
+                >
+                  Reset my password
+                </a>
+              </div>
+
+              <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;">
+                This link will expire after <strong>1 hour</strong>.
+              </p>
+
+              <div style="margin:28px 0 0;padding:16px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#475569;">
+                  If you did not request a password reset, you can safely ignore this email. Your password will not change.
+                </p>
+              </div>
+
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.7;color:#64748b;">
+                If the button doesn't work, copy and paste this address into your browser:
+              </p>
+
+              <p style="margin:8px 0 0;word-break:break-all;font-size:12px;line-height:1.6;color:#64748b;">
+                ${escapeHtml(input.resetUrl)}
+              </p>
+
+            </div>
+
+            <div style="padding:22px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                SmatPic · Business Operations Platform
+              </p>
+
+              <p style="margin:6px 0 0;font-size:12px;color:#94a3b8;">
+                This is an automated security email. Please do not reply.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    `,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")

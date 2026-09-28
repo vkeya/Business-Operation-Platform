@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
 ArrowRight,
 Building2,
@@ -323,6 +324,15 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
               />
             </div>
           </div>
+		  
+		  <div className="mt-2 flex justify-end">
+  <Link
+    href="/forgot-password"
+    className="text-xs font-semibold text-slate-500 transition hover:text-violet-700"
+  >
+    Forgot password?
+  </Link>
+</div>
 
           <button
             type="submit"
