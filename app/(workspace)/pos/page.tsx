@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import PosBarcodeInput from "@/components/pos/PosBarcodeInput";
 import PosCustomerSelector from "@/components/pos/PosCustomerSelector";
@@ -25,22 +20,13 @@ import {
 } from "lucide-react";
 import { calculateTax } from "@/lib/tax/taxCalculationService";
 
-import {
-  posCartService,
-} from "@/lib/pos/posCartService";
+import { posCartService } from "@/lib/pos/posCartService";
 
-import type {
-  PosCart,
-  PosPaymentMethod,
-} from "@/lib/pos/posTypes";
+import type { PosCart, PosPaymentMethod } from "@/lib/pos/posTypes";
 
-import type {
-  PosCustomer,
-} from "@/lib/pos/posCustomerService";
+import type { PosCustomer } from "@/lib/pos/posCustomerService";
 
-import type {
-  PosProduct,
-} from "@/lib/pos/posProductService";
+import type { PosProduct } from "@/lib/pos/posProductService";
 
 interface Warehouse {
   id: string;
@@ -104,32 +90,21 @@ const paymentMethods: Array<{
   },
 ];
 
-function formatAmount(
-  amount: number,
-  currency: string,
-) {
-  return `${currency} ${amount.toLocaleString(
-    undefined,
-    {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    },
-  )}`;
+function formatAmount(amount: number, currency: string) {
+  return `${currency} ${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export default function PosPage() {
-  const [warehouses, setWarehouses] =
-    useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
-  const [warehouseId, setWarehouseId] =
-    useState("");
+  const [warehouseId, setWarehouseId] = useState("");
 
+  const [receipt, setReceipt] = useState<PosReceiptData | null>(null);
 
-	const [receipt, setReceipt] =
-  useState<PosReceiptData | null>(null);
-
-  const [taxConfiguration, setTaxConfiguration] =
-  useState<{
+  const [taxConfiguration, setTaxConfiguration] = useState<{
     enabled: boolean;
     name: string;
     rate: number;
@@ -141,83 +116,91 @@ export default function PosPage() {
     pricingMode: "EXCLUSIVE",
   });
 
-  const [cart, setCart] =
-    useState<PosCart>(() =>
-      posCartService.createEmptyCart(),
-    );
+  const [cart, setCart] = useState<PosCart>(() =>
+    posCartService.createEmptyCart(),
+  );
 
-  const [selectedCustomer, setSelectedCustomer] =
-  useState<PosCustomer | null>(null);
-  
-  const [prescriptionQuery, setPrescriptionQuery] =
-  useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<PosCustomer | null>(
+    null,
+  );
 
-  const [prescriptionResults, setPrescriptionResults] =
-    useState<PosPrescription[]>([]);
-  
-  const [prescriptionLoading, setPrescriptionLoading] =
-    useState(false);
-  
-  const [selectedPrescriptionItem, setSelectedPrescriptionItem] =
-     useState<{
+  const [prescriptionQuery, setPrescriptionQuery] = useState("");
+
+  const [prescriptionResults, setPrescriptionResults] = useState<
+    PosPrescription[]
+  >([]);
+
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+
+  const [selectedPrescriptionItem, setSelectedPrescriptionItem] = useState<{
     prescriptionId: string;
     prescriptionItemId: string;
   } | null>(null);
-  
+
   const [pendingPrescriptionProduct, setPendingPrescriptionProduct] =
-  useState<PosProduct | null>(null);
+    useState<PosProduct | null>(null);
 
-  const [paymentMethod, setPaymentMethod] =
-    useState<PosPaymentMethod>("CASH");
+  const [paymentMethod, setPaymentMethod] = useState<PosPaymentMethod>("CASH");
 
-  const [paymentAmount, setPaymentAmount] =
-    useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
 
-	const [paymentReference, setPaymentReference] =
-  useState("");
+  const [paymentReference, setPaymentReference] = useState("");
 
   const [customerPhone, setCustomerPhone] = useState("");
 
-  const [currency, setCurrency] =
-    useState("KES");
+  const [currency, setCurrency] = useState("KES");
 
-  const [discountInput, setDiscountInput] =
-    useState("");
+  const [discountInput, setDiscountInput] = useState("");
 
-  const [productQuery, setProductQuery] =
-    useState("");
+  const [productQuery, setProductQuery] = useState("");
 
-  const [searchResults, setSearchResults] =
-    useState<PosProduct[]>([]);
+  const [searchResults, setSearchResults] = useState<PosProduct[]>([]);
 
-  const [searchLoading, setSearchLoading] =
-    useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const [pharmacyBatchPreviews, setPharmacyBatchPreviews] =
-    useState<Record<string, PharmacyBatchPreview[]>>({});
+  const [pharmacyBatchPreviews, setPharmacyBatchPreviews] = useState<
+    Record<string, PharmacyBatchPreview[]>
+  >({});
 
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const [checkoutLoading, setCheckoutLoading] =
-    useState(false);
+  const [pendingPaymentAttemptId, setPendingPaymentAttemptId] = useState<
+    string | null
+  >(null);
 
-	const [pendingPaymentAttemptId, setPendingPaymentAttemptId] =
-  useState<string | null>(null);
+  const [pendingPaymentSaleId, setPendingPaymentSaleId] = useState<
+    string | null
+  >(null);
 
-const [pendingPaymentSaleId, setPendingPaymentSaleId] =
-  useState<string | null>(null);
-
-const [paymentPolling, setPaymentPolling] =
-  useState(false);
+  const [paymentPolling, setPaymentPolling] = useState(false);
 
   const [paymentTimedOut, setPaymentTimedOut] = useState(false);
 
   const paymentPendingSinceRef = useRef<number | null>(null);
   const PAYMENT_PENDING_TIMEOUT_MS = 2 * 60 * 1000;
-  const [error, setError] =
-    useState("");
 
-  const [successMessage, setSuccessMessage] =
-    useState("");
+  const resetPaymentSession = useCallback(() => {
+    paymentPendingSinceRef.current = null;
+
+    setPendingPaymentAttemptId(null);
+    setPendingPaymentSaleId(null);
+    setPaymentPolling(false);
+    setPaymentTimedOut(false);
+
+    setPaymentAmount("");
+    setPaymentReference("");
+    setCustomerPhone("");
+  }, []);
+
+  const resetCompletedTransaction = useCallback(() => {
+    setCart(posCartService.createEmptyCart());
+    setSelectedCustomer(null);
+    resetPaymentSession();
+  }, [resetPaymentSession]);
+
+  const [error, setError] = useState("");
+
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const trimmedQuery = productQuery.trim();
@@ -238,24 +221,18 @@ const [paymentPolling, setPaymentPolling] =
           q: trimmedQuery,
         });
 
-        const response = await fetch(
-          `/api/pos/products?${params.toString()}`,
-          { signal: controller.signal, cache: "no-store" },
-        );
+        const response = await fetch(`/api/pos/products?${params.toString()}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
 
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            result.error || "Unable to search products.",
-          );
+          throw new Error(result.error || "Unable to search products.");
         }
 
-        setSearchResults(
-          Array.isArray(result.products)
-            ? result.products
-            : [],
-        );
+        setSearchResults(Array.isArray(result.products) ? result.products : []);
       } catch (searchError) {
         if (
           searchError instanceof DOMException &&
@@ -280,54 +257,43 @@ const [paymentPolling, setPaymentPolling] =
       controller.abort();
     };
   }, [warehouseId, productQuery]);
-  
+
   useEffect(() => {
-  const trimmedQuery =
-    prescriptionQuery.trim();
+    const trimmedQuery = prescriptionQuery.trim();
 
-  if (!trimmedQuery) {
-    setPrescriptionResults([]);
-    return;
-  }
+    if (!trimmedQuery) {
+      setPrescriptionResults([]);
+      return;
+    }
 
-  const timer = window.setTimeout(() => {
-    void searchPrescriptions(trimmedQuery);
-  }, 250);
+    const timer = window.setTimeout(() => {
+      void searchPrescriptions(trimmedQuery);
+    }, 250);
 
-  return () => {
-    window.clearTimeout(timer);
-  };
-}, [prescriptionQuery]);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [prescriptionQuery]);
 
   useEffect(() => {
     async function loadWarehouses() {
       try {
-        const response = await fetch(
-  "/api/pos/warehouses",
-);
+        const response = await fetch("/api/pos/warehouses");
 
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            result.error ||
-              "Unable to load warehouses.",
-          );
+          throw new Error(result.error || "Unable to load warehouses.");
         }
 
-
-
-        const loadedWarehouses =
-          Array.isArray(result.warehouses)
-            ? result.warehouses
-            : [];
+        const loadedWarehouses = Array.isArray(result.warehouses)
+          ? result.warehouses
+          : [];
 
         setWarehouses(loadedWarehouses);
 
         if (loadedWarehouses.length > 0) {
-          setWarehouseId(
-            loadedWarehouses[0].id,
-          );
+          setWarehouseId(loadedWarehouses[0].id);
         }
       } catch (loadError) {
         setError(
@@ -342,48 +308,34 @@ const [paymentPolling, setPaymentPolling] =
   }, []);
 
   useEffect(() => {
-  async function loadTaxConfiguration() {
-    try {
-      const response = await fetch(
-        "/api/pos/tax",
-        {
+    async function loadTaxConfiguration() {
+      try {
+        const response = await fetch("/api/pos/tax", {
           cache: "no-store",
-        },
-      );
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          result.error ||
-            "Unable to load tax configuration.",
-        );
+        if (!response.ok) {
+          throw new Error(result.error || "Unable to load tax configuration.");
+        }
+
+        setTaxConfiguration({
+          enabled: Boolean(result.taxConfiguration?.enabled),
+          name: result.taxConfiguration?.name || "VAT",
+          rate: Number(result.taxConfiguration?.rate) || 0,
+          pricingMode:
+            result.taxConfiguration?.pricingMode === "INCLUSIVE"
+              ? "INCLUSIVE"
+              : "EXCLUSIVE",
+        });
+      } catch (taxError) {
+        console.error("Unable to load POS tax configuration:", taxError);
       }
-
-      setTaxConfiguration({
-        enabled: Boolean(result.taxConfiguration?.enabled),
-        name:
-          result.taxConfiguration?.name ||
-          "VAT",
-        rate:
-          Number(result.taxConfiguration?.rate) ||
-          0,
-        pricingMode:
-          result.taxConfiguration?.pricingMode ===
-          "INCLUSIVE"
-            ? "INCLUSIVE"
-            : "EXCLUSIVE",
-      });
-    } catch (taxError) {
-      console.error(
-        "Unable to load POS tax configuration:",
-        taxError,
-      );
     }
-  }
 
-  void loadTaxConfiguration();
-}, []);
+    void loadTaxConfiguration();
+  }, []);
 
   useEffect(() => {
     if (!pendingPaymentAttemptId) {
@@ -409,86 +361,126 @@ const [paymentPolling, setPaymentPolling] =
 
         if (!response.ok) {
           throw new Error(
-            result.error ||
-              "Unable to check M-Pesa payment status.",
+            result.error || "Unable to check M-Pesa payment status.",
           );
         }
 
         const status = result.attempt?.status;
 
-		if (
-  status === "PENDING" &&
-  paymentPendingSinceRef.current !== null &&
-  Date.now() - paymentPendingSinceRef.current >= 10000
-) {
-  paymentPendingSinceRef.current = Date.now();
+        if (cancelled) {
+          return;
+        }
 
-  const reconcileResponse = await fetch(
-    `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
-    {
-      method: "POST",
-      cache: "no-store",
-    },
-  );
+        /*
+         * Reconcile a payment that remains pending after
+         * the initial waiting period. This allows the POS
+         * to recover from delayed provider callbacks without
+         * creating a second payment attempt.
+         */
+        if (
+          status === "PENDING" &&
+          paymentPendingSinceRef.current !== null &&
+          Date.now() - paymentPendingSinceRef.current >= 10000
+        ) {
+          paymentPendingSinceRef.current = Date.now();
 
-  const reconcileResult =
-    await reconcileResponse.json();
+          const reconcileResponse = await fetch(
+            `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
+            {
+              method: "POST",
+              cache: "no-store",
+            },
+          );
 
-  if (!reconcileResponse.ok) {
-    throw new Error(
-      reconcileResult.error ||
-        "Unable to reconcile M-Pesa payment.",
-    );
-  }
+          const reconcileResult = await reconcileResponse.json();
 
-  const reconciledStatus =
-    reconcileResult.result?.status;
+          if (!reconcileResponse.ok) {
+            throw new Error(
+              reconcileResult.error || "Unable to reconcile M-Pesa payment.",
+            );
+          }
 
-  if (reconciledStatus === "FAILED") {
-    setPaymentPolling(false);
-    setError(
-      reconcileResult.result?.message ||
-        "The M-Pesa payment was not completed.",
-    );
-	paymentPendingSinceRef.current = null;
-    setPendingPaymentAttemptId(null);
-    setPendingPaymentSaleId(null);
-    return;
-  }
-}
+          const reconciledStatus = reconcileResult.result?.status;
+
+          if (reconciledStatus === "FAILED") {
+            setPaymentPolling(false);
+            setError(
+              reconcileResult.result?.message ||
+                "The M-Pesa payment was not completed.",
+            );
+            resetPaymentSession();
+            return;
+          }
+
+          if (reconciledStatus === "PAID") {
+            /*
+             * The reconciliation endpoint has confirmed
+             * payment. Treat it exactly like a normal PAID
+             * polling response.
+             */
+            setPaymentPolling(false);
+            setPaymentTimedOut(false);
+            setSuccessMessage("M-Pesa payment received successfully.");
+
+            if (pendingPaymentSaleId) {
+              const receiptResponse = await fetch(
+                `/api/pos/receipts/${pendingPaymentSaleId}`,
+              );
+
+              const receiptResult = await receiptResponse.json();
+
+              if (!receiptResponse.ok) {
+                throw new Error(
+                  receiptResult.error ||
+                    "Payment received, but the receipt could not be loaded.",
+                );
+              }
+
+              if (!cancelled) {
+                setReceipt(receiptResult.receipt);
+                resetCompletedTransaction();
+              }
+            } else {
+              resetPaymentSession();
+            }
+
+            return;
+          }
+        }
 
         if (cancelled) {
           return;
         }
 
-		if (
-  paymentPendingSinceRef.current !== null &&
-  Date.now() - paymentPendingSinceRef.current >=
-    PAYMENT_PENDING_TIMEOUT_MS
-) {
-  setPaymentPolling(false);
-  setSuccessMessage("");
-  setPaymentTimedOut(true);
-  setError(
-    "M-Pesa payment is still processing. Please check the payment status before retrying.",
-  );
-  return;
-}
+        /*
+         * Do not automatically create another payment attempt
+         * when the provider is still processing the current one.
+         */
+        if (
+          paymentPendingSinceRef.current !== null &&
+          Date.now() - paymentPendingSinceRef.current >=
+            PAYMENT_PENDING_TIMEOUT_MS
+        ) {
+          setPaymentPolling(false);
+          setSuccessMessage("");
+          setPaymentTimedOut(true);
+          setError(
+            "M-Pesa payment is still processing. Please check the payment status before retrying.",
+          );
+          return;
+        }
 
         if (status === "PAID") {
           setPaymentPolling(false);
-		  setPaymentTimedOut(false);
-          setSuccessMessage(
-            "M-Pesa payment received successfully.",
-          );
+          setPaymentTimedOut(false);
+          setSuccessMessage("M-Pesa payment received successfully.");
 
           if (pendingPaymentSaleId) {
             const receiptResponse = await fetch(
               `/api/pos/receipts/${pendingPaymentSaleId}`,
             );
 
-            const receiptResult =
-              await receiptResponse.json();
+            const receiptResult = await receiptResponse.json();
 
             if (!receiptResponse.ok) {
               throw new Error(
@@ -499,42 +491,26 @@ const [paymentPolling, setPaymentPolling] =
 
             if (!cancelled) {
               setReceipt(receiptResult.receipt);
-              setCart(
-                posCartService.createEmptyCart(),
-              );
-              setSelectedCustomer(null);
-              setPaymentAmount("");
-              setPaymentReference("");
-              setCustomerPhone("");
-              setPendingPaymentAttemptId(null);
-              setPendingPaymentSaleId(null);
+              resetCompletedTransaction();
             }
 
             return;
           }
 
-          setPendingPaymentAttemptId(null);
-          setPendingPaymentSaleId(null);
+          resetPaymentSession();
           return;
         }
 
         if (status === "FAILED") {
-  setPaymentPolling(false);
-  setPaymentTimedOut(false);
-  setSuccessMessage("");
-  setError(
-    "The M-Pesa payment was not completed.",
-  );
-  paymentPendingSinceRef.current = null;
-  setPendingPaymentAttemptId(null);
-  setPendingPaymentSaleId(null);
-  return;
-}
+          setPaymentPolling(false);
+          setPaymentTimedOut(false);
+          setSuccessMessage("");
+          setError("The M-Pesa payment was not completed.");
+          resetPaymentSession();
+          return;
+        }
 
-        pollingTimer = window.setTimeout(
-          checkPaymentStatus,
-          2000,
-        );
+        pollingTimer = window.setTimeout(checkPaymentStatus, 2000);
       } catch (pollingError) {
         if (cancelled) {
           return;
@@ -560,17 +536,11 @@ const [paymentPolling, setPaymentPolling] =
 
       setPaymentPolling(false);
     };
-  }, [
-    pendingPaymentAttemptId,
-    pendingPaymentSaleId,
-  ]);
+  }, [pendingPaymentAttemptId, pendingPaymentSaleId]);
 
+  const paymentAmountNumber = Number(paymentAmount) || 0;
 
-  const paymentAmountNumber =
-    Number(paymentAmount) || 0;
-
-  const requestedDiscount =
-    Number(discountInput) || 0;
+  const requestedDiscount = Number(discountInput) || 0;
 
   const discountAmount = Math.min(
     Math.max(requestedDiscount, 0),
@@ -578,91 +548,78 @@ const [paymentPolling, setPaymentPolling] =
   );
 
   const checkoutCart = useMemo(() => {
-  const taxCalculation = calculateTax({
-    subtotal: cart.subtotal,
-    discountAmount,
-    taxEnabled: taxConfiguration.enabled,
-    taxRate: taxConfiguration.rate,
-    pricingMode: taxConfiguration.pricingMode,
-  });
+    const taxCalculation = calculateTax({
+      subtotal: cart.subtotal,
+      discountAmount,
+      taxEnabled: taxConfiguration.enabled,
+      taxRate: taxConfiguration.rate,
+      pricingMode: taxConfiguration.pricingMode,
+    });
 
-  return {
-    ...cart,
-    discountAmount,
-    taxAmount: taxCalculation.taxAmount,
-    totalAmount: taxCalculation.totalAmount,
-  };
-}, [
-  cart,
-  discountAmount,
-  taxConfiguration,
-]);
+    return {
+      ...cart,
+      discountAmount,
+      taxAmount: taxCalculation.taxAmount,
+      totalAmount: taxCalculation.totalAmount,
+    };
+  }, [cart, discountAmount, taxConfiguration]);
 
   const change =
     paymentAmountNumber > checkoutCart.totalAmount
-      ? paymentAmountNumber -
-        checkoutCart.totalAmount
+      ? paymentAmountNumber - checkoutCart.totalAmount
       : 0;
 
-    const canCheckout =
+  const canCheckout =
     cart.items.length > 0 &&
     checkoutCart.totalAmount > 0 &&
-    paymentAmountNumber >=
-      checkoutCart.totalAmount &&
+    paymentAmountNumber >= checkoutCart.totalAmount &&
     !checkoutLoading &&
     !paymentPolling &&
     !pendingPaymentAttemptId;
 
-async function searchPrescriptions(
-  query: string,
-) {
-  const trimmedQuery = query.trim();
+  async function searchPrescriptions(query: string) {
+    const trimmedQuery = query.trim();
 
-  if (!trimmedQuery) {
-    setPrescriptionResults([]);
-    return;
-  }
-
-  try {
-    setPrescriptionLoading(true);
-    setError("");
-
-    const params = new URLSearchParams({
-      prescriptionNumber: trimmedQuery,
-    });
-
-    const response = await fetch(
-      `/api/pharmacy/prescriptions?${params.toString()}`,
-      {
-        cache: "no-store",
-      },
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        result.error ||
-          "Unable to search prescriptions.",
-      );
+    if (!trimmedQuery) {
+      setPrescriptionResults([]);
+      return;
     }
 
-    setPrescriptionResults(
-      Array.isArray(result.prescriptions)
-        ? result.prescriptions
-        : [],
-    );
-  } catch (prescriptionError) {
-    setPrescriptionResults([]);
-    setError(
-      prescriptionError instanceof Error
-        ? prescriptionError.message
-        : "Unable to search prescriptions.",
-    );
-  } finally {
-    setPrescriptionLoading(false);
+    try {
+      setPrescriptionLoading(true);
+      setError("");
+
+      const params = new URLSearchParams({
+        prescriptionNumber: trimmedQuery,
+      });
+
+      const response = await fetch(
+        `/api/pharmacy/prescriptions?${params.toString()}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to search prescriptions.");
+      }
+
+      setPrescriptionResults(
+        Array.isArray(result.prescriptions) ? result.prescriptions : [],
+      );
+    } catch (prescriptionError) {
+      setPrescriptionResults([]);
+      setError(
+        prescriptionError instanceof Error
+          ? prescriptionError.message
+          : "Unable to search prescriptions.",
+      );
+    } finally {
+      setPrescriptionLoading(false);
+    }
   }
-}
 
   async function loadPharmacyBatchPreview(product: PosProduct) {
     if (!product.pharmacyProduct || !warehouseId) {
@@ -684,8 +641,7 @@ async function searchPrescriptions(
 
       if (!response.ok) {
         throw new Error(
-          result.error ||
-            "Unable to load pharmacy batch information.",
+          result.error || "Unable to load pharmacy batch information.",
         );
       }
 
@@ -696,10 +652,7 @@ async function searchPrescriptions(
           : [],
       }));
     } catch (batchError) {
-      console.error(
-        "Unable to load pharmacy batch preview:",
-        batchError,
-      );
+      console.error("Unable to load pharmacy batch preview:", batchError);
     }
   }
 
@@ -708,381 +661,265 @@ async function searchPrescriptions(
       void loadPharmacyBatchPreview(product);
     }
 
-  const prescriptionType =
-    product.pharmacyProduct?.prescriptionType;
-
-  if (
-    prescriptionType === "PRESCRIPTION" ||
-    prescriptionType === "CONTROLLED"
-  ) {
-    setPendingPrescriptionProduct(product);
-    setPrescriptionQuery("");
-    setPrescriptionResults([]);
-    setSelectedPrescriptionItem(null);
-    setError("");
-    return;
-  }
-
-  addProduct(product);
-}
-
-  function addProduct(
-  product: PosProduct,
-  sellingUnitId?: string,
-  prescriptionSelection?: {
-    prescriptionId: string;
-    prescriptionItemId: string;
-  },
-) {
-	
-	if (prescriptionSelection) {
-  const prescription =
-    prescriptionResults.find(
-      (item) =>
-        item.id ===
-        prescriptionSelection.prescriptionId,
-    );
-
-  const prescriptionItem =
-    prescription?.items.find(
-      (item) =>
-        item.id ===
-        prescriptionSelection.prescriptionItemId,
-    );
-
-  if (!prescriptionItem) {
-    setError(
-      "The selected prescription item could not be found.",
-    );
-    return;
-  }
-
-  const existingPrescriptionQuantity =
-    cart.items
-      .filter(
-        (item) =>
-          item.prescriptionItemId ===
-          prescriptionSelection.prescriptionItemId,
-      )
-      .reduce(
-        (total, item) =>
-          total + item.quantity,
-        0,
-      );
-
-  if (
-    existingPrescriptionQuantity + 1 >
-    prescriptionItem.quantityRemaining
-  ) {
-    setError(
-      `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
-    );
-    return;
-  }
-}
-
-  const sellingUnit = sellingUnitId
-    ? product.sellingUnits.find(
-        (unit) => unit.id === sellingUnitId,
-      )
-    : undefined;
-
-  if (sellingUnitId && !sellingUnit) {
-    setError(
-      `Selling unit not found for ${product.name}.`,
-    );
-    return;
-  }
-
-  const unitPrice =
-    sellingUnit?.sellingPrice ??
-    product.sellingPrice;
-
-  const inventoryQuantity =
-    sellingUnit?.quantity ?? 1;
-
-  if (
-    product.trackInventory &&
-    product.availableQuantity <= 0
-  ) {
-    setError(
-      `Insufficient stock for ${product.name}.`,
-    );
-    return;
-  }
-
-  const existingInventoryQuantity =
-    cart.items
-      .filter(
-        (item) =>
-          item.productId === product.productId,
-      )
-      .reduce(
-        (total, item) =>
-          total + item.inventoryQuantity,
-        0,
-      );
-
-  if (
-    product.trackInventory &&
-    existingInventoryQuantity +
-        inventoryQuantity >
-      product.availableQuantity
-  ) {
-    setError(
-      `Not enough stock available for ${product.name}. Available: ${product.availableQuantity}.`,
-    );
-    return;
-  }
-
-  setCart(
-    posCartService.addItem(cart, {
-      productId: product.productId,
-      productName: product.name,
-      sku: product.sku,
-      sellingUnitId,
-
-      prescriptionId:
-        prescriptionSelection?.prescriptionId,
-      
-      prescriptionItemId:
-        prescriptionSelection?.prescriptionItemId,
-      
-      quantity: 1,
-      inventoryQuantity,
-      unitPrice,
-      discountAmount: 0,
-      taxAmount: 0,
-      totalAmount: 0,
-    }),
-  );
-}
-
-  function updateQuantity(
-  lineId: string,
-  quantity: number,
-) {
-  const item = cart.items.find(
-    (cartItem) =>
-      cartItem.lineId === lineId,
-  );
-
-  if (!item) {
-    return;
-  }
-
-  if (
-    item.prescriptionItemId &&
-    quantity > item.quantity
-  ) {
-    const prescription =
-      prescriptionResults.find(
-        (result) =>
-          result.id ===
-          item.prescriptionId,
-      );
-
-    const prescriptionItem =
-      prescription?.items.find(
-        (prescriptionItem) =>
-          prescriptionItem.id ===
-          item.prescriptionItemId,
-      );
-
-    if (!prescriptionItem) {
-      setError(
-        "Prescription details could not be found for this cart item.",
-      );
-      return;
-    }
+    const prescriptionType = product.pharmacyProduct?.prescriptionType;
 
     if (
-      quantity >
-      prescriptionItem.quantityRemaining
+      prescriptionType === "PRESCRIPTION" ||
+      prescriptionType === "CONTROLLED"
+    ) {
+      setPendingPrescriptionProduct(product);
+      setPrescriptionQuery("");
+      setPrescriptionResults([]);
+      setSelectedPrescriptionItem(null);
+      setError("");
+      return;
+    }
+
+    addProduct(product);
+  }
+
+  function addProduct(
+    product: PosProduct,
+    sellingUnitId?: string,
+    prescriptionSelection?: {
+      prescriptionId: string;
+      prescriptionItemId: string;
+    },
+  ) {
+    if (prescriptionSelection) {
+      const prescription = prescriptionResults.find(
+        (item) => item.id === prescriptionSelection.prescriptionId,
+      );
+
+      const prescriptionItem = prescription?.items.find(
+        (item) => item.id === prescriptionSelection.prescriptionItemId,
+      );
+
+      if (!prescriptionItem) {
+        setError("The selected prescription item could not be found.");
+        return;
+      }
+
+      const existingPrescriptionQuantity = cart.items
+        .filter(
+          (item) =>
+            item.prescriptionItemId ===
+            prescriptionSelection.prescriptionItemId,
+        )
+        .reduce((total, item) => total + item.quantity, 0);
+
+      if (
+        existingPrescriptionQuantity + 1 >
+        prescriptionItem.quantityRemaining
+      ) {
+        setError(
+          `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
+        );
+        return;
+      }
+    }
+
+    const sellingUnit = sellingUnitId
+      ? product.sellingUnits.find((unit) => unit.id === sellingUnitId)
+      : undefined;
+
+    if (sellingUnitId && !sellingUnit) {
+      setError(`Selling unit not found for ${product.name}.`);
+      return;
+    }
+
+    const unitPrice = sellingUnit?.sellingPrice ?? product.sellingPrice;
+
+    const inventoryQuantity = sellingUnit?.quantity ?? 1;
+
+    if (product.trackInventory && product.availableQuantity <= 0) {
+      setError(`Insufficient stock for ${product.name}.`);
+      return;
+    }
+
+    const existingInventoryQuantity = cart.items
+      .filter((item) => item.productId === product.productId)
+      .reduce((total, item) => total + item.inventoryQuantity, 0);
+
+    if (
+      product.trackInventory &&
+      existingInventoryQuantity + inventoryQuantity > product.availableQuantity
     ) {
       setError(
-        `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
+        `Not enough stock available for ${product.name}. Available: ${product.availableQuantity}.`,
       );
       return;
     }
+
+    setCart(
+      posCartService.addItem(cart, {
+        productId: product.productId,
+        productName: product.name,
+        sku: product.sku,
+        sellingUnitId,
+
+        prescriptionId: prescriptionSelection?.prescriptionId,
+
+        prescriptionItemId: prescriptionSelection?.prescriptionItemId,
+
+        quantity: 1,
+        inventoryQuantity,
+        unitPrice,
+        discountAmount: 0,
+        taxAmount: 0,
+        totalAmount: 0,
+      }),
+    );
   }
 
-  setCart(
-    posCartService.updateQuantity(
-      cart,
-      lineId,
-      quantity,
-    ),
-  );
-}
- 
+  function updateQuantity(lineId: string, quantity: number) {
+    const item = cart.items.find((cartItem) => cartItem.lineId === lineId);
+
+    if (!item) {
+      return;
+    }
+
+    if (item.prescriptionItemId && quantity > item.quantity) {
+      const prescription = prescriptionResults.find(
+        (result) => result.id === item.prescriptionId,
+      );
+
+      const prescriptionItem = prescription?.items.find(
+        (prescriptionItem) => prescriptionItem.id === item.prescriptionItemId,
+      );
+
+      if (!prescriptionItem) {
+        setError("Prescription details could not be found for this cart item.");
+        return;
+      }
+
+      if (quantity > prescriptionItem.quantityRemaining) {
+        setError(
+          `Only ${prescriptionItem.quantityRemaining} unit(s) remain on this prescription.`,
+        );
+        return;
+      }
+    }
+
+    setCart(posCartService.updateQuantity(cart, lineId, quantity));
+  }
 
   function removeItem(lineId: string) {
-    setCart(
-      posCartService.removeItem(
-        cart,
-        lineId,
-      ),
-    );
+    setCart(posCartService.removeItem(cart, lineId));
   }
 
   async function handleCheckout() {
     if (!warehouseId) {
-      setError(
-        "Please select a warehouse.",
-      );
+      setError("Please select a warehouse.");
       return;
     }
 
     if (cart.items.length === 0) {
-      setError(
-        "Add at least one product.",
-      );
+      setError("Add at least one product.");
       return;
     }
 
-    if (
-      paymentAmountNumber <
-      checkoutCart.totalAmount
-    ) {
-      setError(
-        "Payment amount is less than the sale total.",
-      );
+    if (paymentAmountNumber < checkoutCart.totalAmount) {
+      setError("Payment amount is less than the sale total.");
       return;
     }
 
-	    const requiresReference =
-      paymentMethod === "CARD" ||
-      paymentMethod === "BANK";
+    const requiresReference =
+      paymentMethod === "CARD" || paymentMethod === "BANK";
 
-    if (
-      requiresReference &&
-      !paymentReference.trim()
-    ) {
+    if (requiresReference && !paymentReference.trim()) {
       setError(
         `Please enter the ${paymentMethod.toLowerCase()} transaction reference.`,
       );
       return;
     }
 
-    if (
-      paymentMethod === "MPESA" &&
-      !customerPhone.trim()
-    ) {
-      setError(
-        "Please enter the customer's M-Pesa phone number.",
-      );
+    if (paymentMethod === "MPESA" && !customerPhone.trim()) {
+      setError("Please enter the customer's M-Pesa phone number.");
       return;
     }
 
-	    if (
+    if (
       paymentMethod === "MPESA" &&
       !Number.isInteger(checkoutCart.totalAmount)
     ) {
-      setError(
-        "M-Pesa payments require a whole-number KES sale total.",
-      );
+      setError("M-Pesa payments require a whole-number KES sale total.");
       return;
     }
 
-if (
-  paymentMethod === "CREDIT" &&
-  !selectedCustomer
-) {
-  setError(
-    "A customer is required for credit sales.",
-  );
-  return;
-}
+    if (paymentMethod === "CREDIT" && !selectedCustomer) {
+      setError("A customer is required for credit sales.");
+      return;
+    }
 
     try {
       setCheckoutLoading(true);
       setError("");
       setSuccessMessage("");
 
-	  const operationId = crypto.randomUUID();
+      const operationId = crypto.randomUUID();
 
-      const response = await fetch(
-        "/api/pos/checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-			operationId,
-            warehouseId,
-            currency,
-			customerId:
-              selectedCustomer?.customerId,
-            cart: checkoutCart,
-                        payment: {
-              method: paymentMethod,
-              amount:
-                paymentAmountNumber,
-              currency,
-              reference:
-                paymentReference.trim() || undefined,
-              customerPhone:
-                paymentMethod === "MPESA"
-                  ? customerPhone.trim()
-                  : undefined,
-            },
-          }),
+      const response = await fetch("/api/pos/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          operationId,
+          warehouseId,
+          currency,
+          customerId: selectedCustomer?.customerId,
+          cart: checkoutCart,
+          payment: {
+            method: paymentMethod,
+            amount: paymentAmountNumber,
+            currency,
+            reference: paymentReference.trim() || undefined,
+            customerPhone:
+              paymentMethod === "MPESA" ? customerPhone.trim() : undefined,
+          },
+        }),
+      });
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.error ||
-            "Unable to complete checkout.",
-        );
+        throw new Error(result.error || "Unable to complete checkout.");
       }
 
-	       if (result.status === "PENDING") {
+      if (result.status === "PENDING") {
+        const attemptId = result.paymentAttempt?.attemptId;
 
-  const attemptId =
-    result.paymentAttempt?.attemptId;
+        const saleId = result.sale?.saleId;
 
-  const saleId =
-    result.sale?.saleId;
+        if (!attemptId || !saleId) {
+          throw new Error(
+            "M-Pesa payment was initiated, but the payment tracking details are missing.",
+          );
+        }
 
-  if (!attemptId || !saleId) {
-    throw new Error(
-      "M-Pesa payment was initiated, but the payment tracking details are missing.",
-    );
-  }
+        paymentPendingSinceRef.current = Date.now();
+        setPaymentTimedOut(false);
+        setPendingPaymentAttemptId(attemptId);
+        setPendingPaymentSaleId(saleId);
 
-  paymentPendingSinceRef.current = Date.now();
-setPaymentTimedOut(false);
-setPendingPaymentAttemptId(attemptId);
-setPendingPaymentSaleId(saleId);
+        setSuccessMessage(
+          result.paymentAttempt?.message ||
+            "M-Pesa payment request sent. Waiting for customer confirmation.",
+        );
 
-  setSuccessMessage(
-    result.paymentAttempt?.message ||
-      "M-Pesa payment request sent. Waiting for customer confirmation.",
-  );
-
-  return;
-}
+        return;
+      }
 
       if (result.status !== "COMPLETED") {
-        throw new Error(
-          "Unexpected checkout status received.",
-        );
+        throw new Error("Unexpected checkout status received.");
       }
 
-      const receiptResponse =
-        await fetch(
-          `/api/pos/receipts/${result.sale.saleId}`,
-        );
+      const receiptResponse = await fetch(
+        `/api/pos/receipts/${result.sale.saleId}`,
+      );
 
-      const receiptResult =
-        await receiptResponse.json();
+      const receiptResult = await receiptResponse.json();
 
       if (!receiptResponse.ok) {
         throw new Error(
@@ -1097,15 +934,7 @@ setPendingPaymentSaleId(saleId);
         `Sale ${result.sale.referenceNumber} completed successfully.`,
       );
 
-      setCart(
-        posCartService.createEmptyCart(),
-      );
-
-      setSelectedCustomer(null);
-
-      setPaymentAmount("");
-      setPaymentReference("");
-      setCustomerPhone("");
+      resetCompletedTransaction();
     } catch (checkoutError) {
       setError(
         checkoutError instanceof Error
@@ -1127,7 +956,9 @@ setPendingPaymentSaleId(saleId);
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight">SmatPic POS</h1>
+                <h1 className="text-lg font-black tracking-tight">
+                  SmatPic POS
+                </h1>
                 <span className="rounded-full bg-violet-500/20 px-2 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-200">
                   Checkout
                 </span>
@@ -1169,8 +1000,12 @@ setPendingPaymentSaleId(saleId);
                   C
                 </div>
                 <div className="ml-2 min-w-0">
-                  <p className="truncate text-[10px] font-bold text-slate-200">Current cashier</p>
-                  <p className="truncate text-[8px] text-slate-500">Active session</p>
+                  <p className="truncate text-[10px] font-bold text-slate-200">
+                    Current cashier
+                  </p>
+                  <p className="truncate text-[8px] text-slate-500">
+                    Active session
+                  </p>
                 </div>
               </div>
             </div>
@@ -1196,11 +1031,16 @@ setPendingPaymentSaleId(saleId);
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-violet-600">Transaction</p>
-                  <h2 className="mt-0.5 text-base font-black text-slate-950">Current sale</h2>
+                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-violet-600">
+                    Transaction
+                  </p>
+                  <h2 className="mt-0.5 text-base font-black text-slate-950">
+                    Current sale
+                  </h2>
                 </div>
                 <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-600">
-                  {cart.items.length} {cart.items.length === 1 ? "item" : "items"}
+                  {cart.items.length}{" "}
+                  {cart.items.length === 1 ? "item" : "items"}
                 </span>
               </div>
             </div>
@@ -1237,14 +1077,16 @@ setPendingPaymentSaleId(saleId);
                           key={product.productId}
                           type="button"
                           onClick={() => {
-  handleProductSelection(product);
-  setProductQuery("");
-  setSearchResults([]);
-}}
+                            handleProductSelection(product);
+                            setProductQuery("");
+                            setSearchResults([]);
+                          }}
                           className="flex min-h-16 w-full items-center justify-between gap-4 border-b border-slate-800 px-4 py-3 text-left last:border-b-0 hover:bg-slate-800 active:bg-slate-800"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-white">{product.name}</p>
+                            <p className="truncate text-sm font-black text-white">
+                              {product.name}
+                            </p>
                             <p className="mt-1 truncate text-[9px] font-bold uppercase tracking-wider text-slate-500">
                               {product.sku}
                               {product.barcode ? ` • ${product.barcode}` : ""}
@@ -1261,215 +1103,209 @@ setPendingPaymentSaleId(saleId);
               )}
 
               <PosBarcodeInput
-  warehouseId={warehouseId}
-  onProductFound={handleProductSelection}
-/>
-{pendingPrescriptionProduct && (
-  <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-700">
-          Prescription required
-        </p>
+                warehouseId={warehouseId}
+                onProductFound={handleProductSelection}
+              />
+              {pendingPrescriptionProduct && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-700">
+                        Prescription required
+                      </p>
 
-        <h3 className="mt-1 text-sm font-black text-slate-950">
-          {pendingPrescriptionProduct.name}
-        </h3>
+                      <h3 className="mt-1 text-sm font-black text-slate-950">
+                        {pendingPrescriptionProduct.name}
+                      </h3>
 
-        <p className="mt-1 text-[10px] font-bold text-slate-500">
-          {pendingPrescriptionProduct.pharmacyProduct?.prescriptionType ===
-          "CONTROLLED"
-            ? "Controlled medicine"
-            : "Prescription medicine"}
-        </p>
+                      <p className="mt-1 text-[10px] font-bold text-slate-500">
+                        {pendingPrescriptionProduct.pharmacyProduct
+                          ?.prescriptionType === "CONTROLLED"
+                          ? "Controlled medicine"
+                          : "Prescription medicine"}
+                      </p>
 
-        {pendingPrescriptionProduct.pharmacyProduct?.prescriptionType ===
-          "CONTROLLED" && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
-              Controlled dispensing
-            </p>
-            <p className="mt-1 text-[10px] font-bold leading-4 text-red-700">
-              A valid prescription and authorized controlled-medicine
-              dispensing are required. SmatPic will record the dispensing
-              against the selected prescription and FEFO batch.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => {
-          setPendingPrescriptionProduct(null);
-          setPrescriptionQuery("");
-          setPrescriptionResults([]);
-          setSelectedPrescriptionItem(null);
-        }}
-        className="rounded-lg px-2 py-1 text-[9px] font-black uppercase text-slate-500 hover:bg-amber-100"
-      >
-        Cancel
-      </button>
-    </div>
-
-    <div className="mt-4">
-      <label className="mb-1 block text-[8px] font-black uppercase tracking-[0.16em] text-amber-700">
-        Prescription number
-      </label>
-
-      <input
-        value={prescriptionQuery}
-        onChange={(event) =>
-          setPrescriptionQuery(event.target.value)
-        }
-        placeholder="Enter prescription number..."
-        autoComplete="off"
-        className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
-      />
-    </div>
-
-    {prescriptionQuery.trim() && (
-      <div className="mt-3 overflow-hidden rounded-xl border border-amber-200 bg-white">
-        {prescriptionLoading ? (
-          <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
-            Searching prescription...
-          </div>
-        ) : prescriptionResults.length === 0 ? (
-          <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
-            No active prescription found
-          </div>
-        ) : (
-          <div className="max-h-72 overflow-y-auto">
-            {prescriptionResults.map((prescription) => {
-              const matchingItems =
-                prescription.items.filter(
-                  (item) =>
-                    item.productId ===
-                    pendingPrescriptionProduct.productId,
-                );
-
-              if (matchingItems.length === 0) {
-                return null;
-              }
-
-              return (
-                <div
-                  key={prescription.id}
-                  className="border-b border-slate-100 p-3 last:border-b-0"
-                >
-                  <div>
-                    <p className="text-xs font-black text-slate-900">
-                      {prescription.prescriptionNumber}
-                    </p>
-
-                    <p className="mt-0.5 text-[9px] font-bold text-slate-500">
-                      Prescriber: {prescription.prescriberName}
-                    </p>
-                  </div>
-
-                  <div className="mt-2 space-y-2">
-                    {matchingItems.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPrescriptionItem({
-                            prescriptionId:
-                              prescription.id,
-                            prescriptionItemId:
-                              item.id,
-                          });
-                        }}
-                        className={`w-full rounded-xl border px-3 py-3 text-left ${
-                          selectedPrescriptionItem
-                            ?.prescriptionItemId === item.id
-                            ? "border-violet-500 bg-violet-50"
-                            : "border-slate-200 bg-slate-50 hover:border-violet-300"
-                        }`}
-                      >
-                        <p className="text-xs font-black text-slate-900">
-                          {pendingPrescriptionProduct.name}
-                        </p>
-
-                        <p className="mt-1 text-[9px] font-bold text-slate-500">
-                          Prescribed:{" "}
-                          {item.quantityPrescribed}{" "}
-                          • Remaining:{" "}
-                          {item.quantityRemaining}
-                        </p>
-
-                        {item.dosageInstructions && (
-                          <p className="mt-1 text-[9px] text-slate-500">
-                            {item.dosageInstructions}
+                      {pendingPrescriptionProduct.pharmacyProduct
+                        ?.prescriptionType === "CONTROLLED" && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
+                            Controlled dispensing
                           </p>
-                        )}
-                      </button>
-                    ))}
+                          <p className="mt-1 text-[10px] font-bold leading-4 text-red-700">
+                            A valid prescription and authorized
+                            controlled-medicine dispensing are required. SmatPic
+                            will record the dispensing against the selected
+                            prescription and FEFO batch.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingPrescriptionProduct(null);
+                        setPrescriptionQuery("");
+                        setPrescriptionResults([]);
+                        setSelectedPrescriptionItem(null);
+                      }}
+                      className="rounded-lg px-2 py-1 text-[9px] font-black uppercase text-slate-500 hover:bg-amber-100"
+                    >
+                      Cancel
+                    </button>
                   </div>
+
+                  <div className="mt-4">
+                    <label className="mb-1 block text-[8px] font-black uppercase tracking-[0.16em] text-amber-700">
+                      Prescription number
+                    </label>
+
+                    <input
+                      value={prescriptionQuery}
+                      onChange={(event) =>
+                        setPrescriptionQuery(event.target.value)
+                      }
+                      placeholder="Enter prescription number..."
+                      autoComplete="off"
+                      className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
+                    />
+                  </div>
+
+                  {prescriptionQuery.trim() && (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-amber-200 bg-white">
+                      {prescriptionLoading ? (
+                        <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          Searching prescription...
+                        </div>
+                      ) : prescriptionResults.length === 0 ? (
+                        <div className="px-4 py-4 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          No active prescription found
+                        </div>
+                      ) : (
+                        <div className="max-h-72 overflow-y-auto">
+                          {prescriptionResults.map((prescription) => {
+                            const matchingItems = prescription.items.filter(
+                              (item) =>
+                                item.productId ===
+                                pendingPrescriptionProduct.productId,
+                            );
+
+                            if (matchingItems.length === 0) {
+                              return null;
+                            }
+
+                            return (
+                              <div
+                                key={prescription.id}
+                                className="border-b border-slate-100 p-3 last:border-b-0"
+                              >
+                                <div>
+                                  <p className="text-xs font-black text-slate-900">
+                                    {prescription.prescriptionNumber}
+                                  </p>
+
+                                  <p className="mt-0.5 text-[9px] font-bold text-slate-500">
+                                    Prescriber: {prescription.prescriberName}
+                                  </p>
+                                </div>
+
+                                <div className="mt-2 space-y-2">
+                                  {matchingItems.map((item) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedPrescriptionItem({
+                                          prescriptionId: prescription.id,
+                                          prescriptionItemId: item.id,
+                                        });
+                                      }}
+                                      className={`w-full rounded-xl border px-3 py-3 text-left ${
+                                        selectedPrescriptionItem?.prescriptionItemId ===
+                                        item.id
+                                          ? "border-violet-500 bg-violet-50"
+                                          : "border-slate-200 bg-slate-50 hover:border-violet-300"
+                                      }`}
+                                    >
+                                      <p className="text-xs font-black text-slate-900">
+                                        {pendingPrescriptionProduct.name}
+                                      </p>
+
+                                      <p className="mt-1 text-[9px] font-bold text-slate-500">
+                                        Prescribed: {item.quantityPrescribed} •
+                                        Remaining: {item.quantityRemaining}
+                                      </p>
+
+                                      {item.dosageInstructions && (
+                                        <p className="mt-1 text-[9px] text-slate-500">
+                                          {item.dosageInstructions}
+                                        </p>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedPrescriptionItem && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!pendingPrescriptionProduct) {
+                          return;
+                        }
+
+                        const prescription = prescriptionResults.find((item) =>
+                          item.items.some(
+                            (prescriptionItem) =>
+                              prescriptionItem.id ===
+                              selectedPrescriptionItem?.prescriptionItemId,
+                          ),
+                        );
+
+                        const prescriptionItem = prescription?.items.find(
+                          (item) =>
+                            item.id ===
+                            selectedPrescriptionItem?.prescriptionItemId,
+                        );
+
+                        if (!prescriptionItem) {
+                          setError(
+                            "The selected prescription item could not be found.",
+                          );
+                          return;
+                        }
+
+                        if (prescriptionItem.quantityRemaining < 1) {
+                          setError(
+                            "This prescription item has no remaining quantity.",
+                          );
+                          return;
+                        }
+
+                        addProduct(
+                          pendingPrescriptionProduct,
+                          undefined,
+                          selectedPrescriptionItem,
+                        );
+
+                        setPendingPrescriptionProduct(null);
+                        setPrescriptionQuery("");
+                        setPrescriptionResults([]);
+                        setSelectedPrescriptionItem(null);
+                      }}
+                      className="mt-3 h-11 w-full rounded-xl bg-violet-600 text-xs font-black uppercase tracking-wider text-white hover:bg-violet-700"
+                    >
+                      Add Prescribed Medicine
+                    </button>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    )}
-
-    {selectedPrescriptionItem && (
-      <button
-        type="button"
-        onClick={() => {
-  if (!pendingPrescriptionProduct) {
-    return;
-  }
-
-  const prescription =
-    prescriptionResults.find((item) =>
-      item.items.some(
-        (prescriptionItem) =>
-          prescriptionItem.id ===
-          selectedPrescriptionItem?.prescriptionItemId,
-      ),
-    );
-
-  const prescriptionItem =
-    prescription?.items.find(
-      (item) =>
-        item.id ===
-        selectedPrescriptionItem?.prescriptionItemId,
-    );
-
-  if (!prescriptionItem) {
-    setError(
-      "The selected prescription item could not be found.",
-    );
-    return;
-  }
-
-  if (prescriptionItem.quantityRemaining < 1) {
-    setError(
-      "This prescription item has no remaining quantity.",
-    );
-    return;
-  }
-
-  addProduct(
-    pendingPrescriptionProduct,
-    undefined,
-    selectedPrescriptionItem,
-  );
-
-  setPendingPrescriptionProduct(null);
-  setPrescriptionQuery("");
-  setPrescriptionResults([]);
-  setSelectedPrescriptionItem(null);
-}}
-        className="mt-3 h-11 w-full rounded-xl bg-violet-600 text-xs font-black uppercase tracking-wider text-white hover:bg-violet-700"
-      >
-        Add Prescribed Medicine
-      </button>
-    )}
-  </div>
-)}
+              )}
             </div>
 
             <div className="p-3 sm:p-4">
@@ -1478,9 +1314,12 @@ setPendingPaymentSaleId(saleId);
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
                     <Barcode className="h-8 w-8" />
                   </div>
-                  <p className="mt-4 text-sm font-black uppercase tracking-[0.12em] text-slate-700">Ready to scan</p>
+                  <p className="mt-4 text-sm font-black uppercase tracking-[0.12em] text-slate-700">
+                    Ready to scan
+                  </p>
                   <p className="mt-2 max-w-sm text-xs leading-5 text-slate-400">
-                    Search for a product manually or scan its barcode to add it to the transaction.
+                    Search for a product manually or scan its barcode to add it
+                    to the transaction.
                   </p>
                 </div>
               ) : (
@@ -1492,9 +1331,12 @@ setPendingPaymentSaleId(saleId);
                     >
                       <div className="flex items-center gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-slate-950">{item.productName}</p>
+                          <p className="truncate text-sm font-black text-slate-950">
+                            {item.productName}
+                          </p>
                           <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                            {item.sku} • {formatAmount(item.unitPrice, currency)} each
+                            {item.sku} •{" "}
+                            {formatAmount(item.unitPrice, currency)} each
                           </p>
 
                           {item.prescriptionId && (
@@ -1528,11 +1370,12 @@ setPendingPaymentSaleId(saleId);
                                     key={batch.batchNumber}
                                     className="mt-1 flex items-center justify-between gap-3 text-[9px] font-bold text-slate-600"
                                   >
+                                    <span>Batch {batch.batchNumber}</span>
                                     <span>
-                                      Batch {batch.batchNumber}
-                                    </span>
-                                    <span>
-                                      {batch.quantityRemaining} available · exp {new Date(batch.expiryDate).toLocaleDateString()}
+                                      {batch.quantityRemaining} available · exp{" "}
+                                      {new Date(
+                                        batch.expiryDate,
+                                      ).toLocaleDateString()}
                                     </span>
                                   </div>
                                 ))}
@@ -1543,16 +1386,22 @@ setPendingPaymentSaleId(saleId);
                         <div className="flex items-center rounded-xl border border-slate-200 bg-white p-1">
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.lineId, item.quantity - 1)}
+                            onClick={() =>
+                              updateQuantity(item.lineId, item.quantity - 1)
+                            }
                             className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-violet-700 active:scale-95"
                             aria-label={`Decrease quantity of ${item.productName}`}
                           >
                             <Minus className="h-4 w-4" />
                           </button>
-                          <span className="min-w-10 text-center text-sm font-black text-slate-950">{item.quantity}</span>
+                          <span className="min-w-10 text-center text-sm font-black text-slate-950">
+                            {item.quantity}
+                          </span>
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.lineId, item.quantity + 1)}
+                            onClick={() =>
+                              updateQuantity(item.lineId, item.quantity + 1)
+                            }
                             className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-violet-700 active:scale-95"
                             aria-label={`Increase quantity of ${item.productName}`}
                           >
@@ -1561,7 +1410,9 @@ setPendingPaymentSaleId(saleId);
                         </div>
 
                         <div className="w-28 text-right sm:w-36">
-                          <p className="text-sm font-black text-slate-950">{formatAmount(item.totalAmount, currency)}</p>
+                          <p className="text-sm font-black text-slate-950">
+                            {formatAmount(item.totalAmount, currency)}
+                          </p>
                           <button
                             type="button"
                             onClick={() => removeItem(item.lineId)}
@@ -1579,11 +1430,17 @@ setPendingPaymentSaleId(saleId);
 
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Subtotal</p>
-                  <p className="mt-1 text-sm font-black text-slate-900">{formatAmount(cart.subtotal, currency)}</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
+                    Subtotal
+                  </p>
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {formatAmount(cart.subtotal, currency)}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Discount</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
+                    Discount
+                  </p>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-sm font-black text-slate-500">−</span>
                     <input
@@ -1600,17 +1457,27 @@ setPendingPaymentSaleId(saleId);
                   </div>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Tax</p>
-                  <p className="mt-1 text-sm font-black text-slate-900">{formatAmount(checkoutCart.taxAmount, currency)}</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
+                    Tax
+                  </p>
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {formatAmount(checkoutCart.taxAmount, currency)}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-slate-950 px-4 py-3 text-white">
-                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-500">Total</p>
-                  <p className="mt-1 text-lg font-black">{formatAmount(checkoutCart.totalAmount, currency)}</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    Total
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    {formatAmount(checkoutCart.totalAmount, currency)}
+                  </p>
                 </div>
               </div>
 
               <div className="mt-3">
-                <p className="mb-2 text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Customer</p>
+                <p className="mb-2 text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
+                  Customer
+                </p>
                 <PosCustomerSelector
                   selectedCustomer={selectedCustomer}
                   onSelect={setSelectedCustomer}
@@ -1621,10 +1488,16 @@ setPendingPaymentSaleId(saleId);
 
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-4">
             <div className="border-b border-slate-800 bg-slate-950 px-4 py-4 text-white sm:px-5">
-              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-500">Payment</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-500">
+                Payment
+              </p>
               <div className="mt-1 flex items-end justify-between gap-3">
-                <h2 className="text-xl font-black tracking-tight">Select payment</h2>
-                <span className="text-lg font-black text-violet-300">{formatAmount(checkoutCart.totalAmount, currency)}</span>
+                <h2 className="text-xl font-black tracking-tight">
+                  Select payment
+                </h2>
+                <span className="text-lg font-black text-violet-300">
+                  {formatAmount(checkoutCart.totalAmount, currency)}
+                </span>
               </div>
             </div>
 
@@ -1638,14 +1511,12 @@ setPendingPaymentSaleId(saleId);
                       key={method.value}
                       type="button"
                       onClick={() => {
-  setPaymentMethod(method.value);
+                        setPaymentMethod(method.value);
 
-  if (method.value === "MPESA") {
-    setPaymentAmount(
-      checkoutCart.totalAmount.toString(),
-    );
-  }
-}}
+                        if (method.value === "MPESA") {
+                          setPaymentAmount(checkoutCart.totalAmount.toString());
+                        }
+                      }}
                       className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-black transition active:scale-[0.98] ${
                         selected
                           ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-600/20"
@@ -1661,20 +1532,24 @@ setPendingPaymentSaleId(saleId);
 
               <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <PosPaymentDetails
-  method={paymentMethod}
-  amount={paymentAmount}
-  reference={paymentReference}
-  customerPhone={customerPhone}
-  onAmountChange={setPaymentAmount}
-  onReferenceChange={setPaymentReference}
-  onCustomerPhoneChange={setCustomerPhone}
-/>
+                  method={paymentMethod}
+                  amount={paymentAmount}
+                  reference={paymentReference}
+                  customerPhone={customerPhone}
+                  onAmountChange={setPaymentAmount}
+                  onReferenceChange={setPaymentReference}
+                  onCustomerPhoneChange={setCustomerPhone}
+                />
               </div>
 
               {change > 0 && (
                 <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3">
-                  <span className="text-xs font-black text-emerald-700">Change</span>
-                  <span className="text-base font-black text-emerald-700">{formatAmount(change, currency)}</span>
+                  <span className="text-xs font-black text-emerald-700">
+                    Change
+                  </span>
+                  <span className="text-base font-black text-emerald-700">
+                    {formatAmount(change, currency)}
+                  </span>
                 </div>
               )}
 
@@ -1685,132 +1560,134 @@ setPendingPaymentSaleId(saleId);
                 className="mt-3 flex min-h-16 w-full items-center justify-between rounded-xl bg-violet-600 px-5 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {checkoutLoading ? (
-  <span className="mx-auto">
-    Processing sale...
-  </span>
-) : paymentPolling ? (
-  <span className="mx-auto">
-    Waiting for M-Pesa payment...
-  </span>
-) : (
+                  <span className="mx-auto">Processing sale...</span>
+                ) : paymentPolling ? (
+                  <span className="mx-auto">Waiting for M-Pesa payment...</span>
+                ) : (
                   <>
                     <span>Complete Sale</span>
-                    <span className="text-violet-200">{formatAmount(checkoutCart.totalAmount, currency)}</span>
+                    <span className="text-violet-200">
+                      {formatAmount(checkoutCart.totalAmount, currency)}
+                    </span>
                   </>
                 )}
               </button>
 
-			  {paymentTimedOut && pendingPaymentAttemptId && (
-  <button
-    type="button"
-    disabled={paymentPolling}
-    onClick={async () => {
-      try {
-        setPaymentPolling(true);
-        setError("");
+              {paymentTimedOut && pendingPaymentAttemptId && (
+                <button
+                  type="button"
+                  disabled={paymentPolling}
+                  onClick={async () => {
+                    try {
+                      setPaymentPolling(true);
+                      setError("");
 
-        const response = await fetch(
-          `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
-          {
-            method: "POST",
-            cache: "no-store",
-          },
-        );
+                      const response = await fetch(
+                        `/api/pos/payment-attempt/${pendingPaymentAttemptId}`,
+                        {
+                          method: "POST",
+                          cache: "no-store",
+                        },
+                      );
 
-        const result = await response.json();
+                      const result = await response.json();
 
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              "Unable to check M-Pesa payment status.",
-          );
-        }
+                      if (!response.ok) {
+                        throw new Error(
+                          result.error ||
+                            "Unable to check M-Pesa payment status.",
+                        );
+                      }
 
-        const status =
-          result.result?.status;
+                      const status = result.result?.status;
 
-        if (status === "PAID") {
-  setPaymentTimedOut(false);
-  setPaymentPolling(false);
-  setSuccessMessage(
-    "M-Pesa payment received successfully.",
-  );
+                      if (status === "PAID") {
+                        setPaymentTimedOut(false);
+                        setPaymentPolling(false);
+                        setSuccessMessage(
+                          "M-Pesa payment received successfully.",
+                        );
 
-  if (pendingPaymentSaleId) {
-    const receiptResponse = await fetch(
-      `/api/pos/receipts/${pendingPaymentSaleId}`,
-    );
+                        if (pendingPaymentSaleId) {
+                          const receiptResponse = await fetch(
+                            `/api/pos/receipts/${pendingPaymentSaleId}`,
+                          );
 
-    const receiptResult =
-      await receiptResponse.json();
+                          const receiptResult = await receiptResponse.json();
 
-    if (!receiptResponse.ok) {
-      throw new Error(
-        receiptResult.error ||
-          "Payment received, but the receipt could not be loaded.",
-      );
-    }
+                          if (!receiptResponse.ok) {
+                            throw new Error(
+                              receiptResult.error ||
+                                "Payment received, but the receipt could not be loaded.",
+                            );
+                          }
 
-    setReceipt(receiptResult.receipt);
-    setCart(
-      posCartService.createEmptyCart(),
-    );
-    setSelectedCustomer(null);
-    setPaymentAmount("");
-    setPaymentReference("");
-    setCustomerPhone("");
-    setPendingPaymentAttemptId(null);
-    setPendingPaymentSaleId(null);
-    paymentPendingSinceRef.current = null;
-  }
+                          setReceipt(receiptResult.receipt);
+                          resetCompletedTransaction();
+                        }
 
-  return;
-}
+                        return;
+                      }
 
-        if (status === "FAILED") {
-          setPaymentTimedOut(false);
-          setPaymentPolling(false);
-          setError(
-            result.result?.message ||
-              "The M-Pesa payment was not completed.",
-          );
-          setPendingPaymentAttemptId(null);
-          setPendingPaymentSaleId(null);
-          paymentPendingSinceRef.current = null;
-          return;
-        }
+                      if (status === "FAILED") {
+                        setPaymentTimedOut(false);
+                        setPaymentPolling(false);
+                        setError(
+                          result.result?.message ||
+                            "The M-Pesa payment was not completed.",
+                        );
+                        setPendingPaymentAttemptId(null);
+                        setPendingPaymentSaleId(null);
+                        paymentPendingSinceRef.current = null;
+                        return;
+                      }
 
-        paymentPendingSinceRef.current =
-          Date.now();
+                      paymentPendingSinceRef.current = Date.now();
 
-        setPaymentTimedOut(false);
-        setSuccessMessage(
-          result.result?.message ||
-            "M-Pesa payment is still being processed.",
-        );
-      } catch (statusError) {
-        setError(
-          statusError instanceof Error
-            ? statusError.message
-            : "Unable to check M-Pesa payment status.",
-        );
-      } finally {
-        setPaymentPolling(false);
-      }
-    }}
-    className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-xs font-black uppercase tracking-wide text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100"
-  >
-    {paymentPolling
-      ? "Checking M-Pesa..."
-      : "Check M-Pesa Status"}
-  </button>
-)}
+                      setPaymentTimedOut(false);
+                      setSuccessMessage(
+                        result.result?.message ||
+                          "M-Pesa payment is still being processed.",
+                      );
+                    } catch (statusError) {
+                      setError(
+                        statusError instanceof Error
+                          ? statusError.message
+                          : "Unable to check M-Pesa payment status.",
+                      );
+                    } finally {
+                      setPaymentPolling(false);
+                    }
+                  }}
+                  className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-xs font-black uppercase tracking-wide text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100"
+                >
+                  {paymentPolling
+                    ? "Checking M-Pesa..."
+                    : "Check M-Pesa Status"}
+                </button>
+              )}
 
               {receipt && (
                 <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="mb-3">
-                    <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Completed transaction</p>
-                    <h3 className="mt-1 text-sm font-black text-slate-900">Receipt</h3>
+                    <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
+                      Completed transaction
+                    </p>
+                    <h3 className="mt-1 text-sm font-black text-slate-900">
+                      Receipt
+                    </h3>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReceipt(null);
+                        setError("");
+                        setSuccessMessage("");
+                      }}
+                      className="mt-3 min-h-11 w-full rounded-xl bg-violet-600 px-4 text-xs font-black uppercase tracking-wide text-white transition hover:bg-violet-700"
+                    >
+                      New Sale
+                    </button>
                   </div>
                   <div className="flex justify-center overflow-x-auto">
                     <PosReceipt receipt={receipt} />
@@ -1824,4 +1701,3 @@ setPendingPaymentSaleId(saleId);
     </div>
   );
 }
-
