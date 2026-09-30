@@ -252,16 +252,26 @@ return ( <div className="space-y-6">
         </p>
       </div>
 
-      <Link
-        href="/inventory/products/new"
-        className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-lg transition hover:bg-slate-100"
-      >
-        <span className="text-violet-600">
-          +
-        </span>
+      <div className="flex flex-wrap gap-3">
+  <a
+    href="/api/inventory/export"
+    className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+  >
+    <span>↓</span>
+    Export Inventory
+  </a>
 
-        {t.inventory.addProduct}
-      </Link>
+  <Link
+    href="/inventory/products/new"
+    className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-lg transition hover:bg-slate-100"
+  >
+    <span className="text-violet-600">
+      +
+    </span>
+
+    {t.inventory.addProduct}
+  </Link>
+</div>
     </div>
   </section>
 
