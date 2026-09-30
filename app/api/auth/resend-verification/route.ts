@@ -1,9 +1,12 @@
+
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 import { prisma } from "@/lib/database/prisma";
 import { sendTransactionalEmail } from "@/lib/email/emailService";
 import { verificationEmailTemplate } from "@/lib/email/emailTemplates";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 const TOKEN_EXPIRY_HOURS = 24;
 
@@ -65,7 +68,8 @@ export async function POST(request: Request) {
       },
     });
 
-    const rawToken = crypto.randomBytes(32).toString("hex");
+    const rawToken =
+      crypto.randomBytes(32).toString("hex");
 
     const tokenHash = hashToken(rawToken);
 
@@ -103,6 +107,34 @@ export async function POST(request: Request) {
       subject: verificationEmail.subject,
       html: verificationEmail.html,
       text: verificationEmail.text,
+    });
+
+    await recordAuditEvent({
+      actorId: user.id,
+
+      action:
+        AUDIT_ACTIONS.AUTH_EMAIL_VERIFICATION_RESENT,
+
+      category: "SECURITY",
+      severity: "INFO",
+      outcome: "SUCCESS",
+
+      entityType: "User",
+      entityId: user.id,
+
+      ipAddress:
+        request.headers
+          .get("x-forwarded-for")
+          ?.split(",")[0]
+          ?.trim() ||
+        request.headers.get("x-real-ip"),
+
+      userAgent:
+        request.headers.get("user-agent"),
+
+      metadata: {
+        method: "email_verification_resend",
+      },
     });
 
     return genericResponse;

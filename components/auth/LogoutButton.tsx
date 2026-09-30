@@ -14,11 +14,29 @@ export default function LogoutButton({
     useState(false);
 
   async function handleSignOut() {
+    if (isSigningOut) {
+      return;
+    }
+
     setIsSigningOut(true);
 
-    await signOut({
-      callbackUrl: "/",
-    });
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Logout audit request failed:",
+        error,
+      );
+    } finally {
+      await signOut({
+        callbackUrl: "/",
+      });
+    }
   }
 
   return (

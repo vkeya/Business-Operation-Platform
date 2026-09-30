@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 interface AcceptInvitationInput {
   token: string;
@@ -285,23 +287,92 @@ export const businessInvitationService = {
           },
         });
 
-      await transaction.userRole.upsert({
-        where: {
-          userId_roleId: {
+            const userRole =
+        await transaction.userRole.upsert({
+          where: {
+            userId_roleId: {
+              userId:
+                existingUser.id,
+              roleId:
+                invitation.roleId,
+            },
+          },
+          update: {},
+          create: {
             userId:
               existingUser.id,
             roleId:
               invitation.roleId,
           },
-        },
-        update: {},
-        create: {
-          userId:
+        });
+
+      await recordAuditEvent(
+        {
+          businessId:
+            invitation.businessId,
+          actorId:
             existingUser.id,
-          roleId:
-            invitation.roleId,
+
+          action:
+            AUDIT_ACTIONS.USER_ROLE_CHANGED,
+          category: "USER",
+          severity: "INFO",
+          outcome: "SUCCESS",
+
+          entityType: "UserRole",
+          entityId: `${existingUser.id}:${invitation.roleId}`,
+
+          afterData: {
+            userId:
+              existingUser.id,
+            roleId:
+              invitation.roleId,
+            roleName:
+              invitation.role.name,
+          },
+
+          metadata: {
+            source:
+              "invitation_acceptance",
+            invitationId:
+              invitation.id,
+            membershipId:
+              membership.id,
+          },
         },
-      });
+        transaction,
+      );
+
+	  await recordAuditEvent(
+  {
+    businessId: invitation.businessId,
+    actorId: existingUser.id,
+
+    action: AUDIT_ACTIONS.BUSINESS_MEMBER_ADDED,
+    category: "USER",
+    severity: "INFO",
+    outcome: "SUCCESS",
+
+    entityType: "BusinessMembership",
+    entityId: membership.id,
+
+    afterData: {
+      userId: existingUser.id,
+      membershipId: membership.id,
+      businessId: invitation.businessId,
+      roleId: invitation.roleId,
+      roleName: invitation.role.name,
+      isOwner: false,
+      isActive: true,
+    },
+
+    metadata: {
+      source: "invitation_acceptance",
+      invitationId: invitation.id,
+    },
+  },
+  transaction,
+);
 
       return {
         businessId:

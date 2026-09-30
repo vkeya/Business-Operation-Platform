@@ -9,9 +9,15 @@ import {
 import { createEmailVerificationToken } from "@/lib/auth/emailVerificationService";
 import { sendTransactionalEmail } from "@/lib/email/emailService";
 import { verificationEmailTemplate } from "@/lib/email/emailTemplates";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { getAuditRequestContext } from "@/lib/audit/auditRequestContext";
 
 export async function POST(request: Request) {
   try {
+    const auditContext =
+      getAuditRequestContext(request);
+
     const body = await request.json();
 
     const name =
@@ -94,18 +100,6 @@ export async function POST(request: Request) {
     const passwordHash =
       await hashPassword(password);
 
-    const forwardedFor =
-      request.headers.get("x-forwarded-for");
-
-    const realIp =
-      forwardedFor?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      undefined;
-
-    const userAgent =
-      request.headers.get("user-agent") ||
-      undefined;
-
     const user =
       await prisma.$transaction(async (tx) => {
         const createdUser =
@@ -131,39 +125,64 @@ export async function POST(request: Request) {
             acceptableUseAccepted,
           },
           {
-            ipAddress: realIp,
-            userAgent,
+            ipAddress:
+              auditContext.ipAddress ?? undefined,
+            userAgent:
+              auditContext.userAgent ?? undefined,
           },
         );
 
         return createdUser;
       });
 
+    await recordAuditEvent({
+      actorId: user.id,
+
+      action: AUDIT_ACTIONS.USER_REGISTERED,
+
+      category: "USER",
+      severity: "INFO",
+      outcome: "SUCCESS",
+
+      entityType: "User",
+      entityId: user.id,
+
+      ipAddress: auditContext.ipAddress,
+      userAgent: auditContext.userAgent,
+      requestId: auditContext.requestId,
+      correlationId: auditContext.correlationId,
+
+      metadata: {
+        method: "password_registration",
+        legalAcceptanceRecorded: true,
+      },
+    });
+
     const verificationToken =
-  await createEmailVerificationToken(user.id);
+      await createEmailVerificationToken(user.id);
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  process.env.APP_URL ||
-  "https://smatpic.com";
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      "https://smatpic.com";
 
-const verificationUrl =
-  `${appUrl}/verify-email?token=${encodeURIComponent(
-    verificationToken,
-  )}`;
+    const verificationUrl =
+      `${appUrl}/verify-email?token=${encodeURIComponent(
+        verificationToken,
+      )}`;
 
-const verificationEmail =
-  verificationEmailTemplate({
-    name: user.name,
-    verificationUrl,
-  });
+    const verificationEmail =
+      verificationEmailTemplate({
+        name: user.name,
+        verificationUrl,
+      });
 
-await sendTransactionalEmail({
-  to: user.email,
-  subject: verificationEmail.subject,
-  html: verificationEmail.html,
-  text: verificationEmail.text,
-});
+    await sendTransactionalEmail({
+      to: user.email,
+      subject: verificationEmail.subject,
+      html: verificationEmail.html,
+      text: verificationEmail.text,
+    });
 
     return NextResponse.json(
       {

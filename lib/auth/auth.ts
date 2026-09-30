@@ -1,3 +1,4 @@
+
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -6,173 +7,299 @@ import { getServerSession } from "next-auth";
 import { authIdentityService } from "@/lib/auth/authIdentityService";
 import { prisma } from "@/lib/database/prisma";
 import { verifyPassword } from "@/lib/auth/password";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 export const authOptions: NextAuthOptions = {
-session: {
-strategy: "jwt",
-},
-
-providers: [
-CredentialsProvider({
-name: "Credentials",
-
-
-  credentials: {
-    email: {
-      label: "Email",
-      type: "email",
-    },
-
-    password: {
-      label: "Password",
-      type: "password",
-    },
+  session: {
+    strategy: "jwt",
   },
 
-  async authorize(credentials) {
-    const email =
-      typeof credentials?.email === "string"
-        ? credentials.email
-            .trim()
-            .toLowerCase()
-        : "";
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
 
-    const password =
-      typeof credentials?.password === "string"
-        ? credentials.password
-        : "";
-
-    if (!email || !password) {
-      return null;
-    }
-
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          email,
+      credentials: {
+        email: {
+          label: "Email",
+          type: "email",
         },
-      });
 
-   if (!user || !user.isActive) {
-  return null;
-}
+        password: {
+          label: "Password",
+          type: "password",
+        },
+      },
 
-if (!user.passwordHash) {
-  return null;
-}
+      async authorize(credentials) {
+        const email =
+          typeof credentials?.email === "string"
+            ? credentials.email
+                .trim()
+                .toLowerCase()
+            : "";
 
-const passwordMatches =
-  await verifyPassword(
-    password,
-    user.passwordHash,
-  );
+        const password =
+          typeof credentials?.password === "string"
+            ? credentials.password
+            : "";
 
-if (!passwordMatches) {
-  return null;
-}
+        if (!email || !password) {
+          await recordAuditEvent({
+            action:
+              AUDIT_ACTIONS.SECURITY_AUTHENTICATION_REJECTED,
 
-if (!user.emailVerifiedAt) {
-  throw new Error("EMAIL_NOT_VERIFIED");
-}
+            category: "SECURITY",
+            severity: "WARNING",
+            outcome: "FAILED",
 
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    };
-  },
-}),
+            entityType: "Authentication",
 
-GoogleProvider({
-  clientId:
-    process.env.GOOGLE_CLIENT_ID ?? "",
-  clientSecret:
-    process.env.GOOGLE_CLIENT_SECRET ?? "",
-}),
+            metadata: {
+              method: "credentials",
+              reason: "missing_credentials",
+              emailProvided: Boolean(email),
+            },
+          });
 
+          return null;
+        }
 
-],
+        const user =
+          await prisma.user.findUnique({
+            where: {
+              email,
+            },
+          });
 
-callbacks: {
-async signIn({ user, account }) {
-if (
-account?.provider !== "google" ||
-!account.providerAccountId ||
-!user.email
-) {
-return true;
-}
+        if (!user || !user.isActive) {
+          await recordAuditEvent({
+            action:
+              AUDIT_ACTIONS.SECURITY_AUTHENTICATION_REJECTED,
 
+            category: "SECURITY",
+            severity: "WARNING",
+            outcome: "FAILED",
 
-  const resolvedUser =
-    await authIdentityService.resolveOAuthUser({
-      provider: account.provider,
-      providerAccountId:
-        account.providerAccountId,
-      email: user.email,
-      name: user.name,
-    });
+            entityType: "Authentication",
 
-  user.id = resolvedUser.id;
+            metadata: {
+              method: "credentials",
+              reason: !user
+                ? "user_not_found"
+                : "user_inactive",
+            },
+          });
 
-  return true;
-},
+          return null;
+        }
 
-async jwt({ token, user }) {
-  if (user?.id) {
-    token.id = user.id;
-    token.sub = user.id;
+        if (!user.passwordHash) {
+          await recordAuditEvent({
+            actorId: user.id,
 
-    const authenticatedUser =
-      await prisma.user.findUnique({
-        where: {
+            action:
+              AUDIT_ACTIONS.SECURITY_AUTHENTICATION_REJECTED,
+
+            category: "SECURITY",
+            severity: "WARNING",
+            outcome: "FAILED",
+
+            entityType: "User",
+            entityId: user.id,
+
+            metadata: {
+              method: "credentials",
+              reason: "password_authentication_unavailable",
+            },
+          });
+
+          return null;
+        }
+
+        const passwordMatches =
+          await verifyPassword(
+            password,
+            user.passwordHash,
+          );
+
+        if (!passwordMatches) {
+          await recordAuditEvent({
+            actorId: user.id,
+
+            action:
+              AUDIT_ACTIONS.SECURITY_AUTHENTICATION_REJECTED,
+
+            category: "SECURITY",
+            severity: "WARNING",
+            outcome: "FAILED",
+
+            entityType: "User",
+            entityId: user.id,
+
+            metadata: {
+              method: "credentials",
+              reason: "invalid_password",
+            },
+          });
+
+          return null;
+        }
+
+        if (!user.emailVerifiedAt) {
+          await recordAuditEvent({
+            actorId: user.id,
+
+            action:
+              AUDIT_ACTIONS.SECURITY_AUTHENTICATION_REJECTED,
+
+            category: "SECURITY",
+            severity: "WARNING",
+            outcome: "FAILED",
+
+            entityType: "User",
+            entityId: user.id,
+
+            metadata: {
+              method: "credentials",
+              reason: "email_not_verified",
+            },
+          });
+
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
+        await recordAuditEvent({
+          actorId: user.id,
+
+          action:
+            AUDIT_ACTIONS.AUTH_LOGIN_SUCCESS,
+
+          category: "AUTH",
+          severity: "INFO",
+          outcome: "SUCCESS",
+
+          entityType: "User",
+          entityId: user.id,
+
+          metadata: {
+            method: "credentials",
+          },
+        });
+
+        return {
           id: user.id,
-        },
-        select: {
-          passwordChangedAt: true,
+          name: user.name,
+          email: user.email,
+        };
+      },
+    }),
+
+    GoogleProvider({
+      clientId:
+        process.env.GOOGLE_CLIENT_ID ?? "",
+
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+  ],
+
+  callbacks: {
+    async signIn({ user, account }) {
+      if (
+        account?.provider !== "google" ||
+        !account.providerAccountId ||
+        !user.email
+      ) {
+        return true;
+      }
+
+      const resolvedUser =
+        await authIdentityService.resolveOAuthUser({
+          provider: account.provider,
+          providerAccountId:
+            account.providerAccountId,
+          email: user.email,
+          name: user.name,
+        });
+
+      user.id = resolvedUser.id;
+
+      await recordAuditEvent({
+        actorId: resolvedUser.id,
+
+        action:
+          AUDIT_ACTIONS.AUTH_LOGIN_SUCCESS,
+
+        category: "AUTH",
+        severity: "INFO",
+        outcome: "SUCCESS",
+
+        entityType: "User",
+        entityId: resolvedUser.id,
+
+        metadata: {
+          method: "google",
         },
       });
 
-    token.passwordChangedAt =
-      authenticatedUser?.passwordChangedAt
-        ? authenticatedUser.passwordChangedAt.toISOString()
-        : null;
-  }
+      return true;
+    },
 
-  return token;
-},
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+        token.sub = user.id;
 
-async session({ session, token }) {
-  const userId =
-    typeof token.id === "string"
-      ? token.id
-      : typeof token.sub === "string"
-        ? token.sub
-        : undefined;
+        const authenticatedUser =
+          await prisma.user.findUnique({
+            where: {
+              id: user.id,
+            },
+            select: {
+              passwordChangedAt: true,
+            },
+          });
 
-  if (session.user && userId) {
-    session.user.id = userId;
-    session.user.passwordChangedAt =
-      typeof token.passwordChangedAt === "string"
-        ? token.passwordChangedAt
-        : null;
-  }
+        token.passwordChangedAt =
+          authenticatedUser?.passwordChangedAt
+            ? authenticatedUser.passwordChangedAt.toISOString()
+            : null;
+      }
 
-  return session;
-},
+      return token;
+    },
 
-async redirect({ baseUrl }) {
-  return `${baseUrl}/auth/continue`;
-},
+    async session({ session, token }) {
+      const userId =
+        typeof token.id === "string"
+          ? token.id
+          : typeof token.sub === "string"
+            ? token.sub
+            : undefined;
 
+      if (session.user && userId) {
+        session.user.id = userId;
 
-},
+        session.user.passwordChangedAt =
+          typeof token.passwordChangedAt === "string"
+            ? token.passwordChangedAt
+            : null;
+      }
 
-pages: {
-signIn: "/login",
-},
+      return session;
+    },
 
-secret: process.env.NEXTAUTH_SECRET,
+    async redirect({ baseUrl }) {
+      return `${baseUrl}/auth/continue`;
+    },
+  },
+
+  pages: {
+    signIn: "/login",
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 export async function getAuthenticatedUser() {
@@ -259,8 +386,8 @@ export async function getAuthenticatedUser() {
 }
 
 export async function getAuthenticatedUserId() {
-const user =
-await getAuthenticatedUser();
+  const user =
+    await getAuthenticatedUser();
 
-return user.id;
+  return user.id;
 }

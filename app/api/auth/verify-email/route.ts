@@ -1,7 +1,10 @@
+
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 function hashToken(token: string): string {
   return crypto
@@ -47,17 +50,25 @@ export async function GET(request: Request) {
 
     if (verificationToken.usedAt) {
       return NextResponse.json(
-        { error: "This verification link has already been used." },
+        {
+          error:
+            "This verification link has already been used.",
+        },
         { status: 400 },
       );
     }
 
     if (verificationToken.expiresAt <= new Date()) {
       return NextResponse.json(
-        { error: "This verification link has expired." },
+        {
+          error:
+            "This verification link has expired.",
+        },
         { status: 400 },
       );
     }
+
+    const now = new Date();
 
     if (!verificationToken.user.emailVerifiedAt) {
       await prisma.$transaction([
@@ -66,7 +77,7 @@ export async function GET(request: Request) {
             id: verificationToken.user.id,
           },
           data: {
-            emailVerifiedAt: new Date(),
+            emailVerifiedAt: now,
           },
         }),
 
@@ -75,7 +86,7 @@ export async function GET(request: Request) {
             id: verificationToken.id,
           },
           data: {
-            usedAt: new Date(),
+            usedAt: now,
           },
         }),
       ]);
@@ -85,21 +96,54 @@ export async function GET(request: Request) {
           id: verificationToken.id,
         },
         data: {
-          usedAt: new Date(),
+          usedAt: now,
         },
       });
     }
 
+    await recordAuditEvent({
+      actorId: verificationToken.user.id,
+
+      action:
+        AUDIT_ACTIONS.SECURITY_EMAIL_VERIFIED,
+
+      category: "SECURITY",
+      severity: "INFO",
+      outcome: "SUCCESS",
+
+      entityType: "User",
+      entityId: verificationToken.user.id,
+
+      ipAddress:
+        request.headers
+          .get("x-forwarded-for")
+          ?.split(",")[0]
+          ?.trim() ||
+        request.headers.get("x-real-ip"),
+
+      userAgent:
+        request.headers.get("user-agent"),
+
+      metadata: {
+        method: "email_verification_token",
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Email address verified successfully.",
+      message:
+        "Email address verified successfully.",
     });
   } catch (error) {
-    console.error("Email verification error:", error);
+    console.error(
+      "Email verification error:",
+      error,
+    );
 
     return NextResponse.json(
       {
-        error: "Unable to verify email address.",
+        error:
+          "Unable to verify email address.",
       },
       { status: 500 },
     );

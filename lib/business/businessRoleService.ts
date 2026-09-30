@@ -19,6 +19,7 @@ export const DEFAULT_BUSINESS_ROLES = [
       "users.update",
       "roles.read",
       "roles.manage",
+	  "audit.read",
       "inventory.read",
       "inventory.manage",
       "purchases.read",
@@ -34,6 +35,7 @@ export const DEFAULT_BUSINESS_ROLES = [
       "pharmacy.controlled_dispense",
 	  "pharmacy.batch_adjust",
 	  "pharmacy.batch_recall",
+
     ],
   },
   {

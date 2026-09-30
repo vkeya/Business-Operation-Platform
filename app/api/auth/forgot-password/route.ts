@@ -4,9 +4,17 @@ import { prisma } from "@/lib/database/prisma";
 import { createPasswordResetToken } from "@/lib/auth/passwordResetService";
 import { sendTransactionalEmail } from "@/lib/email/emailService";
 import { passwordResetEmailTemplate } from "@/lib/email/emailTemplates";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { getAuditRequestContext } from "@/lib/audit/auditRequestContext";
+
 
 export async function POST(request: Request) {
   try {
+
+	const auditContext =
+  getAuditRequestContext(request);
+
     const body = await request.json();
 
     const email =
@@ -47,6 +55,29 @@ export async function POST(request: Request) {
 
     const rawToken =
       await createPasswordResetToken(user.id);
+
+	  await recordAuditEvent({
+  actorId: user.id,
+
+  action:
+    AUDIT_ACTIONS.SECURITY_PASSWORD_RESET_REQUESTED,
+
+  category: "SECURITY",
+  severity: "INFO",
+  outcome: "SUCCESS",
+
+  entityType: "User",
+  entityId: user.id,
+
+  ipAddress: auditContext.ipAddress,
+  userAgent: auditContext.userAgent,
+  requestId: auditContext.requestId,
+  correlationId: auditContext.correlationId,
+
+  metadata: {
+    method: "password_reset_request",
+  },
+});
 
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||

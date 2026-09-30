@@ -9,7 +9,8 @@ import {
 import {
   requireBusinessPermission,
 } from "./businessPermissionService";
-
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 interface CreateBusinessUserInvitationInput {
   name?: string;
@@ -171,8 +172,18 @@ export const businessUserService = {
         select: {
           id: true,
           acceptedAt: true,
+		  email: true,
+name: true,
+role: {
+  select: {
+    id: true,
+    name: true,
+  },
+},
         },
       });
+
+
 
     if (!invitation) {
       throw new Error(
@@ -191,6 +202,32 @@ export const businessUserService = {
         id: invitation.id,
       },
     });
+
+	await recordAuditEvent({
+  businessId: context.business.id,
+  actorId: context.user.id,
+
+  action: AUDIT_ACTIONS.BUSINESS_INVITATION_REVOKED,
+  category: "USER",
+  severity: "WARNING",
+  outcome: "SUCCESS",
+
+  entityType: "BusinessUserInvitation",
+  entityId: invitation.id,
+
+  beforeData: {
+    invitationId: invitation.id,
+    email: invitation.email,
+    name: invitation.name,
+    roleId: invitation.role.id,
+    roleName: invitation.role.name,
+    acceptedAt: invitation.acceptedAt,
+  },
+
+  metadata: {
+    operation: "revoke_invitation",
+  },
+});
 
     return {
       id: invitation.id,
@@ -255,6 +292,32 @@ export const businessUserService = {
   data: {
     token,
     expiresAt,
+  },
+});
+
+await recordAuditEvent({
+  businessId: context.business.id,
+  actorId: context.user.id,
+
+  action: AUDIT_ACTIONS.BUSINESS_INVITATION_RESENT,
+  category: "USER",
+  severity: "INFO",
+  outcome: "SUCCESS",
+
+  entityType: "BusinessUserInvitation",
+  entityId: invitation.id,
+
+  afterData: {
+    invitationId: invitation.id,
+    email: invitation.email,
+    name: invitation.name,
+    roleId: invitation.role.id,
+    roleName: invitation.role.name,
+    expiresAt,
+  },
+
+  metadata: {
+    operation: "resend_invitation",
   },
 });
 
@@ -378,6 +441,32 @@ return {
       },
     });
 
+	await recordAuditEvent({
+  businessId: context.business.id,
+  actorId: context.user.id,
+
+  action: AUDIT_ACTIONS.BUSINESS_INVITATION_CREATED,
+  category: "USER",
+  severity: "INFO",
+  outcome: "SUCCESS",
+
+  entityType: "BusinessUserInvitation",
+  entityId: invitation.id,
+
+  afterData: {
+    invitationId: invitation.id,
+    email: invitation.email,
+    name: invitation.name,
+    roleId: invitation.role.id,
+    roleName: invitation.role.name,
+    expiresAt: invitation.expiresAt,
+  },
+
+  metadata: {
+    operation: "create_invitation",
+  },
+});
+
   return {
     ...invitation,
     businessId:
@@ -386,13 +475,13 @@ return {
 },
 
   async setUserActive(
-  userId: string,
-  isActive: boolean,
-) {
-  const context =
-    await requireUserManagementAccess(
-      "users.update",
-    );
+    userId: string,
+    isActive: boolean,
+  ) {
+    const context =
+      await requireUserManagementAccess(
+        "users.update",
+      );
 
     const membership =
       await prisma.businessMembership.findFirst({
@@ -400,6 +489,15 @@ return {
           businessId:
             context.business.id,
           userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       });
 
@@ -415,13 +513,64 @@ return {
       );
     }
 
-    return prisma.businessMembership.update({
-      where: {
-        id: membership.id,
+    if (membership.isActive === isActive) {
+      return membership;
+    }
+
+    const updatedMembership =
+      await prisma.businessMembership.update({
+        where: {
+          id: membership.id,
+        },
+        data: {
+          isActive,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+    await recordAuditEvent({
+      businessId: context.business.id,
+      actorId: context.user.id,
+
+      action: isActive
+        ? AUDIT_ACTIONS.USER_UPDATED
+        : AUDIT_ACTIONS.USER_DEACTIVATED,
+
+      category: "USER",
+      severity: isActive ? "INFO" : "WARNING",
+      outcome: "SUCCESS",
+
+      entityType: "BusinessMembership",
+      entityId: membership.id,
+
+      beforeData: {
+        userId: membership.user.id,
+        email: membership.user.email,
+        isActive: membership.isActive,
       },
-      data: {
-        isActive,
+
+      afterData: {
+        userId: updatedMembership.user.id,
+        email: updatedMembership.user.email,
+        isActive: updatedMembership.isActive,
+      },
+
+      metadata: {
+        operation: isActive
+          ? "activate_user"
+          : "deactivate_user",
       },
     });
+
+    return updatedMembership;
   },
+
 };

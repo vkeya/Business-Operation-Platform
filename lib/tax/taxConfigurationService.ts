@@ -1,5 +1,8 @@
+
 import { prisma } from "@/lib/database/prisma";
 import type { TaxPricingMode } from "@/lib/tax/taxCalculationService";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 export interface TaxConfiguration {
   enabled: boolean;
@@ -30,11 +33,12 @@ export const taxConfigurationService = {
       throw new Error("Business ID is required.");
     }
 
-    const configuration = await prisma.taxConfiguration.findUnique({
-      where: {
-        businessId,
-      },
-    });
+    const configuration =
+      await prisma.taxConfiguration.findUnique({
+        where: {
+          businessId,
+        },
+      });
 
     if (!configuration) {
       return {
@@ -62,36 +66,99 @@ export const taxConfigurationService = {
       throw new Error("Tax name is required.");
     }
 
-    if (!Number.isFinite(input.rate) || input.rate < 0 || input.rate > 100) {
-      throw new Error("Tax rate must be a number between 0 and 100.");
+    if (
+      !Number.isFinite(input.rate) ||
+      input.rate < 0 ||
+      input.rate > 100
+    ) {
+      throw new Error(
+        "Tax rate must be a number between 0 and 100.",
+      );
     }
 
     if (
       input.pricingMode !== "EXCLUSIVE" &&
       input.pricingMode !== "INCLUSIVE"
     ) {
-      throw new Error("Invalid tax pricing mode.");
+      throw new Error(
+        "Invalid tax pricing mode.",
+      );
     }
 
-    const configuration = await prisma.taxConfiguration.upsert({
-      where: {
-        businessId,
+    const beforeConfiguration =
+      await prisma.taxConfiguration.findUnique({
+        where: {
+          businessId,
+        },
+      });
+
+    const configuration =
+      await prisma.taxConfiguration.upsert({
+        where: {
+          businessId,
+        },
+
+        create: {
+          businessId,
+          enabled: input.enabled,
+          name,
+          rate: input.rate,
+          pricingMode: input.pricingMode,
+        },
+
+        update: {
+          enabled: input.enabled,
+          name,
+          rate: input.rate,
+          pricingMode: input.pricingMode,
+        },
+      });
+
+    await recordAuditEvent({
+      businessId,
+
+      action:
+        AUDIT_ACTIONS.BUSINESS_SETTINGS_CHANGED,
+
+      category: "BUSINESS",
+      severity: "INFO",
+      outcome: "SUCCESS",
+
+      entityType: "TaxConfiguration",
+      entityId: configuration.id,
+
+      beforeData: beforeConfiguration
+        ? {
+            enabled:
+              beforeConfiguration.enabled,
+            name:
+              beforeConfiguration.name,
+            rate: Number(
+              beforeConfiguration.rate,
+            ),
+            pricingMode:
+              beforeConfiguration.pricingMode,
+          }
+        : undefined,
+
+      afterData: {
+        enabled: configuration.enabled,
+        name: configuration.name,
+        rate: Number(configuration.rate),
+        pricingMode:
+          configuration.pricingMode,
       },
-      create: {
-        businessId,
-        enabled: input.enabled,
-        name,
-        rate: input.rate,
-        pricingMode: input.pricingMode,
-      },
-      update: {
-        enabled: input.enabled,
-        name,
-        rate: input.rate,
-        pricingMode: input.pricingMode,
+
+      metadata: {
+        setting: "tax_configuration",
+        operation: beforeConfiguration
+          ? "update"
+          : "create",
       },
     });
 
-    return mapTaxConfiguration(configuration);
+    return mapTaxConfiguration(
+      configuration,
+    );
   },
 };

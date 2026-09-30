@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+
 import type {
   Branch,
   Business,
@@ -142,6 +145,8 @@ export const postgresBusinessRepository: BusinessRepository = {
       },
     });
 
+
+
     const branchRecord = business.branches[0];
     const warehouseRecord = business.warehouses[0];
 
@@ -150,6 +155,34 @@ export const postgresBusinessRepository: BusinessRepository = {
         "Business setup did not create the initial branch and warehouse.",
       );
     }
+
+	  await recordAuditEvent({
+      businessId: business.id,
+      actorId: userId,
+
+      action: AUDIT_ACTIONS.BUSINESS_CREATED,
+      category: "BUSINESS",
+      severity: "INFO",
+      outcome: "SUCCESS",
+
+      entityType: "Business",
+      entityId: business.id,
+
+      afterData: {
+        id: business.id,
+        name: business.name,
+        type: business.type,
+        country: business.country,
+        baseCurrency: business.baseCurrency,
+        language: business.language,
+        timezone: business.timezone,
+        status: business.status,
+      },
+
+      metadata: {
+        source: "business_setup",
+      },
+    });
 
     return {
       business: mapBusiness(business),

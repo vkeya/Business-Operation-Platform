@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { getAuditRequestContext } from "@/lib/audit/auditRequestContext";
 import { prisma } from "@/lib/database/prisma";
 import { hashPassword } from "@/lib/auth/password";
 
@@ -13,6 +16,9 @@ function hashToken(token: string): string {
 
 export async function POST(request: Request) {
   try {
+    const auditContext =
+      getAuditRequestContext(request);
+
     const body = await request.json();
 
     const token =
@@ -128,6 +134,29 @@ export async function POST(request: Request) {
         },
       }),
     ]);
+
+    await recordAuditEvent({
+      actorId: resetToken.userId,
+
+      action:
+        AUDIT_ACTIONS.SECURITY_PASSWORD_RESET_COMPLETED,
+
+      category: "SECURITY",
+      severity: "WARNING",
+      outcome: "SUCCESS",
+
+      entityType: "User",
+      entityId: resetToken.userId,
+
+      ipAddress: auditContext.ipAddress,
+      userAgent: auditContext.userAgent,
+      requestId: auditContext.requestId,
+      correlationId: auditContext.correlationId,
+
+      metadata: {
+        method: "password_reset_token",
+      },
+    });
 
     return NextResponse.json({
       success: true,

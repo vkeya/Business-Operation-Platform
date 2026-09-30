@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  ClipboardList,
   CreditCard,
   Database,
   FileText,
@@ -9,10 +10,28 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const context = await getCurrentBusinessContext();
+
+  let canReadAudit = false;
+
+  try {
+    await requireBusinessPermission(
+      context.user.id,
+      context.business.id,
+      "audit.read",
+    );
+
+    canReadAudit = true;
+  } catch {
+    canReadAudit = false;
+  }
+
   const settingsCards = [
     {
       title: "Currency",
@@ -51,6 +70,21 @@ export default function SettingsPage() {
       icon: Users,
       iconLabel: "04",
     },
+
+	...(canReadAudit
+      ? [
+          {
+            title: "Activity & Audit",
+            description:
+              "Review business activity, security events, operational changes, and audit history.",
+            href: "/settings/security/activity",
+            action: "View activity",
+            icon: ClipboardList,
+            iconLabel: "05",
+          },
+        ]
+      : []),
+
     {
       title: "Data Management",
       description:
@@ -58,9 +92,9 @@ export default function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "05",
+      iconLabel: "06",
     },
-	
+
 	{
   title: "Privacy & Data",
   description:
@@ -68,7 +102,7 @@ export default function SettingsPage() {
   href: "/privacy",
   action: "Manage privacy",
   icon: ShieldCheck,
-  iconLabel: "06",
+  iconLabel: "07",
 },
 {
   title: "Legal & Compliance",
@@ -77,7 +111,7 @@ export default function SettingsPage() {
   href: "/legal",
   action: "View legal documents",
   icon: FileText,
-  iconLabel: "07",
+  iconLabel: "08",
 },
   ];
 

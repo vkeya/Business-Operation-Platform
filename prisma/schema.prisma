@@ -51,7 +51,7 @@ model Business {
   saleReturns         SaleReturn[]
   suppliers           Supplier[]
   warehouses          Warehouse[]
-  
+
   pharmacyProfile PharmacyProfile?
   pharmacyPrescriptions PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
@@ -137,7 +137,7 @@ model PharmacyBatch {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   controlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Cascade)
@@ -178,7 +178,7 @@ model PharmacyPrescription {
   customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   sale                  Sale?      @relation(fields: [saleId], references: [id], onDelete: SetNull)
   items                 PharmacyPrescriptionItem[]
-  
+
   saleItems SaleItem[]
 
   controlledDispensingRecords PharmacyControlledDispensingRecord[]
@@ -203,7 +203,7 @@ model PharmacyPrescriptionItem {
   notes                String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-  
+
   saleItems SaleItem[]
 
   prescription PharmacyPrescription @relation(fields: [prescriptionId],references: [id],onDelete: Cascade)
@@ -544,7 +544,7 @@ model Product {
   sellingUnits        ProductSellingUnit[]
   recipeIngredients   RecipeIngredient[]
   restaurantMenuItems RestaurantMenuItem[]
-  
+
   pharmacyProduct PharmacyProduct?
   pharmacyPrescriptionItems PharmacyPrescriptionItem[]
 
@@ -720,7 +720,7 @@ model Customer {
   updatedAt   DateTime @updatedAt
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sales       Sale[]
-  
+
   pharmacyPrescriptions PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
@@ -785,7 +785,7 @@ model Sale {
   items           SaleItem[]
   returns         SaleReturn[]
   refunds         PaymentRefund[]
-  
+
   pharmacyPrescriptions PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
@@ -1155,21 +1155,47 @@ model BusinessEvent {
 }
 
 model AuditEvent {
-  id         String   @id @default(cuid())
-  businessId String
-  actorId    String?
-  action     String
-  entityType String
-  entityId   String?
-  beforeData Json?
-  afterData  Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+
+  // Tenant context
+  businessId    String?
+  actorId       String?
+
+  // Event classification
+  action        String
+  category      String   @default("BUSINESS")
+  severity      String   @default("INFO")
+  outcome       String   @default("SUCCESS")
+
+  // Entity affected
+  entityType    String
+  entityId      String?
+
+  // State changes
+  beforeData    Json?
+  afterData     Json?
+
+  // Request context
+  ipAddress     String?
+  userAgent     String?
+  requestId     String?
+  correlationId String?
+
+  // Additional context
+  metadata      Json?
+
+  createdAt     DateTime @default(now())
+
+  business      Business? @relation(fields: [businessId],references: [id],onDelete: Cascade)
 
   @@index([businessId])
+  @@index([businessId, createdAt])
+  @@index([businessId, action])
+  @@index([businessId, category])
+  @@index([businessId, severity])
+  @@index([businessId, outcome])
   @@index([entityType, entityId])
+  @@index([actorId, createdAt])
   @@index([createdAt])
 }
 
