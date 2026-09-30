@@ -2,105 +2,90 @@ import { getAccountingMetrics } from "@/lib/accounting/dashboard/accountingMetri
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
+import { productService } from "@/lib/inventory/productService";
 import { getCashPositionInsight } from "@/lib/intelligence/cashPositionEngine";
 
-export async function getDashboardMetrics(
-  businessId: string,
-) {
-  const [
-    accounting,
-    sales,
-    purchases,
-    inventory,
-  ] =
-    await Promise.all([
-      getAccountingMetrics(
-        businessId,
-      ),
+export async function getDashboardMetrics(businessId: string) {
+  const [accounting, sales, purchases, inventory, products] = await Promise.all(
+    [
+      getAccountingMetrics(businessId),
 
-      saleService.list(
-        businessId,
-      ),
+      saleService.list(businessId),
 
-      purchaseService.listPurchases(
-        businessId,
-      ),
+      purchaseService.listPurchases(businessId),
 
-      inventoryService.listBalances(
-        businessId,
-      ),
-    ]);
+      inventoryService.listBalances(businessId),
 
+      productService.listProducts(businessId),
+    ],
+  );
 
-  const completedSales =
-    sales.filter(
-      (sale) =>
-        sale.status === "COMPLETED",
-    );
+  const completedSales = sales.filter((sale) => sale.status === "COMPLETED");
 
+  const pendingPurchases = purchases.filter(
+    (purchase) => purchase.status === "DRAFT" || purchase.status === "ORDERED",
+  );
 
-  const pendingPurchases =
-    purchases.filter(
-      (purchase) =>
-        purchase.status === "DRAFT" ||
-        purchase.status === "ORDERED",
-    );
+  /*
+   * Current inventory is based only on active,
+   * inventory-tracked products.
+   *
+   * Archived products remain in the database for
+   * historical purposes but must not contribute
+   * to current dashboard inventory KPIs.
+   */
+  const activeInventoryProducts = products.filter(
+    (product) =>
+      product.type === "PRODUCT" &&
+      product.trackInventory &&
+      product.status !== "ARCHIVED",
+  );
 
+  const activeProductIds = new Set(
+    activeInventoryProducts.map((product) => product.id),
+  );
 
-    const lowStockItems =
-    inventory.filter(
-      (item) =>
-        item.quantity <=
-        item.reservedQuantity,
-    );
+  const activeInventory = inventory.filter((item) =>
+    activeProductIds.has(item.productId),
+  );
 
-    const inventoryValue =
-    inventory.reduce(
-      (total, item) =>
-        total +
-        item.quantity *
-          item.averageCost,
-      0,
-    );
+  const lowStockItems = activeInventory.filter(
+    (item) => item.quantity <= item.reservedQuantity,
+  );
 
-const activeSalesRevenue =
-  completedSales.reduce(
-    (total, sale) =>
-      total + Number(sale.totalAmount),
+  const inventoryValue = activeInventory.reduce(
+    (total, item) => total + item.quantity * item.averageCost,
     0,
   );
 
-const cashInsight =
-  getCashPositionInsight({
-    cashPosition:
-      accounting.cashPosition,
+  const activeSalesRevenue = completedSales.reduce(
+    (total, sale) => total + Number(sale.totalAmount),
+    0,
+  );
 
-    receivables:
-      accounting.receivables,
+  const cashInsight = getCashPositionInsight({
+    cashPosition: accounting.cashPosition,
 
-    payables:
-      accounting.payables,
+    receivables: accounting.receivables,
+
+    payables: accounting.payables,
   });
 
-    return {
+  return {
     ...accounting,
-	
-	    revenue:
-      activeSalesRevenue,
+
+    revenue: activeSalesRevenue,
 
     inventoryValue,
 
-    salesCount:
-      completedSales.length,
+    salesCount: completedSales.length,
 
-    pendingPurchases:
-      pendingPurchases.length,
+    pendingPurchases: pendingPurchases.length,
 
-    lowStockItems:
-      lowStockItems.length,
-	  
-	  intelligence: {
-    cash: cashInsight,
-	  },
+    lowStockItems: lowStockItems.length,
+
+    intelligence: {
+      cash: cashInsight,
+    },
   };
 }
