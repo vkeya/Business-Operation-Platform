@@ -27,6 +27,7 @@ const capabilityToNavigationModule:
   menu: "menu",
   services: "services",
   pharmacy: "pharmacy",
+  supermarket: "autopilot",
 };
 
 export function getBusinessNavigation(

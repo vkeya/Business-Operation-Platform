@@ -346,7 +346,48 @@ async listServicesByCategory(
 
 	const normalizedUnit = input.unit.trim();
 
+    if (!normalizedUnit) {
+      throw new Error(
+        "Selling unit is required.",
+      );
+    }
 
+    const hasConversionQuantity =
+  input.conversionQuantity !== undefined &&
+  input.conversionQuantity !== null;
+
+const hasConversionUnit =
+  typeof input.conversionUnit === "string" &&
+  input.conversionUnit.trim().length > 0;
+
+if (hasConversionQuantity !== hasConversionUnit) {
+  throw new Error(
+    "conversionQuantity and conversionUnit must be provided together.",
+  );
+}
+
+if (hasConversionQuantity) {
+  const conversionQuantity = input.conversionQuantity;
+
+  if (
+    conversionQuantity === undefined ||
+    !Number.isFinite(conversionQuantity) ||
+    conversionQuantity <= 0
+  ) {
+    throw new Error(
+      "conversionQuantity must be greater than zero.",
+    );
+  }
+}
+
+const conversionUnit =
+  input.conversionUnit?.trim().toLowerCase();
+
+if (hasConversionQuantity && !conversionUnit) {
+  throw new Error(
+    "conversionUnit is required when conversionQuantity is provided.",
+  );
+}
 
 const existingSellingUnit =
   await prisma.productSellingUnit.findFirst({

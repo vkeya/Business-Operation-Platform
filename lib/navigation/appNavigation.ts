@@ -13,7 +13,8 @@ export type NavigationModule =
   | "expenses"
   | "services"
   | "pos"
-  | "pharmacy";
+  | "pharmacy"
+  | "autopilot";
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -60,14 +61,14 @@ export const appNavigation: NavigationItem[] = [
     descriptionKey: "navigationDescriptions.inventory",
     href: "/inventory",
   },
-  
+
   {
   id: "pharmacy",
   labelKey: "pharmacy",
   descriptionKey: "navigationDescriptions.pharmacy",
   href: "/pharmacy/dashboard",
   },
-  
+
   {
     id: "purchases",
     labelKey: "purchases",
@@ -121,5 +122,12 @@ export const appNavigation: NavigationItem[] = [
   labelKey: "services",
   descriptionKey: "",
   href: "/services",
-},
+  },
+  {
+  id: "autopilot",
+  labelKey: "autopilot",
+  descriptionKey:
+    "navigationDescriptions.autopilot",
+  href: "/supermarket/autopilot",
+  },
 ];

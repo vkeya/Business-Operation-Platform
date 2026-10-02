@@ -75,6 +75,27 @@ export const journalRepository = {
     });
   },
 
+  async listByReferencePrefix(
+  businessId: string,
+  referencePrefix: string,
+  client: PrismaTransactionClient = prisma,
+) {
+  return client.journalEntry.findMany({
+    where: {
+      businessId,
+      reference: {
+        startsWith: referencePrefix,
+      },
+    },
+    include: {
+      lines: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+},
+
 
   async list(
     businessId: string,

@@ -1,12 +1,31 @@
 type ProductForConversion = {
   unit: string;
+  inventoryMode?: string | null;
   attributes?: Record<string, string | number> | null;
 };
 
 type SellingUnitForConversion = {
   quantity: number;
   unit: string;
+  conversionQuantity?: number | null;
+  conversionUnit?: string | null;
 };
+
+const LIQUID_UNITS_TO_ML: Record<string, number> = {
+  ml: 1,
+  milliliter: 1,
+  milliliters: 1,
+  cl: 10,
+  centiliter: 10,
+  centiliters: 10,
+  l: 1000,
+  liter: 1000,
+  liters: 1000,
+};
+
+function normalizeUnit(unit: string) {
+  return unit.trim().toLowerCase();
+}
 
 function getVolumeInMl(
   product: ProductForConversion,
@@ -40,18 +59,96 @@ export function getInventoryQuantityForSale(
   sellingUnit: SellingUnitForConversion,
   saleQuantity: number,
 ) {
+  if (saleQuantity <= 0) {
+    throw new Error(
+      "Sale quantity must be greater than zero.",
+    );
+  }
+
+  if (sellingUnit.quantity <= 0) {
+    throw new Error(
+      "Selling unit quantity must be greater than zero.",
+    );
+  }
+
   const sellingUnitUnit =
-    sellingUnit.unit
-      .trim()
-      .toLowerCase();
+    normalizeUnit(sellingUnit.unit);
 
   const productUnit =
-    product.unit
-      .trim()
-      .toLowerCase();
+    normalizeUnit(product.unit);
 
-  // Same unit: Bottle → Bottle,
-  // Case → Case, etc.
+  const sellingUnitMl =
+    LIQUID_UNITS_TO_ML[sellingUnitUnit];
+
+  const productUnitMl =
+    LIQUID_UNITS_TO_ML[productUnit];
+
+  // Liquid products use the canonical inventory
+  // quantity represented by the selling unit.
+  //
+  // Example:
+  // 1 shot × 50ml = 50ml consumed.
+  // 2 glasses × 150ml = 300ml consumed.
+  if (product.inventoryMode === "LIQUID") {
+  if (!productUnitMl) {
+    throw new Error(
+      `Liquid product unit "${product.unit}" is not a supported volume unit.`,
+    );
+  }
+
+  const conversionQuantity =
+    sellingUnit.conversionQuantity;
+
+  const conversionUnit =
+    sellingUnit.conversionUnit
+      ? normalizeUnit(sellingUnit.conversionUnit)
+      : null;
+
+  if (
+    conversionQuantity !== null &&
+    conversionQuantity !== undefined &&
+    conversionUnit
+  ) {
+    if (
+      !Number.isFinite(conversionQuantity) ||
+      conversionQuantity <= 0
+    ) {
+      throw new Error(
+        `Invalid conversion quantity for selling unit "${sellingUnit.unit}".`,
+      );
+    }
+
+    const conversionUnitMl =
+      LIQUID_UNITS_TO_ML[conversionUnit];
+
+    if (!conversionUnitMl) {
+      throw new Error(
+        `Liquid conversion unit "${sellingUnit.conversionUnit}" is not a supported volume unit.`,
+      );
+    }
+
+    return (
+      saleQuantity *
+      conversionQuantity *
+      (conversionUnitMl / productUnitMl)
+    );
+  }
+
+  if (!sellingUnitMl) {
+    throw new Error(
+      `Liquid selling unit "${sellingUnit.unit}" is not a supported volume unit.`,
+    );
+  }
+
+  return (
+    saleQuantity *
+    sellingUnit.quantity *
+    (sellingUnitMl / productUnitMl)
+  );
+}
+
+  // Same unit for discrete products:
+  // Pack → Pack, Case → Case, etc.
   if (sellingUnitUnit === productUnit) {
     return (
       saleQuantity *
@@ -59,26 +156,8 @@ export function getInventoryQuantityForSale(
     );
   }
 
-  // ml selling unit against a bottled
-  // product with a known volume.
-  if (sellingUnitUnit === "ml") {
-    const volumeInMl =
-      getVolumeInMl(product);
-
-    if (!volumeInMl) {
-      throw new Error(
-        `Product "${product.unit}" requires a volume attribute for ml selling units.`,
-      );
-    }
-
-    return (
-      saleQuantity *
-      sellingUnit.quantity /
-      volumeInMl
-    );
-  }
-
-  // Existing fallback behaviour.
+  // Preserve the existing fallback behaviour
+  // for non-liquid products.
   return (
     saleQuantity *
     sellingUnit.quantity

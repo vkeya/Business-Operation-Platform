@@ -102,13 +102,16 @@ const productConfigurations: Record<
       "Can",
     ],
     productCategories: [
-      "Beer",
-      "Wine",
-      "Spirits",
-      "Shots",
-      "Mixers",
+       "Beer",
+       "Draught Beer",
+       "Wine",
+       "Spirits",
+       "Shots",
+       "Ciders & Coolers",
+       "Soft Drinks & Mixers",
+       "Other Products",
     ],
-	
+
 	categorySellingUnits: {
   Spirits: {
     sellingUnits: [
@@ -125,6 +128,13 @@ const productConfigurations: Record<
     ],
   },
 
+  "Draught Beer": {
+    sellingUnits: [
+      "Glass",
+      "Litre",
+    ],
+  },
+
   Wine: {
     sellingUnits: [
       "Bottle",
@@ -132,17 +142,34 @@ const productConfigurations: Record<
     ],
   },
 
-  Mixers: {
+  Shots: {
+    sellingUnits: [
+      "Shot",
+      "Double Shot",
+    ],
+  },
+
+  "Ciders & Coolers": {
     sellingUnits: [
       "Bottle",
       "Can",
     ],
   },
 
-  Shots: {
+  "Soft Drinks & Mixers": {
     sellingUnits: [
-      "Shot",
-      "Double Shot",
+      "Bottle",
+      "Can",
+      "Glass",
+    ],
+  },
+
+  "Other Products": {
+    sellingUnits: [
+      "Piece",
+      "Bottle",
+      "Can",
+      "Pack",
     ],
   },
 },
@@ -273,7 +300,7 @@ const productConfigurations: Record<
       "Mixers",
       "Snacks",
     ],
-	
+
 	categorySellingUnits: {
   Spirits: {
     sellingUnits: [
@@ -361,7 +388,7 @@ const productConfigurations: Record<
     supportsInventory: true,
     supportsServices: true,
   },
-  
+
     pharmacy: {
     sellingUnits: [
       "Tablet",
@@ -408,7 +435,7 @@ const productConfigurations: Record<
     ],
     supportsInventory: true,
     supportsServices: false,
-  }, 
+  },
 };
 
 export function getProductConfiguration(

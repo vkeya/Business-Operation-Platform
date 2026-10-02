@@ -160,15 +160,16 @@ export const expenseRepository = {
   },
 
   async updatePaymentStatus(
-    businessId: string,
-    expenseId: string,
-    paymentStatus:
-      | "UNPAID"
-      | "PARTIAL"
-      | "PAID",
-  ) {
-    const expense =
-      await prisma.expense.update({
+  businessId: string,
+  expenseId: string,
+  paymentStatus:
+    | "UNPAID"
+    | "PARTIAL"
+    | "PAID",
+  client: PrismaTransactionClient = prisma,
+) {
+  const expense =
+    await client.expense.update({
         where: {
           id: expenseId,
           businessId,

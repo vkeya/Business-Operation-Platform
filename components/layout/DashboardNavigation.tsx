@@ -10,6 +10,7 @@ import {
   HandCoins,
   LayoutDashboard,
   Package,
+  Sparkles,
   Monitor,
   Pill,
   ReceiptText,
@@ -58,6 +59,7 @@ const navigationIcons: Record<
   expenses: HandCoins,
   services: Boxes,
   pos: Monitor,
+  autopilot: Sparkles,
 };
 
 function isActiveRoute(

@@ -40,6 +40,97 @@ function serializeBalance<
   };
 }
 
+async function consumeLiquidContainersWithTx(
+  tx: Prisma.TransactionClient,
+  input: {
+    businessId: string;
+    productId: string;
+    warehouseId: string;
+    quantity: number;
+  },
+) {
+  let remainingToConsume = input.quantity;
+
+  const openContainers =
+    await tx.inventoryContainer.findMany({
+      where: {
+        businessId: input.businessId,
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+        status: "OPEN",
+        remainingQuantity: { gt: 0 },
+      },
+      orderBy: {
+        receivedAt: "asc",
+      },
+    });
+
+  const sealedContainers =
+    await tx.inventoryContainer.findMany({
+      where: {
+        businessId: input.businessId,
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+        status: "SEALED",
+        remainingQuantity: { gt: 0 },
+      },
+      orderBy: {
+        receivedAt: "asc",
+      },
+    });
+
+  const containers = [
+    ...openContainers,
+    ...sealedContainers,
+  ];
+
+  for (const container of containers) {
+    if (remainingToConsume <= 0) {
+      break;
+    }
+
+    const available =
+      container.remainingQuantity.toNumber();
+
+    const consumed = Math.min(
+      available,
+      remainingToConsume,
+    );
+
+    const nextRemaining = available - consumed;
+
+    const updated =
+      await tx.inventoryContainer.updateMany({
+        where: {
+          id: container.id,
+          remainingQuantity:
+            container.remainingQuantity,
+        },
+        data: {
+          remainingQuantity: nextRemaining,
+          status:
+            nextRemaining === 0
+              ? "EMPTY"
+              : "OPEN",
+        },
+      });
+
+    if (updated.count !== 1) {
+      throw new Error(
+        "Liquid container changed while stock was being consumed. Please retry the sale.",
+      );
+    }
+
+    remainingToConsume -= consumed;
+  }
+
+  if (remainingToConsume > 0) {
+    throw new Error(
+      `Insufficient liquid stock for product "${input.productId}".`,
+    );
+  }
+}
+
 export const inventoryRepository = {
 
 	  async findMovementsByReference(
@@ -227,7 +318,7 @@ export const inventoryRepository = {
                 currency: input.currency,
               },
             });
-          
+
 		  await tx.operationRequest.update({
             where: {
               id: operation.id,
@@ -331,6 +422,15 @@ export const inventoryRepository = {
   unitCost: number;
   currency: string;
   createdBy: string;
+   containerType?:
+    | "BOTTLE"
+    | "KEG"
+    | "CAN"
+    | "JAR"
+    | "OTHER";
+
+  containerCapacityQuantity?: number;
+  containerUnit?: string;
   notes?: string;
   batchNumber?: string;
   manufacturingDate?: string;
@@ -358,6 +458,22 @@ export const inventoryRepository = {
       try {
         return await prisma.$transaction(
           async (tx) => {
+
+			const product = await tx.product.findFirst({
+               where: {
+                 id: input.productId,
+                 businessId: input.businessId,
+               },
+               select: {
+                 id: true,
+                 inventoryMode: true,
+               },
+             });
+
+             if (!product) {
+               throw new Error("Product not found.");
+             }
+
             const existingOperation =
               await tx.operationRequest.findUnique({
                 where: {
@@ -449,8 +565,14 @@ export const inventoryRepository = {
               existingBalance?.averageCost.toNumber() ??
               0;
 
+            const inventoryQuantity =
+              product.inventoryMode === "LIQUID"
+                ? input.quantity *
+                  (input.containerCapacityQuantity ?? 0)
+                : input.quantity;
+
             const newQuantity =
-              previousQuantity + input.quantity;
+              previousQuantity + inventoryQuantity;
 
             const newAverageCost =
               newQuantity === 0
@@ -469,7 +591,7 @@ export const inventoryRepository = {
       productId: input.productId,
       warehouseId: input.warehouseId,
       type: "RECEIPT",
-      quantity: input.quantity,
+      quantity: inventoryQuantity,
       unitCost: input.unitCost,
       totalCost:
         input.quantity *
@@ -508,8 +630,8 @@ export const inventoryRepository = {
                   currency: input.currency,
                 },
               });
-			  
-			  
+
+
 			// Pharmacy batch tracking
 const pharmacyProduct =
   await tx.pharmacyProduct.findUnique({
@@ -1181,12 +1303,11 @@ if (pharmacyProduct) {
     warehouseId: string,
   ) {
     const balance =
-  await prisma.inventoryBalance.findUnique({
+  await prisma.inventoryBalance.findFirst({
     where: {
-      productId_warehouseId: {
-        productId,
-        warehouseId,
-      },
+      businessId,
+      productId,
+      warehouseId,
     },
   });
 
@@ -1276,95 +1397,343 @@ return movements.map(serializeMovement);
 
 
   async consumeStock(input: {
-    businessId: string;
-    productId: string;
-    warehouseId: string;
-    quantity: number;
-    currency: string;
-    createdBy: string;
-    referenceType?: string;
-    referenceId?: string;
-    notes?: string;
-  }) {
-    if (input.quantity <= 0) {
-      throw new Error(
-        "Consumption quantity must be greater than zero.",
-      );
-    }
+  businessId: string;
+  operationId: string;
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  currency: string;
+  createdBy: string;
+  referenceType?: string;
+  referenceId?: string;
+  notes?: string;
+}) {
+  if (input.quantity <= 0) {
+    throw new Error(
+      "Consumption quantity must be greater than zero.",
+    );
+  }
 
-    return prisma.$transaction(async (tx) => {
-      const existingBalance =
-        await tx.inventoryBalance.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId: input.productId,
-              warehouseId: input.warehouseId,
+  const maxAttempts = 3;
+
+  for (
+    let attempt = 1;
+    attempt <= maxAttempts;
+    attempt++
+  ) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const existingOperation =
+            await tx.operationRequest.findUnique({
+              where: {
+                businessId_operationId: {
+                  businessId: input.businessId,
+                  operationId: input.operationId,
+                },
+              },
+            });
+
+          if (existingOperation) {
+            if (
+              existingOperation.status ===
+                "COMPLETED" &&
+              existingOperation.entityId
+            ) {
+              const existingMovement =
+                await tx.inventoryMovement.findFirst({
+                  where: {
+                    id: existingOperation.entityId,
+                    businessId: input.businessId,
+                  },
+                });
+
+              if (existingMovement) {
+                const existingBalance =
+                  await tx.inventoryBalance.findUnique({
+                    where: {
+                      productId_warehouseId: {
+                        productId:
+                          existingMovement.productId,
+                        warehouseId:
+                          existingMovement.warehouseId,
+                      },
+                    },
+                  });
+
+                if (existingBalance) {
+                  return {
+                    movement:
+                      serializeMovement(
+                        existingMovement,
+                      ),
+                    balance:
+                      serializeBalance(
+                        existingBalance,
+                      ),
+                  };
+                }
+              }
+            }
+
+            if (
+              existingOperation.status ===
+              "PROCESSING"
+            ) {
+              throw new Error(
+                "This inventory consumption operation is already being processed.",
+              );
+            }
+          }
+
+          const operation =
+            await tx.operationRequest.create({
+              data: {
+                businessId: input.businessId,
+                operationId: input.operationId,
+                operation:
+                  "INVENTORY_CONSUMPTION",
+                status: "PROCESSING",
+                entityType:
+                  "INVENTORY_MOVEMENT",
+                createdBy: input.createdBy,
+              },
+            });
+
+          const existingBalance =
+            await tx.inventoryBalance.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: input.productId,
+                  warehouseId: input.warehouseId,
+                },
+              },
+            });
+
+          const currentQuantity =
+            existingBalance?.quantity.toNumber() ??
+            0;
+
+          const reservedQuantity =
+            existingBalance?.reservedQuantity.toNumber() ??
+            0;
+
+          const availableQuantity =
+            currentQuantity -
+            reservedQuantity;
+
+          if (
+            availableQuantity <
+            input.quantity
+          ) {
+            throw new Error(
+              `Insufficient available stock. Available: ${availableQuantity}, requested: ${input.quantity}.`,
+            );
+          }
+
+          const averageCost =
+            existingBalance?.averageCost.toNumber() ??
+            0;
+
+          const newQuantity =
+            currentQuantity -
+            input.quantity;
+
+          const totalCost =
+            input.quantity * averageCost;
+
+          const product =
+            await tx.product.findFirst({
+              where: {
+                id: input.productId,
+                businessId: input.businessId,
+              },
+              select: {
+                inventoryMode: true,
+              },
+            });
+
+          if (!product) {
+            throw new Error(
+              "Product not found.",
+            );
+          }
+
+          if (
+            product.inventoryMode ===
+            "LIQUID"
+          ) {
+            await consumeLiquidContainersWithTx(
+              tx,
+              {
+                businessId:
+                  input.businessId,
+                productId:
+                  input.productId,
+                warehouseId:
+                  input.warehouseId,
+                quantity:
+                  input.quantity,
+              },
+            );
+          }
+
+          const movement =
+            await tx.inventoryMovement.create({
+              data: {
+                businessId:
+                  input.businessId,
+                productId:
+                  input.productId,
+                warehouseId:
+                  input.warehouseId,
+                type: "SALE",
+                quantity:
+                  input.quantity,
+                unitCost:
+                  averageCost,
+                totalCost,
+                referenceType:
+                  input.referenceType,
+                referenceId:
+                  input.referenceId,
+                createdBy:
+                  input.createdBy,
+                notes: input.notes,
+              },
+            });
+
+          const balance =
+            await tx.inventoryBalance.update({
+              where: {
+                productId_warehouseId: {
+                  productId:
+                    input.productId,
+                  warehouseId:
+                    input.warehouseId,
+                },
+              },
+              data: {
+                quantity:
+                  newQuantity,
+                currency:
+                  input.currency,
+              },
+            });
+
+          const response = {
+            movement:
+              serializeMovement(
+                movement,
+              ),
+            balance:
+              serializeBalance(
+                balance,
+              ),
+          };
+
+          await tx.operationRequest.update({
+            where: {
+              id: operation.id,
             },
-          },
-        });
+            data: {
+              status: "COMPLETED",
+              entityId: movement.id,
+              response,
+            },
+          });
 
-      const currentQuantity =
-        existingBalance?.quantity.toNumber() ?? 0;
+          return response;
+        },
+        {
+          isolationLevel:
+            "Serializable",
+        },
+      );
+    } catch (error: unknown) {
+      const prismaError =
+        error as {
+          code?: string;
+        };
 
-      if (currentQuantity < input.quantity) {
-        throw new Error(
-          "Insufficient stock for consumption.",
-        );
+      if (
+        prismaError.code === "P2034" &&
+        attempt < maxAttempts
+      ) {
+        continue;
       }
 
-      const averageCost =
-        existingBalance?.averageCost.toNumber() ?? 0;
-
-      const newQuantity =
-        currentQuantity - input.quantity;
-
-      const totalCost =
-        input.quantity * averageCost;
-
-      const movement =
-        await tx.inventoryMovement.create({
-          data: {
-            businessId: input.businessId,
-            productId: input.productId,
-            warehouseId: input.warehouseId,
-            type: "SALE",
-            quantity: input.quantity,
-            unitCost: averageCost,
-            totalCost,
-            referenceType:
-              input.referenceType,
-            referenceId:
-              input.referenceId,
-            createdBy: input.createdBy,
-            notes: input.notes,
-          },
-        });
-
-      const balance =
-        await tx.inventoryBalance.update({
-          where: {
-            productId_warehouseId: {
-              productId: input.productId,
-              warehouseId: input.warehouseId,
+      if (
+        prismaError.code === "P2002"
+      ) {
+        const existingOperation =
+          await prisma.operationRequest.findUnique({
+            where: {
+              businessId_operationId: {
+                businessId:
+                  input.businessId,
+                operationId:
+                  input.operationId,
+              },
             },
-          },
-          data: {
-            quantity: newQuantity,
-            currency: input.currency,
-          },
-        });
+          });
 
-      return {
-        movement:
-          serializeMovement(movement),
-        balance:
-          serializeBalance(balance),
-      };
-    });
-  },
+        if (
+          existingOperation?.status ===
+            "COMPLETED" &&
+          existingOperation.entityId
+        ) {
+          const existingMovement =
+            await prisma.inventoryMovement.findFirst({
+              where: {
+                id:
+                  existingOperation.entityId,
+                businessId:
+                  input.businessId,
+              },
+            });
+
+          if (existingMovement) {
+            const existingBalance =
+              await prisma.inventoryBalance.findUnique({
+                where: {
+                  productId_warehouseId: {
+                    productId:
+                      existingMovement.productId,
+                    warehouseId:
+                      existingMovement.warehouseId,
+                  },
+                },
+              });
+
+            if (existingBalance) {
+              return {
+                movement:
+                  serializeMovement(
+                    existingMovement,
+                  ),
+                balance:
+                  serializeBalance(
+                    existingBalance,
+                  ),
+              };
+            }
+          }
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(
+    "Inventory consumption failed after maximum retry attempts.",
+  );
+},
 
       async consumeStockBatch(input: {
     businessId: string;
+	operationId: string;
     warehouseId: string;
     currency: string;
     createdBy: string;
@@ -1390,15 +1759,24 @@ return movements.map(serializeMovement);
       }
     }
 
-    return prisma.$transaction((tx) =>
-      this.consumeStockBatchWithTx(tx, input),
-    );
+    return prisma.$transaction(
+  (tx) =>
+    this.consumeStockBatchWithTx(
+      tx,
+      input,
+    ),
+  {
+    isolationLevel:
+      "Serializable",
+  },
+);
   },
 
   async consumeStockBatchWithTx(
   tx: Prisma.TransactionClient,
   input: {
     businessId: string;
+	operationId: string;
     warehouseId: string;
     currency: string;
     createdBy: string;
@@ -1411,6 +1789,50 @@ return movements.map(serializeMovement);
     }>;
   },
 ) {
+
+  const existingOperation =
+  await tx.operationRequest.findUnique({
+    where: {
+      businessId_operationId: {
+        businessId: input.businessId,
+        operationId: input.operationId,
+      },
+    },
+  });
+
+if (existingOperation) {
+  if (
+    existingOperation.status ===
+      "COMPLETED" &&
+    existingOperation.response
+  ) {
+    return existingOperation.response;
+  }
+
+  if (
+    existingOperation.status ===
+    "PROCESSING"
+  ) {
+    throw new Error(
+      "This inventory consumption batch is already being processed.",
+    );
+  }
+}
+
+const operation =
+  await tx.operationRequest.create({
+    data: {
+      businessId: input.businessId,
+      operationId: input.operationId,
+      operation:
+        "INVENTORY_CONSUMPTION_BATCH",
+      status: "PROCESSING",
+      entityType:
+        "INVENTORY_MOVEMENT_BATCH",
+      createdBy: input.createdBy,
+    },
+  });
+
   const results = [];
 
   for (const item of input.items) {
@@ -1424,17 +1846,54 @@ return movements.map(serializeMovement);
         },
       });
 
-    const currentQuantity =
-      existingBalance?.quantity.toNumber() ?? 0;
+           const currentQuantity =
+         existingBalance?.quantity.toNumber() ??
+         0;
 
-    if (currentQuantity < item.quantity) {
-      throw new Error(
-        `Insufficient stock for product "${item.productId}".`,
-      );
-    }
+       const reservedQuantity =
+         existingBalance?.reservedQuantity.toNumber() ??
+         0;
+
+       const availableQuantity =
+         currentQuantity -
+         reservedQuantity;
+
+       if (
+        availableQuantity < item.quantity
+      ) {
+        throw new Error(
+          `Insufficient available stock for product "${item.productId}". Available: ${availableQuantity}, requested: ${item.quantity}.`,
+        );
+      }
 
     const averageCost =
       existingBalance?.averageCost.toNumber() ?? 0;
+
+    const product =
+      await tx.product.findFirst({
+        where: {
+          id: item.productId,
+          businessId: input.businessId,
+        },
+        select: {
+          inventoryMode: true,
+        },
+      });
+
+    if (!product) {
+      throw new Error(
+        `Product "${item.productId}" not found.`,
+      );
+    }
+
+    if (product.inventoryMode === "LIQUID") {
+      await consumeLiquidContainersWithTx(tx, {
+        businessId: input.businessId,
+        productId: item.productId,
+        warehouseId: input.warehouseId,
+        quantity: item.quantity,
+      });
+    }
 
     const newQuantity =
       currentQuantity - item.quantity;
@@ -1482,8 +1941,19 @@ return movements.map(serializeMovement);
         serializeBalance(balance),
     });
   }
+  await tx.operationRequest.update({
+  where: {
+    id: operation.id,
+  },
+  data: {
+    status: "COMPLETED",
+    entityType:
+      "INVENTORY_MOVEMENT_BATCH",
+    response: results,
+  },
+});
 
-  return results;
+return results;
 },
 
     async returnStock(

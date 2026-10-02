@@ -8,6 +8,8 @@ import { recipeService } from "@/lib/restaurant/recipeService";
 import {
   pharmacyDispensingService,
 } from "@/lib/pharmacy/dispensing/pharmacyDispensingService";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -338,6 +340,7 @@ const pharmacyItems: Array<{
         tx,
         {
           businessId,
+		  operationId: resolvedOperationId,
           warehouseId: sale.warehouseId,
           currency: sale.currency,
           createdBy: sale.createdBy,
@@ -349,7 +352,7 @@ const pharmacyItems: Array<{
         },
       );
     }
-	
+
 	if (pharmacyItems.length > 0) {
   for (const item of pharmacyItems) {
     await pharmacyDispensingService.dispense(
@@ -413,6 +416,31 @@ await tx.operationRequest.update({
     },
   },
 });
+
+await recordAuditEvent(
+  {
+    businessId,
+    actorId: sale.createdBy,
+    action: AUDIT_ACTIONS.SALE_COMPLETED,
+    category: "SALES",
+    outcome: "SUCCESS",
+    entityType: "SALE",
+    entityId: completedSale.id,
+    beforeData: {
+      status: sale.status,
+    },
+    afterData: {
+      status: completedSale.status,
+      referenceNumber: completedSale.referenceNumber,
+      totalAmount: completedSale.totalAmount,
+      currency: completedSale.currency,
+    },
+    metadata: {
+      operationId: resolvedOperationId,
+    },
+  },
+  tx,
+);
 
 return completedSale;
   },

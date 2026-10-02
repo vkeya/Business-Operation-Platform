@@ -46,6 +46,8 @@ export async function reverseJournalEntry(input: {
     );
   }
 
+
+
   const original =
     await journalRepository.findByReference(
       input.businessId,
@@ -58,6 +60,57 @@ export async function reverseJournalEntry(input: {
       `Original accounting entry ${input.originalReference} was not found.`,
     );
   }
+
+  const originalAmount = original.lines.reduce(
+  (total, line) =>
+    total +
+    Math.max(
+      Number(line.debit),
+      Number(line.credit),
+    ),
+  0,
+);
+
+const existingReversals =
+  await journalRepository.listByReferencePrefix(
+    input.businessId,
+    `${input.originalReference}-REVERSAL`,
+    client,
+  );
+
+const alreadyReversedAmount =
+  existingReversals.reduce(
+    (total, reversal) => {
+      const reversalAmount =
+        reversal.lines.reduce(
+          (lineTotal, line) =>
+            lineTotal +
+            Math.max(
+              Number(line.debit),
+              Number(line.credit),
+            ),
+          0,
+        );
+
+      return total + reversalAmount;
+    },
+    0,
+  );
+
+const requestedReversalAmount =
+  originalAmount * amountRatio;
+
+const remainingAmount =
+  originalAmount - alreadyReversedAmount;
+
+if (
+  requestedReversalAmount >
+  remainingAmount + 0.01
+) {
+  throw new Error(
+    `Reversal exceeds the remaining reversible amount. Remaining amount: ${remainingAmount.toFixed(2)}.`,
+  );
+}
 
   if (original.lines.length < 2) {
     throw new Error(

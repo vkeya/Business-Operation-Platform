@@ -23,6 +23,7 @@ export interface TranslationSet {
 	services: string;
 	pos: string;
 	pharmacy: string;
+	autopilot: string;
   };
 
   common: {
@@ -682,7 +683,7 @@ unableToSaveSupplier: string;
     setupSummary: string;
     business: string;
     type: string;
-    
+
     branch: string;
     notProvided: string;
     setupReady: string;
@@ -906,6 +907,7 @@ export const translations: Record<Locale, TranslationSet> = {
 	  services: "services",
 	  pos: "POS",
 	  pharmacy: "Pharmacy",
+	  autopilot: "Autopilot",
     },
     common: {
       add: "Add",
@@ -1899,6 +1901,7 @@ categoryName: "Category Name",
 	  services: "Services",
 	  pos: "POS",
 	  pharmacy: "Pharmacie",
+	  autopilot: "Autopilot",
     },
     common: {
       add: "Ajouter",
@@ -2914,6 +2917,7 @@ categoryName: "Nom de la catégorie",
 	  services: "አገልግሎቶች",
 	  pos: "POS",
 	  pharmacy: "ፋርማሲ",
+	  autopilot: "አውቶፓይለት",
     },
     common: {
       add: "አክል",

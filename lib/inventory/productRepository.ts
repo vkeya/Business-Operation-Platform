@@ -10,6 +10,31 @@ type PrismaTransactionClient =
 export type ProductAttributes =
   Record<string, string | number>;
 
+function normalizeProductAttributes(
+  attributes: unknown,
+): ProductAttributes | null {
+  if (
+    !attributes ||
+    typeof attributes !== "object" ||
+    Array.isArray(attributes)
+  ) {
+    return null;
+  }
+
+  const normalized: ProductAttributes = {};
+
+  for (const [key, value] of Object.entries(attributes)) {
+    if (
+      typeof value === "string" ||
+      typeof value === "number"
+    ) {
+      normalized[key] = value;
+    }
+  }
+
+  return normalized;
+}
+
 export interface CreateProductInput {
   businessId: string;
   createdBy?: string;
@@ -31,7 +56,7 @@ export interface CreateProductInput {
   trackInventory: boolean;
   minimumStock?: number;
   reorderLevel?: number;
-  
+
     pharmacy?: {
     medicineType:
       | "MEDICINE"
@@ -61,6 +86,8 @@ export interface CreateProductInput {
   quantity: number;
   unit: string;
   sellingPrice: number;
+  conversionQuantity?: number;
+  conversionUnit?: string;
 }
 
 export interface CreateProductPriceInput {
@@ -79,6 +106,7 @@ export interface CreateProductPriceInput {
 
 function serializeProduct<
   T extends {
+	attributes?: unknown;
     costPrice: { toNumber(): number };
     sellingPrice: { toNumber(): number };
     taxRate?: { toNumber(): number } | null;
@@ -94,17 +122,20 @@ function serializeProduct<
   },
 >(product: T) {
   const {
-    sellingUnits,
-    costPrice,
-    sellingPrice,
-    taxRate,
-    minimumStock,
-    reorderLevel,
-    ...rest
-  } = product;
+  sellingUnits,
+  costPrice,
+  sellingPrice,
+  taxRate,
+  minimumStock,
+  reorderLevel,
+  attributes,
+  ...rest
+} = product;
 
   return {
     ...rest,
+	attributes:
+      normalizeProductAttributes(attributes),
     costPrice: costPrice.toNumber(),
     sellingPrice: sellingPrice.toNumber(),
     taxRate: taxRate?.toNumber() ?? null,
@@ -526,6 +557,8 @@ async listByTypeAndCategory(
         quantity: input.quantity,
 		unit: input.unit,
         sellingPrice: input.sellingPrice,
+		conversionQuantity: input.conversionQuantity ?? null,
+        conversionUnit: input.conversionUnit ?? null,
       },
     });
 
@@ -558,6 +591,8 @@ async listByTypeAndCategory(
             sellingUnit.quantity.toNumber(),
           sellingPrice:
             sellingUnit.sellingPrice.toNumber(),
+		  conversionQuantity:
+            sellingUnit.conversionQuantity?.toNumber() ?? null,
         }
       : null;
   },
@@ -577,10 +612,11 @@ async listSellingUnits(
     });
 
   return sellingUnits.map((sellingUnit) => ({
-    ...sellingUnit,
-    quantity: sellingUnit.quantity.toNumber(),
-    sellingPrice:
-      sellingUnit.sellingPrice.toNumber(),
-  }));
+  ...sellingUnit,
+  quantity: sellingUnit.quantity.toNumber(),
+  sellingPrice: sellingUnit.sellingPrice.toNumber(),
+  conversionQuantity:
+    sellingUnit.conversionQuantity?.toNumber() ?? null,
+}));
 },
 };

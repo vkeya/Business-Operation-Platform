@@ -7,6 +7,12 @@ import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
 import { prisma } from "@/lib/database/prisma";
+import {
+  AUDIT_ACTIONS,
+} from "@/lib/audit/auditActions";
+import {
+  recordAuditEvent,
+} from "@/lib/audit/auditService";
 
 export const expenseService = {
   async createExpense(
@@ -173,6 +179,39 @@ export const expenseService = {
             tx,
           );
 
+		  await recordAuditEvent(
+  {
+    businessId: expense.businessId,
+    actorId: expense.createdBy,
+    action:
+      AUDIT_ACTIONS.EXPENSE_CREATED,
+    category: "BUSINESS",
+    severity: "INFO",
+    outcome: "SUCCESS",
+    entityType: "EXPENSE",
+    entityId: expense.id,
+    afterData: {
+      id: expense.id,
+      reference: expense.reference,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
+      currency: expense.currency,
+      paymentStatus:
+        expense.paymentStatus,
+      expenseDate:
+        expense.expenseDate,
+      branchId:
+        expense.branchId,
+    },
+    metadata: {
+      operationId:
+        input.operationId,
+    },
+  },
+  tx,
+);
+
           await tx.operationRequest.update({
             where: {
               id: operation.id,
@@ -318,29 +357,90 @@ export const expenseService = {
   },
 
   async updateExpensePaymentStatus(
-    businessId: string,
-    expenseId: string,
-    paymentStatus:
-      | "UNPAID"
-      | "PARTIAL"
-      | "PAID",
-  ) {
-    if (!businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
-    }
-
-    if (!expenseId) {
-      throw new Error(
-        "Expense is required.",
-      );
-    }
-
-    return expenseRepository.updatePaymentStatus(
-      businessId,
-      expenseId,
-      paymentStatus,
+  businessId: string,
+  expenseId: string,
+  paymentStatus:
+    | "UNPAID"
+    | "PARTIAL"
+    | "PAID",
+) {
+  if (!businessId) {
+    throw new Error(
+      "Business context is required.",
     );
-  },
+  }
+
+  if (!expenseId) {
+    throw new Error(
+      "Expense is required.",
+    );
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      const existing =
+        await expenseRepository.findById(
+          businessId,
+          expenseId,
+          tx,
+        );
+
+      if (!existing) {
+        throw new Error(
+          "Expense not found.",
+        );
+      }
+
+      if (
+        existing.paymentStatus ===
+        paymentStatus
+      ) {
+        return existing;
+      }
+
+      const updated =
+        await expenseRepository.updatePaymentStatus(
+          businessId,
+          expenseId,
+          paymentStatus,
+          tx,
+        );
+
+      await recordAuditEvent(
+        {
+          businessId,
+          actorId: existing.createdBy,
+          action:
+            AUDIT_ACTIONS.EXPENSE_UPDATED,
+          category: "BUSINESS",
+          severity: "INFO",
+          outcome: "SUCCESS",
+          entityType: "EXPENSE",
+          entityId: expenseId,
+          beforeData: {
+            paymentStatus:
+              existing.paymentStatus,
+          },
+          afterData: {
+            paymentStatus:
+              updated.paymentStatus,
+          },
+          metadata: {
+            reference:
+              existing.reference,
+            change:
+              "PAYMENT_STATUS",
+          },
+        },
+        tx,
+      );
+
+      return updated;
+    },
+    {
+      isolationLevel:
+        "Serializable",
+    },
+  );
+},
 };

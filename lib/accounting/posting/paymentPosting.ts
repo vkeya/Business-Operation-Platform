@@ -26,9 +26,13 @@ export async function postPaymentToAccounting(
   input: PostPaymentInput,
 ) {
   const paymentAccountCode =
-  input.paymentMethod === "MPESA"
-    ? "1010"
-    : "1000";
+  input.paymentMethod === "CASH"
+    ? "1000"
+    : input.paymentMethod === "MPESA"
+      ? "1010"
+      : input.paymentMethod === "CARD"
+        ? "1020"
+        : "1030";
 
 const paymentAccount =
   await accountRepository.findByCode(
@@ -106,7 +110,7 @@ if (!paymentAccount) {
         ? [
             {
               accountId:
-  paymentAccount.id,
+                paymentAccount.id,
               description:
                 "Customer payment received",
               debit:

@@ -46,6 +46,9 @@ export const AUDIT_ACTIONS = {
   SALE_VOIDED: "sale.voided",
   SALE_REFUNDED: "sale.refunded",
   SALE_RETURN_CREATED: "sale.return.created",
+  SALE_COMPLETED: "sale.completed",
+  SALE_CANCELLED: "sale.cancelled",
+  SALE_REVERSED: "sale.reversed",
 
   // Purchases
   PURCHASE_CREATED: "purchase.created",
@@ -81,6 +84,10 @@ export const AUDIT_ACTIONS = {
   CONTROLLED_DISPENSING: "pharmacy.controlled.dispensing",
   CONTROLLED_DISPENSING_REVERSED:
     "pharmacy.controlled.dispensing.reversed",
+
+    // Supermarket Autopilot
+  SUPERMARKET_AUTOPILOT_ACTION_UPDATED:
+    "supermarket.autopilot.action.updated",
 
   // Admin
   ADMIN_LOGIN: "admin.login",

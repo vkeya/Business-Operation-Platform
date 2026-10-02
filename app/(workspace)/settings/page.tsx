@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ClipboardList,
+  ShoppingCart,
   CreditCard,
   Database,
   FileText,
@@ -32,7 +33,25 @@ export default async function SettingsPage() {
     canReadAudit = false;
   }
 
+  const isSupermarket =
+  context.business.type === "supermarket";
+
   const settingsCards = [
+
+    ...(isSupermarket
+  ? [
+      {
+        title: "Supermarket",
+        description:
+          "Configure supermarket inventory, customer, promotion, and replenishment preferences.",
+        href: "/settings/supermarket",
+        action: "Manage supermarket",
+        icon: ShoppingCart,
+        iconLabel: "01",
+      },
+    ]
+  : []),
+
     {
       title: "Currency",
       description:
@@ -40,7 +59,7 @@ export default async function SettingsPage() {
       href: "/settings/currency",
       action: "Manage currency",
       icon: Wallet,
-      iconLabel: "01",
+      iconLabel: "02",
     },
 	{
       title: "Tax Configuration",
@@ -49,7 +68,7 @@ export default async function SettingsPage() {
       href: "/settings/tax",
       action: "Manage tax",
       icon: ShieldCheck,
-      iconLabel: "02",
+      iconLabel: "03",
     },
 
 	{
@@ -59,7 +78,7 @@ export default async function SettingsPage() {
   href: "/settings/payments",
   action: "Manage payments",
   icon: CreditCard,
-  iconLabel: "03",
+  iconLabel: "04",
 },
     {
       title: "Users & Access",
@@ -68,7 +87,7 @@ export default async function SettingsPage() {
       href: "/settings/users",
       action: "Manage access",
       icon: Users,
-      iconLabel: "04",
+      iconLabel: "05",
     },
 
 	...(canReadAudit
@@ -80,7 +99,7 @@ export default async function SettingsPage() {
             href: "/settings/security/activity",
             action: "View activity",
             icon: ClipboardList,
-            iconLabel: "05",
+            iconLabel: "06",
           },
         ]
       : []),
@@ -92,7 +111,7 @@ export default async function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "06",
+      iconLabel: "07",
     },
 
 	{
@@ -102,7 +121,7 @@ export default async function SettingsPage() {
   href: "/privacy",
   action: "Manage privacy",
   icon: ShieldCheck,
-  iconLabel: "07",
+  iconLabel: "08",
 },
 {
   title: "Legal & Compliance",
@@ -111,7 +130,7 @@ export default async function SettingsPage() {
   href: "/legal",
   action: "View legal documents",
   icon: FileText,
-  iconLabel: "08",
+  iconLabel: "09",
 },
   ];
 

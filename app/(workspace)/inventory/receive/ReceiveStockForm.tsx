@@ -15,13 +15,15 @@ interface Product {
   type: string;
   trackInventory: boolean;
   currency: string;
-  
+
   pharmacyProduct?: {
     id: string;
     medicineType: string;
     prescriptionType: string;
     status: string;
   } | null;
+
+  inventoryMode: "DISCRETE" | "LIQUID";
 }
 
 interface Warehouse {
@@ -55,7 +57,7 @@ export default function ReceiveStockForm({
 
   const [notes, setNotes] =
     useState("");
-	
+
   const [batchNumber, setBatchNumber] = useState("");
   const [manufacturingDate, setManufacturingDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -69,11 +71,17 @@ export default function ReceiveStockForm({
   const [success, setSuccess] =
     useState("");
 
+  const [containerType, setContainerType] =
+  useState<"BOTTLE" | "KEG" | "CAN" | "JAR" | "OTHER">("BOTTLE");
+
+  const [containerCapacity, setContainerCapacity] =
+    useState("");
+
   const selectedProduct =
     products.find(
       (product) => product.id === productId,
     );
-	
+
 	const isPharmacyProduct =
   Boolean(
     selectedProduct?.pharmacyProduct &&
@@ -123,7 +131,7 @@ export default function ReceiveStockForm({
       );
       return;
     }
-	
+
 	if (isPharmacyProduct) {
   if (!batchNumber.trim()) {
     setError(
@@ -375,7 +383,7 @@ await receiveStockAction({
           </span>
         </p>
       )}
-	  
+
 	  {isPharmacyProduct && (
   <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
     <div>

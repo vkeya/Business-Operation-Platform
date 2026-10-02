@@ -14,7 +14,8 @@ export type BusinessCapability =
   | "reports"
   | "menu"
   | "services"
-  | "pharmacy";
+  | "pharmacy"
+  | "supermarket";
 
 export const coreBusinessCapabilities: BusinessCapability[] = [
   "dashboard",
@@ -57,6 +58,7 @@ export const businessCapabilities: Record<
 
   supermarket: [
     ...coreBusinessCapabilities,
+	"supermarket",
   ],
 
   shop: [
@@ -67,7 +69,7 @@ export const businessCapabilities: Record<
     ...coreBusinessCapabilities,
     "services",
   ],
-  
+
   pharmacy: [
     ...coreBusinessCapabilities,
     "pharmacy",

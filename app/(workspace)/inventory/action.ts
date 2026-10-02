@@ -70,14 +70,22 @@ export async function getInventoryMovementsAction(
 }
 
 export async function receiveStockAction(input: {
-	operationId: string;
+  operationId: string;
   productId: string;
   warehouseId: string;
   quantity: number;
   unitCost: number;
   currency: string;
+   containerType?:
+    | "BOTTLE"
+    | "KEG"
+    | "CAN"
+    | "JAR"
+    | "OTHER";
+  containerCapacityQuantity?: number;
+  containerUnit?: string;
   notes?: string;
-  
+
   batchNumber?: string;
   manufacturingDate?: string;
   expiryDate?: string;
@@ -102,8 +110,12 @@ export async function receiveStockAction(input: {
     unitCost: input.unitCost,
     currency: input.currency,
     createdBy: userId,
+	containerType: input.containerType,
+    containerCapacityQuantity:
+      input.containerCapacityQuantity,
+    containerUnit: input.containerUnit,
     notes: input.notes,
-	
+
 	batchNumber: input.batchNumber,
     manufacturingDate: input.manufacturingDate,
     expiryDate: input.expiryDate,

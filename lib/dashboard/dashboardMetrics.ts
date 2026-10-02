@@ -5,26 +5,49 @@ import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { getCashPositionInsight } from "@/lib/intelligence/cashPositionEngine";
 
-export async function getDashboardMetrics(businessId: string) {
-  const [accounting, sales, purchases, inventory, products] = await Promise.all(
-    [
-      getAccountingMetrics(businessId),
+export async function getDashboardMetrics(
+  businessId: string,
+) {
+  const [
+    accounting,
+    sales,
+    purchases,
+    inventory,
+    products,
+  ] = await Promise.all([
+    getAccountingMetrics(
+      businessId,
+    ),
 
-      saleService.list(businessId),
+    saleService.list(
+      businessId,
+    ),
 
-      purchaseService.listPurchases(businessId),
+    purchaseService.listPurchases(
+      businessId,
+    ),
 
-      inventoryService.listBalances(businessId),
+    inventoryService.listBalances(
+      businessId,
+    ),
 
-      productService.listProducts(businessId),
-    ],
-  );
+    productService.listProducts(
+      businessId,
+    ),
+  ]);
 
-  const completedSales = sales.filter((sale) => sale.status === "COMPLETED");
+  const completedSales =
+    sales.filter(
+      (sale) =>
+        sale.status === "COMPLETED",
+    );
 
-  const pendingPurchases = purchases.filter(
-    (purchase) => purchase.status === "DRAFT" || purchase.status === "ORDERED",
-  );
+  const pendingPurchases =
+    purchases.filter(
+      (purchase) =>
+        purchase.status === "DRAFT" ||
+        purchase.status === "ORDERED",
+    );
 
   /*
    * Current inventory is based only on active,
@@ -34,55 +57,79 @@ export async function getDashboardMetrics(businessId: string) {
    * historical purposes but must not contribute
    * to current dashboard inventory KPIs.
    */
-  const activeInventoryProducts = products.filter(
-    (product) =>
-      product.type === "PRODUCT" &&
-      product.trackInventory &&
-      product.status !== "ARCHIVED",
-  );
+  const activeInventoryProducts =
+    products.filter(
+      (product) =>
+        product.type === "PRODUCT" &&
+        product.trackInventory &&
+        product.status !== "ARCHIVED",
+    );
 
   const activeProductIds = new Set(
-    activeInventoryProducts.map((product) => product.id),
+    activeInventoryProducts.map(
+      (product) => product.id,
+    ),
   );
 
-  const activeInventory = inventory.filter((item) =>
-    activeProductIds.has(item.productId),
-  );
+  const activeInventory =
+    inventory.filter(
+      (item) =>
+        activeProductIds.has(
+          item.productId,
+        ),
+    );
 
-  const lowStockItems = activeInventory.filter(
-    (item) => item.quantity <= item.reservedQuantity,
-  );
+  const lowStockItems =
+    activeInventory.filter(
+      (item) =>
+        item.quantity <=
+        item.reservedQuantity,
+    );
 
-  const inventoryValue = activeInventory.reduce(
-    (total, item) => total + item.quantity * item.averageCost,
-    0,
-  );
+  const inventoryValue =
+    activeInventory.reduce(
+      (total, item) =>
+        total +
+        item.quantity *
+          item.averageCost,
+      0,
+    );
 
-  const activeSalesRevenue = completedSales.reduce(
-    (total, sale) => total + Number(sale.totalAmount),
-    0,
-  );
+  const activeSalesRevenue =
+    completedSales.reduce(
+      (total, sale) =>
+        total + Number(sale.totalAmount),
+      0,
+    );
 
-  const cashInsight = getCashPositionInsight({
-    cashPosition: accounting.cashPosition,
+  const cashInsight =
+    getCashPositionInsight({
+      cashPosition:
+        accounting.cashPosition,
 
-    receivables: accounting.receivables,
+      receivables:
+        accounting.receivables,
 
-    payables: accounting.payables,
-  });
+      payables:
+        accounting.payables,
+    });
 
   return {
     ...accounting,
 
-    revenue: activeSalesRevenue,
+    revenue:
+      activeSalesRevenue,
 
     inventoryValue,
 
-    salesCount: completedSales.length,
+    salesCount:
+      completedSales.length,
 
-    pendingPurchases: pendingPurchases.length,
+    pendingPurchases:
+      pendingPurchases.length,
 
-    lowStockItems: lowStockItems.length,
+    lowStockItems:
+      lowStockItems.length,
 
     intelligence: {
       cash: cashInsight,

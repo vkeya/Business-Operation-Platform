@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/database/prisma";
-
+import {
+  getInventoryQuantityForSale,
+} from "@/lib/inventory/sellingUnitConversion";
 import {
   paymentAttemptService,
 } from "@/lib/payment/paymentAttemptService";
@@ -11,7 +13,7 @@ import {
   saleRepository,
   type CreateSaleInput,
 } from "@/lib/sales/saleRepository";
-
+import { productRepository } from "@/lib/inventory/productRepository";
 import {
   paymentService,
 } from "@/lib/payment/paymentService";
@@ -50,6 +52,7 @@ type PrismaTransactionClient =
 export interface PosCheckoutInput {
   operationId: string;
   businessId: string;
+
   branchId?: string;
   warehouseId?: string;
   customerId?: string;
@@ -99,8 +102,8 @@ export interface PosCheckoutResult {
 function validateCheckoutInput(
   input: PosCheckoutInput,
 ) {
-	
-	
+
+
 
   if (!input.operationId?.trim()) {
   throw new Error("Checkout operation ID is required.");
@@ -607,9 +610,23 @@ async function completeSaleOperations(
         );
       }
 
-      inventoryQuantity =
-        item.quantity *
-        sellingUnit.quantity;
+      const product = await productRepository.findById(
+  input.businessId,
+  item.productId,
+);
+
+if (!product) {
+  throw new Error(
+    `Product not found for "${item.productName}".`,
+  );
+}
+
+inventoryQuantity =
+  getInventoryQuantityForSale(
+    product,
+    sellingUnit,
+    item.quantity,
+  );
     }
 
     inventoryItems.push({
@@ -659,6 +676,9 @@ async function completeSaleOperations(
         {
           businessId:
             input.businessId,
+
+		  operationId:
+		    input.operationId,
 
           warehouseId:
             input.warehouseId,
@@ -783,7 +803,7 @@ export async function checkoutPosSale(
   input: PosCheckoutInput,
 ): Promise<PosCheckoutResult> {
   validateCheckoutInput(input);
-  
+
   await validatePharmacyCheckoutItems(input);
 
   const existingOperation =
@@ -1151,11 +1171,11 @@ if (!sale) {
         payment,
       };
     },
-	
+
 	  {
     maxWait: 10000,
     timeout: 15000,
   },
-	
+
   );
 }

@@ -19,6 +19,22 @@ const defaultAccounts = [
       "M-Pesa funds received by the business",
   },
 
+    {
+    code: "1020",
+    name: "Card Payments",
+    type: "ASSET" as const,
+    description:
+      "Funds received through card payments",
+  },
+
+  {
+    code: "1030",
+    name: "Bank",
+    type: "ASSET" as const,
+    description:
+      "Funds received through bank payments",
+  },
+
   {
     code: "1100",
     name: "Inventory",
@@ -26,7 +42,7 @@ const defaultAccounts = [
     description:
       "Inventory assets",
   },
-  
+
     {
     code: "1205",
     name: "Input VAT",

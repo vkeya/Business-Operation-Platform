@@ -34,6 +34,7 @@ model Business {
   expenses            Expense[]
   inventoryBalances   InventoryBalance[]
   inventoryMovements  InventoryMovement[]
+  inventoryContainers InventoryContainer[]
   journalEntries      JournalEntry[]
   operationRequests   OperationRequest[]
   payments            Payment[]
@@ -53,58 +54,120 @@ model Business {
   warehouses          Warehouse[]
 
   pharmacyProfile PharmacyProfile?
-  pharmacyPrescriptions PharmacyPrescription[]
+
+  supermarketProfile SupermarketProfile?
+
+  supermarketAutopilotActions SupermarketAutopilotAction[]
+
+  pharmacyPrescriptions               PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([status])
 }
 
 model PharmacyProfile {
-  id                   String   @id @default(cuid())
-  businessId           String   @unique
+  id         String @id @default(cuid())
+  businessId String @unique
 
-  pharmacyName         String
-  licenseNumber        String?
-  registrationNumber   String?
-  pharmacistInCharge   String?
-  phone                String?
-  email                String?
-  address              String?
-  city                 String?
-  country              String   @default("Kenya")
+  pharmacyName       String
+  licenseNumber      String?
+  registrationNumber String?
+  pharmacistInCharge String?
+  phone              String?
+  email              String?
+  address            String?
+  city               String?
+  country            String  @default("Kenya")
 
-  isActive             Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  business             Business @relation(fields: [businessId],references: [id],onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
 }
 
+model SupermarketProfile {
+  id         String @id @default(cuid())
+  businessId String @unique
+
+  storeType                String  @default("SUPERMARKET")
+  weightedProductsEnabled  Boolean @default(false)
+  batchTrackingEnabled     Boolean @default(true)
+  expiryTrackingEnabled    Boolean @default(true)
+  loyaltyEnabled           Boolean @default(false)
+  promotionsEnabled        Boolean @default(true)
+  autoReplenishmentEnabled Boolean @default(true)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model SupermarketAutopilotAction {
+  id         String @id @default(cuid())
+  businessId String
+
+  actionType  String
+  productId   String?
+  productName String
+  sku         String?
+
+  priority String
+  title    String
+  reason   String
+  source   String
+  score    Decimal @db.Decimal(10, 4)
+
+  evidence Json?
+
+  status SupermarketAutopilotActionStatus @default(PENDING)
+
+  snoozedUntil DateTime?
+  acceptedAt   DateTime?
+  dismissedAt  DateTime?
+  completedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([businessId, actionType])
+  @@index([productId])
+}
+
 model PharmacyProduct {
-  id                    String                    @id @default(cuid())
-  productId             String                    @unique
-  batches PharmacyBatch[]
-  medicineType          PharmacyMedicineType
-  prescriptionType      PharmacyPrescriptionType @default(OTC)
+  id               String                   @id @default(cuid())
+  productId        String                   @unique
+  batches          PharmacyBatch[]
+  medicineType     PharmacyMedicineType
+  prescriptionType PharmacyPrescriptionType @default(OTC)
 
   activeIngredient      String?
   strength              String?
   dosageForm            String?
   routeOfAdministration String?
 
-  manufacturer          String?
-  registrationNumber    String?
-  packSize              String?
+  manufacturer       String?
+  registrationNumber String?
+  packSize           String?
 
-  status                PharmacyProductStatus    @default(ACTIVE)
+  status PharmacyProductStatus @default(ACTIVE)
 
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  product               Product                   @relation(fields: [productId],references: [id],onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   controlledDispensingRecords PharmacyControlledDispensingRecord[]
 
@@ -115,38 +178,38 @@ model PharmacyProduct {
 }
 
 model PharmacyBatch {
-  id                String   @id @default(cuid())
+  id                String @id @default(cuid())
   pharmacyProductId String
-  warehouseId String
+  warehouseId       String
 
   batchNumber       String
   manufacturingDate DateTime?
   expiryDate        DateTime
 
-  supplierId        String?
-  purchaseId        String?
-  purchaseItemId    String?
+  supplierId     String?
+  purchaseId     String?
+  purchaseItemId String?
 
-  quantityReceived  Decimal  @db.Decimal(18, 4)
-  quantityRemaining Decimal  @db.Decimal(18, 4)
+  quantityReceived  Decimal @db.Decimal(18, 4)
+  quantityRemaining Decimal @db.Decimal(18, 4)
 
-  unitCost          Decimal? @db.Decimal(18, 4)
+  unitCost Decimal? @db.Decimal(18, 4)
 
-  isRecalled        Boolean  @default(false)
-  recallReason      String?
+  isRecalled   Boolean @default(false)
+  recallReason String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   controlledDispensingRecords PharmacyControlledDispensingRecord[]
 
-  pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Cascade)
+  pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId], references: [id], onDelete: Cascade)
 
-  supplier Supplier? @relation(fields: [supplierId],references: [id],onDelete: SetNull)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
-  purchase Purchase? @relation(fields: [purchaseId],references: [id],onDelete: SetNull)
+  purchase Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
 
-  warehouse Warehouse @relation(fields: [warehouseId],references: [id],onDelete: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
 
   @@unique([pharmacyProductId, batchNumber])
   @@index([pharmacyProductId])
@@ -158,26 +221,26 @@ model PharmacyBatch {
 }
 
 model PharmacyPrescription {
-  id                    String   @id @default(cuid())
-  businessId            String
-  customerId            String?
-  saleId                String?
-  prescriptionNumber    String
-  prescriptionDate      DateTime
-  expiryDate            DateTime?
-  prescriberName        String
-  prescriberLicense     String?
-  diagnosis             String?
-  notes                 String?
-  status                PharmacyPrescriptionStatus @default(ACTIVE)
-  createdBy             String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String                     @id @default(cuid())
+  businessId         String
+  customerId         String?
+  saleId             String?
+  prescriptionNumber String
+  prescriptionDate   DateTime
+  expiryDate         DateTime?
+  prescriberName     String
+  prescriberLicense  String?
+  diagnosis          String?
+  notes              String?
+  status             PharmacyPrescriptionStatus @default(ACTIVE)
+  createdBy          String
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
 
-  business              Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  sale                  Sale?      @relation(fields: [saleId], references: [id], onDelete: SetNull)
-  items                 PharmacyPrescriptionItem[]
+  business Business                   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer?                  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sale     Sale?                      @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  items    PharmacyPrescriptionItem[]
 
   saleItems SaleItem[]
 
@@ -193,22 +256,22 @@ model PharmacyPrescription {
 }
 
 model PharmacyPrescriptionItem {
-  id                   String   @id @default(cuid())
-  prescriptionId       String
-  productId            String
-  quantityPrescribed  Decimal  @db.Decimal(18, 4)
-  quantityDispensed   Decimal  @default(0) @db.Decimal(18, 4)
-  dosageInstructions  String?
-  duration             String?
-  notes                String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  prescriptionId     String
+  productId          String
+  quantityPrescribed Decimal  @db.Decimal(18, 4)
+  quantityDispensed  Decimal  @default(0) @db.Decimal(18, 4)
+  dosageInstructions String?
+  duration           String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   saleItems SaleItem[]
 
-  prescription PharmacyPrescription @relation(fields: [prescriptionId],references: [id],onDelete: Cascade)
+  prescription PharmacyPrescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
-  product Product @relation(fields: [productId],references: [id],onDelete: Restrict)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   controlledDispensingRecords PharmacyControlledDispensingRecord[]
 
@@ -217,43 +280,43 @@ model PharmacyPrescriptionItem {
 }
 
 model PharmacyControlledDispensingRecord {
-  id                    String   @id @default(cuid())
-  businessId            String
-  saleId                String
-  saleItemId            String
-  pharmacyProductId     String
-  pharmacyBatchId       String
-  prescriptionId        String?
-  prescriptionItemId    String?
-  customerId            String?
-  quantity              Decimal  @db.Decimal(18, 4)
-  dispensedBy           String
-  pharmacistName        String?
-  pharmacistLicense     String?
-  registerReference     String?
-  reason                String?
-  status                PharmacyControlledRecordStatus @default(DISPENSED)
-  dispensedAt           DateTime @default(now())
-  reversedAt            DateTime?
-  reversalReason        String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String                         @id @default(cuid())
+  businessId         String
+  saleId             String
+  saleItemId         String
+  pharmacyProductId  String
+  pharmacyBatchId    String
+  prescriptionId     String?
+  prescriptionItemId String?
+  customerId         String?
+  quantity           Decimal                        @db.Decimal(18, 4)
+  dispensedBy        String
+  pharmacistName     String?
+  pharmacistLicense  String?
+  registerReference  String?
+  reason             String?
+  status             PharmacyControlledRecordStatus @default(DISPENSED)
+  dispensedAt        DateTime                       @default(now())
+  reversedAt         DateTime?
+  reversalReason     String?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
 
-  business              Business @relation(fields: [businessId],references: [id],onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  sale                  Sale @relation(fields: [saleId],references: [id],onDelete: Restrict)
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Restrict)
 
-  saleItem              SaleItem @relation(fields: [saleItemId],references: [id],onDelete: Restrict)
+  saleItem SaleItem @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
 
-  pharmacyProduct       PharmacyProduct @relation(fields: [pharmacyProductId],references: [id],onDelete: Restrict)
+  pharmacyProduct PharmacyProduct @relation(fields: [pharmacyProductId], references: [id], onDelete: Restrict)
 
-  pharmacyBatch         PharmacyBatch @relation(fields: [pharmacyBatchId],references: [id],onDelete: Restrict)
+  pharmacyBatch PharmacyBatch @relation(fields: [pharmacyBatchId], references: [id], onDelete: Restrict)
 
-  prescription          PharmacyPrescription? @relation(fields: [prescriptionId],references: [id],onDelete: SetNull)
+  prescription PharmacyPrescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
 
-  prescriptionItem      PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId],references: [id],onDelete: SetNull)
+  prescriptionItem PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
 
-  customer              Customer? @relation(fields: [customerId],references: [id],onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([businessId])
   @@index([saleId])
@@ -335,22 +398,23 @@ model Branch {
 }
 
 model Warehouse {
-  id                 String              @id @default(cuid())
-  businessId         String
-  branchId           String?
-  name               String
-  code               String
-  address            String?
-  isActive           Boolean             @default(true)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  inventoryBalances  InventoryBalance[]
-  inventoryMovements InventoryMovement[]
-  purchases          Purchase[]
-  sales              Sale[]
-  saleReturns        SaleReturn[]
-  branch             Branch?             @relation(fields: [branchId], references: [id])
-  business           Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(cuid())
+  businessId          String
+  branchId            String?
+  name                String
+  code                String
+  address             String?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  inventoryBalances   InventoryBalance[]
+  inventoryMovements  InventoryMovement[]
+  purchases           Purchase[]
+  sales               Sale[]
+  inventoryContainers InventoryContainer[]
+  saleReturns         SaleReturn[]
+  branch              Branch?              @relation(fields: [branchId], references: [id])
+  business            Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   pharmacyBatches PharmacyBatch[]
 
@@ -360,34 +424,34 @@ model Warehouse {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  name                String
-  email               String               @unique
-  isActive            Boolean              @default(true)
-  emailVerifiedAt     DateTime?
-  passwordChangedAt   DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  passwordHash        String?
-  authIdentities      AuthIdentity[]
-  memberships         BusinessMembership[]
-  branches            UserBranch[]
-  roles               UserRole[]
-  legalAcceptances    LegalAcceptance[]
-  dataSubjectRequests DataSubjectRequest[]
+  id                      String                   @id @default(cuid())
+  name                    String
+  email                   String                   @unique
+  isActive                Boolean                  @default(true)
+  emailVerifiedAt         DateTime?
+  passwordChangedAt       DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  passwordHash            String?
+  authIdentities          AuthIdentity[]
+  memberships             BusinessMembership[]
+  branches                UserBranch[]
+  roles                   UserRole[]
+  legalAcceptances        LegalAcceptance[]
+  dataSubjectRequests     DataSubjectRequest[]
   emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens  PasswordResetToken[]
+  passwordResetTokens     PasswordResetToken[]
 
   @@index([email])
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -396,12 +460,12 @@ model EmailVerificationToken {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -515,29 +579,33 @@ model ProductCategory {
 }
 
 model Product {
-  id                  String               @id @default(cuid())
-  businessId          String
-  categoryId          String?
-  name                String
-  sku                 String
-  barcode             String?
-  type                ProductType
-  description         String?
-  unit                String
-  costPrice           Decimal              @db.Decimal(18, 4)
-  sellingPrice        Decimal              @db.Decimal(18, 4)
-  currency            String
-  taxRate             Decimal?             @db.Decimal(8, 4)
-  taxCode             String?
-  trackInventory      Boolean              @default(true)
-  minimumStock        Decimal?             @db.Decimal(18, 4)
-  reorderLevel        Decimal?             @db.Decimal(18, 4)
-  status              BusinessStatus       @default(ACTIVE)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  attributes          Json?
-  inventoryBalances   InventoryBalance[]
-  inventoryMovements  InventoryMovement[]
+  id                 String              @id @default(cuid())
+  businessId         String
+  categoryId         String?
+  name               String
+  sku                String
+  barcode            String?
+  type               ProductType
+  description        String?
+  unit               String
+  costPrice          Decimal             @db.Decimal(18, 4)
+  sellingPrice       Decimal             @db.Decimal(18, 4)
+  currency           String
+  taxRate            Decimal?            @db.Decimal(8, 4)
+  taxCode            String?
+  trackInventory     Boolean             @default(true)
+  inventoryMode      InventoryMode       @default(DISCRETE)
+  minimumStock       Decimal?            @db.Decimal(18, 4)
+  reorderLevel       Decimal?            @db.Decimal(18, 4)
+  status             BusinessStatus      @default(ACTIVE)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  attributes         Json?
+  inventoryBalances  InventoryBalance[]
+  inventoryMovements InventoryMovement[]
+
+  inventoryContainers InventoryContainer[]
+
   business            Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
   category            ProductCategory?     @relation(fields: [categoryId], references: [id])
   prices              ProductPrice[]
@@ -545,7 +613,7 @@ model Product {
   recipeIngredients   RecipeIngredient[]
   restaurantMenuItems RestaurantMenuItem[]
 
-  pharmacyProduct PharmacyProduct?
+  pharmacyProduct           PharmacyProduct?
   pharmacyPrescriptionItems PharmacyPrescriptionItem[]
 
   @@unique([businessId, sku])
@@ -561,6 +629,8 @@ model ProductSellingUnit {
   name         String
   quantity     Decimal    @db.Decimal(18, 4)
   unit         String
+  conversionQuantity Decimal? @db.Decimal(18, 4)
+  conversionUnit     String?
   sellingPrice Decimal    @db.Decimal(18, 4)
   isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())
@@ -705,6 +775,45 @@ model InventoryMovement {
   @@index([createdAt])
 }
 
+model InventoryContainer {
+  id          String @id @default(cuid())
+  businessId  String
+  productId   String
+  warehouseId String
+
+  containerType InventoryContainerType
+  status        InventoryContainerStatus @default(SEALED)
+
+  capacityQuantity  Decimal @db.Decimal(18, 4)
+  remainingQuantity Decimal @db.Decimal(18, 4)
+  unit              String
+
+  unitCost Decimal? @db.Decimal(18, 4)
+
+  referenceType String?
+  referenceId   String?
+
+  receivedAt DateTime  @default(now())
+  openedAt   DateTime?
+  closedAt   DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([productId, warehouseId])
+  @@index([status])
+  @@index([referenceType, referenceId])
+}
+
 model Customer {
   id          String   @id @default(cuid())
   businessId  String
@@ -721,7 +830,7 @@ model Customer {
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sales       Sale[]
 
-  pharmacyPrescriptions PharmacyPrescription[]
+  pharmacyPrescriptions               PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([businessId])
@@ -786,7 +895,7 @@ model Sale {
   returns         SaleReturn[]
   refunds         PaymentRefund[]
 
-  pharmacyPrescriptions PharmacyPrescription[]
+  pharmacyPrescriptions               PharmacyPrescription[]
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@unique([businessId, referenceNumber])
@@ -798,26 +907,26 @@ model Sale {
 }
 
 model SaleItem {
-  id                  String              @id @default(cuid())
-  saleId              String
-  productId           String
-  productName         String
-  sku                 String?
-  quantity            Decimal             @db.Decimal(18, 4)
-  unitPrice           Decimal             @db.Decimal(18, 4)
-  discountAmount      Decimal             @db.Decimal(18, 4)
-  taxAmount           Decimal             @db.Decimal(18, 4)
-  totalAmount         Decimal             @db.Decimal(18, 4)
-  menuItemId          String?
-  sellingUnitId       String?
-  prescriptionId      String?
-  prescriptionItemId  String?
+  id                 String  @id @default(cuid())
+  saleId             String
+  productId          String
+  productName        String
+  sku                String?
+  quantity           Decimal @db.Decimal(18, 4)
+  unitPrice          Decimal @db.Decimal(18, 4)
+  discountAmount     Decimal @db.Decimal(18, 4)
+  taxAmount          Decimal @db.Decimal(18, 4)
+  totalAmount        Decimal @db.Decimal(18, 4)
+  menuItemId         String?
+  sellingUnitId      String?
+  prescriptionId     String?
+  prescriptionItemId String?
 
-  menuItem            RestaurantMenuItem?     @relation(fields: [menuItemId], references: [id])
-  sale                Sale                    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  sellingUnit         ProductSellingUnit?     @relation(fields: [sellingUnitId], references: [id])
-  prescription        PharmacyPrescription?   @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
-  prescriptionItem    PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
+  menuItem         RestaurantMenuItem?       @relation(fields: [menuItemId], references: [id])
+  sale             Sale                      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sellingUnit      ProductSellingUnit?       @relation(fields: [sellingUnitId], references: [id])
+  prescription     PharmacyPrescription?     @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  prescriptionItem PharmacyPrescriptionItem? @relation(fields: [prescriptionItemId], references: [id], onDelete: SetNull)
 
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
@@ -883,7 +992,7 @@ model SaleReturnItem {
 }
 
 model Purchase {
-  id                    String         @id @default(cuid())
+  id                    String          @id @default(cuid())
   businessId            String
   branchId              String?
   warehouseId           String?
@@ -893,22 +1002,22 @@ model Purchase {
   status                PurchaseStatus
   paymentStatus         PaymentStatus
   currency              String
-  exchangeRate          Decimal?       @db.Decimal(18, 8)
-  subtotal              Decimal        @db.Decimal(18, 4)
-  discountAmount        Decimal        @db.Decimal(18, 4)
-  taxAmount             Decimal        @db.Decimal(18, 4)
-  totalAmount           Decimal        @db.Decimal(18, 4)
+  exchangeRate          Decimal?        @db.Decimal(18, 8)
+  subtotal              Decimal         @db.Decimal(18, 4)
+  discountAmount        Decimal         @db.Decimal(18, 4)
+  taxAmount             Decimal         @db.Decimal(18, 4)
+  totalAmount           Decimal         @db.Decimal(18, 4)
   notes                 String?
   createdBy             String
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
   payments              Payment[]
-  branch                Branch?        @relation(fields: [branchId], references: [id])
-  business              Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  supplier              Supplier       @relation(fields: [supplierId], references: [id])
-  warehouse             Warehouse?     @relation(fields: [warehouseId], references: [id])
+  branch                Branch?         @relation(fields: [branchId], references: [id])
+  business              Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  supplier              Supplier        @relation(fields: [supplierId], references: [id])
+  warehouse             Warehouse?      @relation(fields: [warehouseId], references: [id])
   items                 PurchaseItem[]
-  pharmacyBatches PharmacyBatch[]
+  pharmacyBatches       PharmacyBatch[]
 
   @@unique([businessId, referenceNumber])
   @@index([businessId])
@@ -1155,25 +1264,25 @@ model BusinessEvent {
 }
 
 model AuditEvent {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Tenant context
-  businessId    String?
-  actorId       String?
+  businessId String?
+  actorId    String?
 
   // Event classification
-  action        String
-  category      String   @default("BUSINESS")
-  severity      String   @default("INFO")
-  outcome       String   @default("SUCCESS")
+  action   String
+  category String @default("BUSINESS")
+  severity String @default("INFO")
+  outcome  String @default("SUCCESS")
 
   // Entity affected
-  entityType    String
-  entityId      String?
+  entityType String
+  entityId   String?
 
   // State changes
-  beforeData    Json?
-  afterData     Json?
+  beforeData Json?
+  afterData  Json?
 
   // Request context
   ipAddress     String?
@@ -1182,11 +1291,11 @@ model AuditEvent {
   correlationId String?
 
   // Additional context
-  metadata      Json?
+  metadata Json?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  business      Business? @relation(fields: [businessId],references: [id],onDelete: Cascade)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
   @@index([businessId, createdAt])
@@ -1217,35 +1326,35 @@ model ExchangeRate {
 }
 
 model LegalDocument {
-  id            String            @id @default(cuid())
-  type          LegalDocumentType
-  version       String
-  title         String
-  effectiveAt   DateTime
-  publishedAt   DateTime?
-  isActive      Boolean           @default(false)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  type        LegalDocumentType
+  version     String
+  title       String
+  effectiveAt DateTime
+  publishedAt DateTime?
+  isActive    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
-  acceptances   LegalAcceptance[]
+  acceptances LegalAcceptance[]
 
   @@unique([type, version])
   @@index([type, isActive])
 }
 
 model LegalAcceptance {
-  id              String        @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String
   documentId      String
   documentVersion String
-  accepted        Boolean       @default(true)
-  acceptedAt      DateTime      @default(now())
+  accepted        Boolean  @default(true)
+  acceptedAt      DateTime @default(now())
   ipAddress       String?
   userAgent       String?
 
-  user            User          @relation(fields: [userId],references: [id],onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  document        LegalDocument @relation(fields: [documentId],references: [id])
+  document LegalDocument @relation(fields: [documentId], references: [id])
 
   @@unique([userId, documentId])
   @@index([userId])
@@ -1253,18 +1362,18 @@ model LegalAcceptance {
 }
 
 model DataSubjectRequest {
-  id             String                   @id @default(cuid())
-  userId         String
-  type           DataSubjectRequestType
-  status         DataSubjectRequestStatus @default(PENDING)
-  requestedAt    DateTime                 @default(now())
-  completedAt    DateTime?
-  reviewedBy     String?
-  reviewedAt     DateTime?
-  notes          String?
+  id              String                   @id @default(cuid())
+  userId          String
+  type            DataSubjectRequestType
+  status          DataSubjectRequestStatus @default(PENDING)
+  requestedAt     DateTime                 @default(now())
+  completedAt     DateTime?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  notes           String?
   resultReference String?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1450,4 +1559,33 @@ enum PharmacyControlledRecordStatus {
   DISPENSED
   REVERSED
   CANCELLED
+}
+
+enum SupermarketAutopilotActionStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+  SNOOZED
+  COMPLETED
+  EXPIRED
+}
+
+enum InventoryMode {
+  DISCRETE
+  LIQUID
+}
+
+enum InventoryContainerType {
+  BOTTLE
+  KEG
+  CAN
+  JAR
+  OTHER
+}
+
+enum InventoryContainerStatus {
+  SEALED
+  OPEN
+  EMPTY
+  DISPOSED
 }

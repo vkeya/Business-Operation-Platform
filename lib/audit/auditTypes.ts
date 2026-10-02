@@ -14,7 +14,8 @@ export type AuditCategory =
   | "PHARMACY"
   | "ADMIN"
   | "SECURITY"
-  | "SYSTEM";
+  | "SYSTEM"
+  | "EXPENSES";
 
 export type AuditSeverity =
   | "INFO"

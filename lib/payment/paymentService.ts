@@ -8,6 +8,10 @@ import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
 import { prisma } from "@/lib/database/prisma";
+import {
+  recordAuditEvent,
+} from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -163,6 +167,31 @@ async function createSalePaymentWithTx(
       tx,
   });
 
+  await recordAuditEvent(
+  {
+    businessId: input.businessId,
+    actorId: input.createdBy,
+    action: AUDIT_ACTIONS.PAYMENT_SUCCESS,
+    category: "PAYMENTS",
+    severity: "INFO",
+    outcome: "SUCCESS",
+    entityType: "PAYMENT",
+    entityId: payment.id,
+    afterData: {
+      saleId: input.saleId,
+      reference: payment.reference,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      method: input.method,
+    },
+    metadata: {
+      paymentType: "SALE",
+      operationId: input.operationId,
+    },
+  },
+  tx,
+);
+
   await tx.operationRequest.update({
     where: {
       id:
@@ -314,14 +343,15 @@ export const paymentService = {
                 : "PARTIAL";
 
             const reference =
-              input.reference?.trim() ||
-              await generateBusinessReference({
-                businessId:
-                  input.businessId,
-                referenceType:
-                  "PAYMENT",
-                prefix: "PAY",
-              });
+             input.reference?.trim() ||
+             await generateBusinessReference({
+               businessId:
+                 input.businessId,
+               referenceType:
+                 "PAYMENT",
+               prefix: "PAY",
+               client: tx,
+             });
 
             const payment =
               await paymentRepository.createPurchasePayment(
@@ -361,6 +391,31 @@ export const paymentService = {
               client:
                 tx,
             });
+
+			await recordAuditEvent(
+            {
+              businessId: input.businessId,
+              actorId: input.createdBy,
+              action: AUDIT_ACTIONS.PAYMENT_SUCCESS,
+              category: "PAYMENTS",
+              severity: "INFO",
+              outcome: "SUCCESS",
+              entityType: "PAYMENT",
+              entityId: payment.id,
+              afterData: {
+                purchaseId: input.purchaseId,
+                reference: payment.reference,
+                amount: Number(payment.amount),
+                currency: payment.currency,
+                method: input.method,
+              },
+              metadata: {
+                paymentType: "PURCHASE",
+                operationId: input.operationId,
+              },
+            },
+            tx,
+          );
 
             await tx.operationRequest.update({
               where: {

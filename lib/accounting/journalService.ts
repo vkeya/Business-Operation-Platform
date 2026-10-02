@@ -115,16 +115,35 @@ if (existing) {
 }
 
 
-    return journalRepository.create(
-  {
-    ...input,
-    reference:
-      input.reference.trim(),
-    description:
-      input.description.trim(),
-  },
-  client,
-);
+        try {
+      return await journalRepository.create(
+        {
+          ...input,
+          reference: input.reference.trim(),
+          description: input.description.trim(),
+        },
+        client,
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2002"
+      ) {
+        const existing =
+          await journalRepository.findByReference(
+            input.businessId,
+            input.reference.trim(),
+            client,
+          );
+
+        if (existing) {
+          return existing;
+        }
+      }
+
+      throw error;
+    }
   },
 
 

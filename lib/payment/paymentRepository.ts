@@ -141,12 +141,13 @@ async findById(
     : null;
 },
 
-  async listPurchasePayments(
+    async listPurchasePayments(
     businessId: string,
     purchaseId: string,
+    client: PrismaTransactionClient = prisma,
   ) {
     const payments =
-      await prisma.payment.findMany({
+      await client.payment.findMany({
         where: {
           businessId,
           purchaseId,

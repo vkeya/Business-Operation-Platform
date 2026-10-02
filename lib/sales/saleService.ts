@@ -16,6 +16,8 @@ import { calculateTax } from "@/lib/tax/taxCalculationService";
 import { taxConfigurationService } from "@/lib/tax/taxConfigurationService";
 import { saleCompletionService } from "./saleCompletionService";
 import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -106,7 +108,7 @@ export const saleService = {
         );
       }
     }
-	
+
 	const pharmacyProductIds = input.items.map(
   (item) => item.productId,
 );
@@ -418,6 +420,29 @@ if (input.branchId) {
                 },
               },
             });
+
+			await recordAuditEvent(
+  {
+    businessId: input.businessId,
+    actorId: input.createdBy,
+    action: AUDIT_ACTIONS.SALE_CREATED,
+    category: "SALES",
+    outcome: "SUCCESS",
+    entityType: "SALE",
+    entityId: sale.id,
+    afterData: {
+      saleId: sale.id,
+      referenceNumber: sale.referenceNumber,
+      status: sale.status,
+      totalAmount: sale.totalAmount,
+      currency: sale.currency,
+    },
+    metadata: {
+      operationId: input.operationId,
+    },
+  },
+  tx,
+);
 
             return sale;
           },
@@ -900,7 +925,7 @@ const pharmacyItems: Array<{
                 tx,
               );
             }
-			
+
 			if (pharmacyItems.length > 0) {
   for (const item of pharmacyItems) {
     const operationId =
@@ -1029,7 +1054,7 @@ const pharmacyItems: Array<{
           `Pharmacy batches restored from reversed sale ${sale.referenceNumber}.`,
       },
     });
-	
+
 	await tx.pharmacyControlledDispensingRecord.updateMany({
   where: {
     businessId,
@@ -1044,7 +1069,7 @@ const pharmacyItems: Array<{
       `Controlled medicine dispensing reversed with sale ${sale.referenceNumber}.`,
   },
 });
-	
+
 	if (item.prescriptionId && item.prescriptionItemId) {
   const prescriptionItem =
     await tx.pharmacyPrescriptionItem.findFirst({
@@ -1207,6 +1232,34 @@ await tx.pharmacyPrescription.update({
               },
             });
 
+			await recordAuditEvent(
+  {
+    businessId,
+    actorId: sale.createdBy,
+    action: AUDIT_ACTIONS.SALE_REVERSED,
+    category: "SALES",
+    outcome: "SUCCESS",
+    entityType: "SALE",
+    entityId: reversedSale.id,
+    beforeData: {
+      status: sale.status,
+    },
+    afterData: {
+      status: reversedSale.status,
+      referenceNumber:
+        reversedSale.referenceNumber,
+      totalAmount:
+        reversedSale.totalAmount,
+      currency:
+        reversedSale.currency,
+    },
+    metadata: {
+      operationId,
+    },
+  },
+  tx,
+);
+
             return reversedSale;
           },
           {
@@ -1305,9 +1358,39 @@ await tx.pharmacyPrescription.update({
       );
     }
 
-    return saleRepository.cancel(
-      businessId,
-      saleId,
+    return prisma.$transaction(
+  async (tx) => {
+    const cancelledSale =
+      await saleRepository.updateStatus(
+        businessId,
+        saleId,
+        "CANCELLED",
+        tx,
+      );
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: sale.createdBy,
+        action: AUDIT_ACTIONS.SALE_CANCELLED,
+        category: "SALES",
+        outcome: "SUCCESS",
+        entityType: "SALE",
+        entityId: cancelledSale.id,
+        beforeData: {
+          status: sale.status,
+        },
+        afterData: {
+          status: cancelledSale.status,
+          referenceNumber:
+            cancelledSale.referenceNumber,
+        },
+      },
+      tx,
     );
+
+    return cancelledSale;
+  },
+);
   },
 };

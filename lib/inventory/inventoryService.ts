@@ -153,6 +153,16 @@ if (!input.warehouseId) {
   unitCost: number;
   currency: string;
   createdBy: string;
+  containerType?:
+  | "BOTTLE"
+  | "KEG"
+  | "CAN"
+  | "JAR"
+  | "OTHER";
+
+containerCapacityQuantity?: number;
+
+containerUnit?: string;
   notes?: string;
 
   batchNumber?: string;
@@ -176,6 +186,21 @@ await validateProduct(
   input.businessId,
   input.productId,
 );
+
+const product = await prisma.product.findFirst({
+  where: {
+    id: input.productId,
+    businessId: input.businessId,
+  },
+  select: {
+    id: true,
+    inventoryMode: true,
+  },
+});
+
+if (!product) {
+  throw new Error("Product not found.");
+}
 
 if (!input.warehouseId) {
     throw new Error("Warehouse is required.");
@@ -202,10 +227,33 @@ if (!input.warehouseId) {
     throw new Error("Currency is required.");
   }
 
+  if (product.inventoryMode === "LIQUID") {
+  if (!input.containerType) {
+    throw new Error(
+      "Container type is required for liquid inventory.",
+    );
+  }
+
+  if (
+    !input.containerCapacityQuantity ||
+    input.containerCapacityQuantity <= 0
+  ) {
+    throw new Error(
+      "Container capacity is required for liquid inventory.",
+    );
+  }
+
+  if (!input.containerUnit) {
+    throw new Error(
+      "Container unit is required for liquid inventory.",
+    );
+  }
+}
+
   if (!input.createdBy) {
     throw new Error("User context is required.");
   }
-  
+
   const pharmacyProduct =
   await prisma.pharmacyProduct.findUnique({
     where: {
@@ -375,62 +423,70 @@ await validateWarehouse(
 },
 
   async consumeStock(input: {
-    businessId: string;
-    productId: string;
-    warehouseId: string;
-    quantity: number;
-    currency: string;
-    createdBy: string;
-    referenceType?: string;
-    referenceId?: string;
-    notes?: string;
-  }) {
-    if (!input.businessId) {
-      throw new Error(
-        "Business context is required.",
-      );
-    }
-
-    if (!input.productId) {
-      throw new Error(
-        "Product is required.",
-      );
-    }
-
-    if (!input.warehouseId) {
-      throw new Error(
-        "Warehouse is required.",
-      );
-    }
-
-	await validateWarehouse(
-  input.businessId,
-  input.warehouseId,
-);
-
-    if (input.quantity <= 0) {
-      throw new Error(
-        "Consumption quantity must be greater than zero.",
-      );
-    }
-
-    if (!input.currency) {
-      throw new Error(
-        "Currency is required.",
-      );
-    }
-
-    if (!input.createdBy) {
-      throw new Error(
-        "User context is required.",
-      );
-    }
-
-    return inventoryRepository.consumeStock(
-      input,
+  businessId: string;
+  operationId: string;
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  currency: string;
+  createdBy: string;
+  referenceType?: string;
+  referenceId?: string;
+  notes?: string;
+}) {
+  if (!input.businessId) {
+    throw new Error(
+      "Business context is required.",
     );
-  },
+  }
+
+  if (!input.operationId) {
+    throw new Error(
+      "Operation ID is required.",
+    );
+  }
+
+  if (!input.productId) {
+    throw new Error(
+      "Product is required.",
+    );
+  }
+
+  if (!input.warehouseId) {
+    throw new Error(
+      "Warehouse is required.",
+    );
+  }
+
+  await validateWarehouse(
+    input.businessId,
+    input.warehouseId,
+  );
+
+  if (input.quantity <= 0) {
+    throw new Error(
+      "Consumption quantity must be greater than zero.",
+    );
+  }
+
+  if (!input.currency) {
+    throw new Error(
+      "Currency is required.",
+    );
+  }
+
+  if (!input.createdBy) {
+    throw new Error(
+      "User context is required.",
+    );
+  }
+
+  return inventoryRepository.consumeStock(
+    input,
+  );
+},
     async consumeStockBatch(input: {
+	operationId: string;
     businessId: string;
     warehouseId: string;
     currency: string;
@@ -443,6 +499,13 @@ await validateWarehouse(
       quantity: number;
     }>;
   }) {
+
+	if (!input.operationId) {
+      throw new Error(
+        "Operation ID is required.",
+      );
+    }
+
     if (!input.businessId) {
       throw new Error(
         "Business context is required.",
@@ -501,7 +564,7 @@ await validateWarehouse(
     referenceType?: string;
     referenceId?: string;
     notes?: string;
-	
+
 	batchNumber?: string;
     manufacturingDate?: string;
     expiryDate?: string;
@@ -605,7 +668,7 @@ await validateWarehouse(
     );
   },
 
-      async returnStockBatch(
+        async returnStockBatch(
     input: {
       businessId: string;
       warehouseId: string;
@@ -672,32 +735,34 @@ await validateWarehouse(
   },
 
   async listMovements(
-  businessId: string,
-  productId?: string,
-  warehouseId?: string,
-  movementType?:
-    | "RECEIPT"
-    | "SALE"
-    | "RETURN"
-    | "ADJUSTMENT"
-    | "TRANSFER_IN"
-    | "TRANSFER_OUT"
-    | "DAMAGE"
-    | "EXPIRY",
-  fromDate?: Date,
-  toDate?: Date,
-) {
+    businessId: string,
+    productId?: string,
+    warehouseId?: string,
+    movementType?:
+      | "RECEIPT"
+      | "SALE"
+      | "RETURN"
+      | "ADJUSTMENT"
+      | "TRANSFER_IN"
+      | "TRANSFER_OUT"
+      | "DAMAGE"
+      | "EXPIRY",
+    fromDate?: Date,
+    toDate?: Date,
+  ) {
     if (!businessId) {
-      throw new Error("Business context is required.");
+      throw new Error(
+        "Business context is required.",
+      );
     }
 
     return inventoryRepository.listMovements(
-  businessId,
-  productId,
-  warehouseId,
-  movementType,
-  fromDate,
-  toDate,
-);
+      businessId,
+      productId,
+      warehouseId,
+      movementType,
+      fromDate,
+      toDate,
+    );
   },
 };

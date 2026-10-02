@@ -15,7 +15,6 @@ import {
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { prisma } from "@/lib/database/prisma";
 import { inventoryRepository } from "@/lib/inventory/inventoryRepository";
-import { assertActiveProduct } from "@/lib/inventory/productStatus";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -37,6 +36,23 @@ export const recipeService = {
     if (!input.menuItemId) {
       throw new Error(
         "Menu item is required.",
+      );
+    }
+
+	    const menuItem =
+      await prisma.restaurantMenuItem.findFirst({
+        where: {
+          id: input.menuItemId,
+          businessId: input.businessId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!menuItem) {
+      throw new Error(
+        "Menu item does not belong to the current business.",
       );
     }
 
@@ -129,15 +145,17 @@ if (!recipe) {
   );
 }
 
-const product = await prisma.product.findFirst({
-  where: {
-    id: input.productId,
-    businessId: input.businessId,
-  },
-  select: {
-    id: true,
-  },
-});
+    const product =
+      await prisma.product.findFirst({
+        where: {
+          id: input.productId,
+          businessId: input.businessId,
+          status: "ACTIVE",
+        },
+        select: {
+          id: true,
+        },
+      });
 
 if (!product) {
   throw new Error(
@@ -445,6 +463,12 @@ if (existingIngredient) {
       );
     }
 
+	if (!input.referenceId) {
+      throw new Error(
+        "Reference ID is required for recipe stock consumption.",
+      );
+    }
+
     const result =
       await this.calculateConsumption({
         businessId: input.businessId,
@@ -454,6 +478,7 @@ if (existingIngredient) {
 
     return inventoryService.consumeStockBatch({
       businessId: input.businessId,
+	  operationId: input.referenceId,
       warehouseId: input.warehouseId,
       currency: input.currency,
       createdBy: input.createdBy,
@@ -554,6 +579,7 @@ if (existingIngredient) {
     input.client,
     {
       businessId: input.businessId,
+	  operationId: input.referenceId,
       warehouseId: input.warehouseId,
       currency: input.currency,
       createdBy: input.createdBy,
@@ -571,6 +597,7 @@ if (existingIngredient) {
 
 return inventoryService.consumeStockBatch({
       businessId: input.businessId,
+	  operationId: input.referenceId,
       warehouseId: input.warehouseId,
       currency: input.currency,
       createdBy: input.createdBy,

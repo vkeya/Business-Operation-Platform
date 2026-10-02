@@ -88,24 +88,61 @@ export const paymentAttemptRepository = {
   },
 
     async updateStatus(
-    businessId: string,
-    id: string,
-    status:
-      | "PENDING"
-      | "PAID"
-      | "FAILED",
-    client: PrismaTransactionClient = prisma,
-  ) {
-    return client.paymentAttempt.updateMany({
+  businessId: string,
+  id: string,
+  status:
+    | "PENDING"
+    | "PAID"
+    | "FAILED",
+  client: PrismaTransactionClient = prisma,
+) {
+  if (status === "PENDING") {
+    throw new Error(
+      "A payment attempt cannot transition back to PENDING.",
+    );
+  }
+
+  const result =
+    await client.paymentAttempt.updateMany({
       where: {
         id,
         businessId,
+        status: "PENDING",
       },
       data: {
         status,
       },
     });
-  },
+
+  if (result.count === 1) {
+    return result;
+  }
+
+  const existing =
+    await client.paymentAttempt.findFirst({
+      where: {
+        id,
+        businessId,
+      },
+      select: {
+        status: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "Payment attempt not found.",
+    );
+  }
+
+  if (existing.status === status) {
+    return result;
+  }
+
+  throw new Error(
+    `Payment attempt cannot transition from ${existing.status} to ${status}.`,
+  );
+},
 
   async updateProviderDetails(
   businessId: string,
