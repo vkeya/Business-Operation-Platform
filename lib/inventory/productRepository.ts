@@ -512,6 +512,7 @@ async listByTypeAndCategory(
       status: "ACTIVE",
     },
     include: {
+	  category: true,
       pharmacyProduct: true,
       sellingUnits: {
         where: {
