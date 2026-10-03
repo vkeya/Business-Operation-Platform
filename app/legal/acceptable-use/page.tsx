@@ -69,7 +69,7 @@ export default function AcceptableUsePolicyPage() {
                 Unauthorized Access
               </h3>
               <p className="mt-2">
-                You must not attempt to access another user's account, business
+                You must not attempt to access another user&apos;s account, business
                 environment, data, credentials, systems, or infrastructure
                 without authorization.
               </p>
@@ -137,7 +137,7 @@ export default function AcceptableUsePolicyPage() {
               </h3>
               <p className="mt-2">
                 You must not use SmatPic to unlawfully collect, disclose,
-                process, sell, or otherwise misuse another person's personal
+                process, sell, or otherwise misuse another person&apos;s personal
                 data.
               </p>
             </div>

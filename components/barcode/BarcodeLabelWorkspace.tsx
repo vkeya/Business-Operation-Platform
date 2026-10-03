@@ -42,12 +42,15 @@ export function BarcodeLabelWorkspace({
   warehouses[0]?.id ?? "",
 );
 
-const [productId, setProductId] = useState<string | null>(null);
+const [productId] = useState<string | null>(() => {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
- useEffect(() => {
   const params = new URLSearchParams(window.location.search);
-  setProductId(params.get("productId"));
-}, []);
+  return params.get("productId");
+});
+
 
   const [selectedProducts, setSelectedProducts] =
   useState<Record<string, number>>({});

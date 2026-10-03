@@ -209,8 +209,8 @@ if (!configuration && !passkey.trim()) {
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              These credentials are used by SmatPic's server to communicate
-              with Safaricom's M-Pesa API.
+              These credentials are used by SmatPic&apos;s server to communicate
+              with Safaricom&apos;s M-Pesa API.
             </p>
           </div>
         </div>
@@ -328,7 +328,7 @@ if (!configuration && !passkey.trim()) {
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
           Use Sandbox while testing. Production should only be enabled
-          after the merchant's Daraja integration has been approved and
+          after the merchant&apos;s Daraja integration has been approved and
           verified.
         </p>
 

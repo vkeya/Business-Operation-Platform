@@ -44,7 +44,7 @@ export default function PaymentRefundPolicyPage() {
             Applicable SmatPic subscription, service, transaction, or other
             charges will be communicated to customers before the relevant
             charge is incurred. Prices may be presented in the currency
-            applicable to the customer's account or transaction.
+            applicable to the customer&apos;s account or transaction.
           </p>
         </section>
 
@@ -55,7 +55,7 @@ export default function PaymentRefundPolicyPage() {
           <p className="mt-3">
             SmatPic may support payment methods and payment providers made
             available through the platform. Available payment methods may vary
-            depending on the customer's location, business configuration, and
+            depending on the customer&apos;s location, business configuration, and
             the services being purchased.
           </p>
         </section>
@@ -66,7 +66,7 @@ export default function PaymentRefundPolicyPage() {
           </h2>
           <p className="mt-3">
             Where M-Pesa or another third-party payment provider is supported,
-            payment processing may involve that provider's systems and terms.
+            payment processing may involve that provider&apos;s systems and terms.
             SmatPic may receive transaction information necessary to confirm,
             reconcile, record, or report payment status.
           </p>
@@ -129,7 +129,7 @@ export default function PaymentRefundPolicyPage() {
             Where SmatPic provides transaction management functionality to a
             business, the business remains responsible for determining whether
             a customer transaction should be refunded, subject to applicable
-            law and the business's own terms.
+            law and the business&apos;s own terms.
           </p>
         </section>
 

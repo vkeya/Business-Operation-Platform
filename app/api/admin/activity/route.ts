@@ -7,6 +7,8 @@ import { requireBusinessPermission } from "@/lib/business/businessPermissionServ
 import { queryAuditEvents } from "@/lib/audit/auditQueryService";
 import { getAdminActivityDashboard } from "@/lib/admin/adminActivityService";
 
+type AuditQueryFilters = Parameters<typeof queryAuditEvents>[0];
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -86,9 +88,9 @@ export async function GET(request: NextRequest) {
         page,
         pageSize,
         action,
-        category: category as any,
-        severity: severity as any,
-        outcome: outcome as any,
+        category: category as AuditQueryFilters["category"],
+        severity: severity as AuditQueryFilters["severity"],
+        outcome: outcome as AuditQueryFilters["outcome"],
         actorId,
         entityType,
         entityId,

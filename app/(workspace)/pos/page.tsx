@@ -206,8 +206,6 @@ export default function PosPage() {
     const trimmedQuery = productQuery.trim();
 
     if (!warehouseId || !trimmedQuery) {
-      setSearchResults([]);
-      setSearchLoading(false);
       return;
     }
 
@@ -262,7 +260,6 @@ export default function PosPage() {
     const trimmedQuery = prescriptionQuery.trim();
 
     if (!trimmedQuery) {
-      setPrescriptionResults([]);
       return;
     }
 
@@ -339,7 +336,6 @@ export default function PosPage() {
 
   useEffect(() => {
     if (!pendingPaymentAttemptId) {
-      setPaymentPolling(false);
       return;
     }
 
@@ -536,7 +532,13 @@ export default function PosPage() {
 
       setPaymentPolling(false);
     };
-  }, [pendingPaymentAttemptId, pendingPaymentSaleId]);
+  }, [
+    pendingPaymentAttemptId,
+    pendingPaymentSaleId,
+    resetCompletedTransaction,
+    resetPaymentSession,
+    PAYMENT_PENDING_TIMEOUT_MS,
+  ]);
 
   const paymentAmountNumber = Number(paymentAmount) || 0;
 

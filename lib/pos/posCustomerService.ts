@@ -7,7 +7,11 @@ export interface PosCustomer {
   email?: string | null;
 }
 
-function toPosCustomer(customer: any): PosCustomer {
+type CustomerSearchResult = Awaited<
+  ReturnType<typeof customerService.searchCustomers>
+>[number];
+
+function toPosCustomer(customer: CustomerSearchResult): PosCustomer {
   return {
     customerId: customer.id,
     name: customer.name,

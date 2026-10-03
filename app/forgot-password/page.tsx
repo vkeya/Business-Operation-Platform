@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
             </h1>
 
             <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-              We'll help you securely recover access to
+              We&apos;ll help you securely recover access to
               your account and get you back to managing
               your business.
             </p>
@@ -176,7 +176,7 @@ export default function ForgotPasswordPage() {
 
                 <p className="mt-4 text-xs leading-5 text-slate-400">
                   The password reset link will expire after
-                  1 hour. If you don't see the email, check
+                  1 hour. If you don&apos;t see the email, check
                   your spam or junk folder.
                 </p>
 
@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
 
                   <p className="mt-3 text-sm leading-6 text-slate-500">
                     Enter the email address associated with
-                    your SmatPic account and we'll send you
+                    your SmatPic account and we&apos;ll send you
                     a secure password reset link.
                   </p>
                 </div>
@@ -279,7 +279,7 @@ export default function ForgotPasswordPage() {
                     <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600" />
 
                     <p className="text-xs leading-5 text-slate-500">
-                      For your security, we'll show the
+                      For your security, we&apos;ll show the
                       same confirmation whether or not an
                       account exists for the email address.
                     </p>

@@ -38,8 +38,6 @@ export default function PosCustomerSelector({
     const trimmedQuery = query.trim();
 
     if (!trimmedQuery) {
-      setCustomers([]);
-      setError("");
       return;
     }
 
@@ -199,7 +197,7 @@ export default function PosCustomerSelector({
           </p>
         )}
 
-      {customers.length > 0 && (
+      {query.trim() && customers.length > 0 && (
         <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
           {customers.map((customer) => (
             <button

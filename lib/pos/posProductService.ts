@@ -60,8 +60,12 @@ export interface PosProduct {
   }>;
 }
 
+type ProductSearchResult = Awaited<
+  ReturnType<typeof productService.searchProducts>
+>[number];
+
 function toPosProduct(
-  product: any,
+  product: ProductSearchResult,
   availableQuantity = 0,
 ): PosProduct {
   return {

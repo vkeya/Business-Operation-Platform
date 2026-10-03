@@ -145,7 +145,9 @@ export default function PrivacyPage() {
   }
 
   useEffect(() => {
-    void loadRequests();
+    queueMicrotask(() => {
+      void loadRequests();
+    });
   }, []);
 
   async function submitRequest(type: RequestType) {

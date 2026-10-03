@@ -168,12 +168,17 @@ export const productService = {
           isolationLevel: "Serializable",
         },
       );
-    } catch (error: any) {
-      if (error?.code === "P2034" && attempt < maxAttempts) {
+    } catch (error: unknown) {
+      const errorCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? error.code
+          : undefined;
+
+      if (errorCode === "P2034" && attempt < maxAttempts) {
         continue;
       }
 
-      if (error?.code === "P2002") {
+      if (errorCode === "P2002") {
         const existingOperation =
           await prisma.operationRequest.findUnique({
             where: {
@@ -421,8 +426,13 @@ if (existingSellingUnit) {
     name,
     unit: normalizedUnit,
   });
-} catch (error: any) {
-  if (error?.code === "P2002") {
+} catch (error: unknown) {
+  const errorCode =
+    typeof error === "object" && error !== null && "code" in error
+      ? error.code
+      : undefined;
+
+  if (errorCode === "P2002") {
     throw new Error(
       "This selling unit already exists for this product.",
     );

@@ -32,11 +32,13 @@ export default function VerifyEmailPage() {
 
  useEffect(() => {
   if (!token) {
-    setState("error");
-    setMessage(
-      "This verification link is incomplete or invalid.",
-    );
-    return;
+    queueMicrotask(() => {
+      setState("error");
+      setMessage(
+        "This verification link is incomplete or invalid.",
+      );
+    });
+return;
   }
 
   const verificationToken = token;
@@ -212,7 +214,7 @@ export default function VerifyEmailPage() {
 
                         <div>
                           <p className="text-sm font-semibold text-slate-900">
-                            You're all set
+                            You&apos;re all set
                           </p>
 
                           <p className="mt-1 text-sm leading-6 text-slate-600">

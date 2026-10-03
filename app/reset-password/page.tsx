@@ -34,10 +34,12 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      setState("error");
-      setMessage(
-        "This password reset link is incomplete or invalid.",
-      );
+      queueMicrotask(() => {
+        setState("error");
+        setMessage(
+          "This password reset link is incomplete or invalid.",
+        );
+      });
     }
   }, [token]);
 
