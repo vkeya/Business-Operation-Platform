@@ -24,9 +24,67 @@ const dancingScript = Dancing_Script({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "SmatPic",
+  metadataBase: new URL("https://www.smatpic.com"),
+  title: {
+    default: "SmatPic | Business Operations Platform",
+    template: "%s | SmatPic",
+  },
   description:
-    "Business operations, tailored to your business.",
+    "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+  applicationName: "SmatPic",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: "https://www.smatpic.com/",
+    siteName: "SmatPic",
+    title: "SmatPic | Business Operations Platform",
+    description:
+      "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+    locale: "en",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SmatPic | Business Operations Platform",
+    description:
+      "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+  },
+  icons: {
+    icon: "/smatpic-icon.png",
+  },
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.smatpic.com/#organization",
+      name: "SmatPic",
+      url: "https://www.smatpic.com/",
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.smatpic.com/#website",
+      name: "SmatPic",
+      url: "https://www.smatpic.com/",
+      publisher: {
+        "@id": "https://www.smatpic.com/#organization",
+      },
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://www.smatpic.com/#application",
+      name: "SmatPic",
+      url: "https://www.smatpic.com/",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      publisher: {
+        "@id": "https://www.smatpic.com/#organization",
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -39,10 +97,14 @@ export default function RootLayout({
       <body className={nunito.variable}>
         {children}
       </body>
-    <Analytics />
-
-		<SpeedInsights />
-
+      <Analytics />
+      <SpeedInsights />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
     </html>
   );
 }

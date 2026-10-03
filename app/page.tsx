@@ -297,6 +297,82 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="relative z-10 border-y border-slate-200/70 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="max-w-2xl">
+            <p className="eyebrow">
+              Explore SmatPic
+            </p>
+
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+              Find the tools and solutions that fit your business.
+            </h2>
+
+            <p className="mt-5 text-base leading-7 text-slate-600">
+              Explore how SmatPic connects everyday business operations,
+              from sales and inventory to purchasing and industry-specific
+              workflows.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ExploreLink
+              href="/business-management-software"
+              title="Business Management Software"
+              description="Bring everyday business operations into one connected workspace."
+            />
+
+            <ExploreLink
+              href="/pos-system"
+              title="POS System"
+              description="Connect sales, payments, inventory, and receipts."
+            />
+
+            <ExploreLink
+              href="/inventory-management"
+              title="Inventory Management"
+              description="Manage products, stock levels, and stock movement."
+            />
+
+            <ExploreLink
+              href="/sales-management"
+              title="Sales & Payment Management"
+              description="Keep sales, payments, customers, and inventory connected."
+            />
+
+            <ExploreLink
+              href="/purchasing-management"
+              title="Purchasing & Supplier Management"
+              description="Manage purchasing and supplier activity alongside stock."
+            />
+
+            <ExploreLink
+              href="/solutions/pharmacy"
+              title="Pharmacy Management"
+              description="Explore pharmacy products, medicines, prescriptions, and batches."
+            />
+
+            <ExploreLink
+              href="/solutions/supermarket"
+              title="Supermarket Management"
+              description="Connect supermarket POS, products, inventory, and purchasing."
+            />
+
+            <ExploreLink
+              href="/solutions/retail"
+              title="Retail & Shop Management"
+              description="Manage retail sales, products, stock, suppliers, and payments."
+            />
+
+            <ExploreLink
+              href="/solutions/boutique"
+              title="Boutique Management"
+              description="Connect boutique products, inventory, sales, and purchasing."
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:px-10">
         <div className="max-w-2xl">
           <p className="eyebrow">
@@ -447,6 +523,40 @@ function FeatureCard({
         {description}
       </p>
     </article>
+  );
+}
+
+function ExploreLink({
+  href,
+  title,
+  description,
+}: {
+  href: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-extrabold text-slate-950">
+            {title}
+          </h3>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {description}
+          </p>
+        </div>
+
+        <ArrowRight
+          size={17}
+          className="mt-0.5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-600"
+        />
+      </div>
+    </Link>
   );
 }
 
