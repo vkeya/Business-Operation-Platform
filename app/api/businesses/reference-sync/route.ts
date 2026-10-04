@@ -8,6 +8,8 @@ import {
 } from "@/lib/business/reference/referenceSynchronizer";
 import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
 
 export async function GET() {
   try {
@@ -189,7 +191,7 @@ export async function POST() {
     const context =
       await getCurrentBusinessContext();
 
-	  await requireBusinessPermission(
+	  await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "inventory.manage",
@@ -265,7 +267,10 @@ const duplicateBarcodes =
     });
   } catch (error) {
 
-	  if (error instanceof BusinessPermissionError) {
+	  if (
+  error instanceof BusinessPermissionError ||
+  error instanceof SubscriptionEntitlementError
+) {
   return NextResponse.json(
     { error: error.message },
     { status: error.statusCode },

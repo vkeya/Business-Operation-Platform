@@ -8,6 +8,7 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import { productCategoryService } from "@/lib/inventory/productCategoryService";
 import type { CreateProductInput } from "@/lib/inventory/productRepository";
 import type { CreateProductCategoryInput } from "@/lib/inventory/productCategoryRepository";
@@ -25,7 +26,7 @@ export async function createServiceAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -118,7 +119,7 @@ export async function createServiceCategoryAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -143,7 +144,7 @@ export async function updateServiceCategoryAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",

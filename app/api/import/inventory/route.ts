@@ -3,6 +3,8 @@ import { requireBusinessPermission } from "@/lib/business/businessPermissionServ
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { executeInventoryImportTransaction } from "@/lib/import/services/inventoryTransactionService";
 import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
 
 interface InventoryImportRequest {
   rows?: Array<{
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
     const businessContext =
   await getCurrentBusinessContext();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   businessContext.user.id,
   businessContext.business.id,
   "inventory.manage",
@@ -57,7 +59,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-	  if (error instanceof BusinessPermissionError) {
+	  if (
+  error instanceof BusinessPermissionError ||
+  error instanceof SubscriptionEntitlementError
+) {
   return NextResponse.json(
     { error: error.message },
     { status: error.statusCode },

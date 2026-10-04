@@ -12,9 +12,11 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import type {
   CreatePurchaseInput,
 } from "@/lib/purchase/purchaseRepository";
+
 import type {
   CreatePurchasePaymentInput,
 } from "@/lib/payment/paymentRepository";
@@ -39,7 +41,7 @@ export async function createPurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "purchases.manage",
@@ -283,7 +285,7 @@ export async function orderPurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "purchases.manage",
@@ -311,11 +313,11 @@ export async function receivePurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
-  await requireBusinessPermission(
-    context.user.id,
-    context.business.id,
-    "purchases.manage",
-  );
+  await requireBusinessOperationAccess(
+  context.user.id,
+  context.business.id,
+  "purchases.manage",
+);
 
   return purchaseService.receivePurchase(
     context.business.id,
@@ -341,7 +343,7 @@ export async function cancelPurchaseAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "purchases.manage",
@@ -380,7 +382,7 @@ export async function createPurchasePaymentAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "purchases.manage",

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/database/prisma";
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
@@ -24,7 +25,7 @@ export async function createProductAction(
   const userId =
   await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -78,7 +79,7 @@ export async function updateProductAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -105,7 +106,7 @@ export async function createProductSellingUnitAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -128,7 +129,7 @@ export async function deleteProductsAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -223,7 +224,7 @@ export async function restoreProductsAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",

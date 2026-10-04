@@ -7,6 +7,7 @@ import {
   taxConfigurationService,
   type TaxConfiguration,
 } from "@/lib/tax/taxConfigurationService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function getTaxConfigurationAction(): Promise<TaxConfiguration> {
   const business = await getCurrentBusiness();
@@ -27,11 +28,11 @@ export async function updateTaxConfigurationAction(
   const business = await getCurrentBusiness();
   const userId = await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
-    userId,
-    business.id,
-    "business.update",
-  );
+  await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "business.update",
+);
 
   return taxConfigurationService.update(
     business.id,

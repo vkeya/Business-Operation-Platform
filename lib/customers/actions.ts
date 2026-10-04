@@ -10,6 +10,7 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import type { CreateCustomerInput } from "./customerRepository";
 
 export async function createCustomerAction(
@@ -22,7 +23,7 @@ export async function createCustomerAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -106,7 +107,7 @@ export async function updateCustomerAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -128,7 +129,7 @@ export async function updateCustomerStatusAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",

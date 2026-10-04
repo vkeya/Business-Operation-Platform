@@ -7,6 +7,8 @@ import { authOptions } from "@/lib/auth/auth";
 import { requireBusinessContext } from "@/lib/business/businessContext";
 import { saleReturnService } from "@/lib/sales/saleReturnService";
 import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
 
 export async function POST(
   request: Request,
@@ -44,7 +46,7 @@ const context =
         : undefined,
   });
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   context.userId,
   context.businessId,
   "sales.manage",
@@ -93,7 +95,10 @@ const context =
     );
   } catch (error) {
 
-	  if (error instanceof BusinessPermissionError) {
+	  if (
+  error instanceof BusinessPermissionError ||
+  error instanceof SubscriptionEntitlementError
+) {
   return NextResponse.json(
     { error: error.message },
     { status: error.statusCode },

@@ -7,6 +7,7 @@ import { productService } from "@/lib/inventory/productService";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
@@ -95,7 +96,7 @@ export async function receiveStockAction(input: {
   const userId =
   await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -170,7 +171,7 @@ export async function transferStockAction(input: {
 	const userId =
   await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -205,7 +206,7 @@ export async function adjustStockAction(input: {
   const userId =
   await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",

@@ -7,6 +7,8 @@ import {
   requireBusinessPermission,
   BusinessPermissionError,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
 import {
   SupermarketAccessError,
 } from "@/lib/supermarket/supermarketAccessService";
@@ -67,11 +69,11 @@ export async function PUT(
     const context =
       await getCurrentBusinessContext();
 
-    await requireBusinessPermission(
-      context.user.id,
-      context.business.id,
-      "settings.manage",
-    );
+    await requireBusinessOperationAccess(
+  context.user.id,
+  context.business.id,
+  "settings.manage",
+);
 
     const body = await request.json();
 
@@ -159,9 +161,10 @@ export async function PUT(
     });
   } catch (error) {
     if (
-      error instanceof BusinessPermissionError ||
-      error instanceof SupermarketAccessError
-    ) {
+  error instanceof BusinessPermissionError ||
+  error instanceof SubscriptionEntitlementError ||
+  error instanceof SupermarketAccessError
+) {
       return NextResponse.json(
         { error: error.message },
         { status: error.statusCode },

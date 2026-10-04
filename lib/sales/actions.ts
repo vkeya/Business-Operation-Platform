@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import { mpesaPaymentService } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
 import {
   requireBusinessPermission,
@@ -32,7 +33,7 @@ export async function createSaleAction(
 const userId =
   await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -119,7 +120,7 @@ export async function updateSaleStatusAction(
 	const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -141,7 +142,7 @@ export async function cancelSaleAction(
 	const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -162,7 +163,7 @@ export async function reverseSaleAction(
 	const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -183,7 +184,7 @@ export async function completeSaleAction(
 	const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "sales.manage",
@@ -229,7 +230,7 @@ export async function createSalePaymentAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "payments.manage",
@@ -250,7 +251,7 @@ export async function initiateMpesaSalePaymentAction(input: {
   const business = await getCurrentBusiness();
   const userId = await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
+  await requireBusinessOperationAccess(
   userId,
   business.id,
   "payments.manage",

@@ -10,6 +10,7 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function getJournalEntriesAction() {
   const business =
@@ -41,11 +42,11 @@ export async function createJournalEntryAction(
 	const userId =
     await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
-    userId,
-    business.id,
-    "accounting.manage",
-  );
+  await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "accounting.manage",
+);
 
   return journalService.create({
     ...input,

@@ -8,6 +8,7 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function getSuppliersAction() {
   const business = await getCurrentBusiness();
@@ -63,7 +64,7 @@ export async function createSupplierAction(
   const userId =
   await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "purchases.manage",

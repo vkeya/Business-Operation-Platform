@@ -97,6 +97,12 @@ export const postgresBusinessRepository: BusinessRepository = {
   setup: BusinessSetup,
   userId: string,
 ) {
+
+	const trialStartedAt = new Date();
+
+    const trialEndsAt = new Date(trialStartedAt);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
     const business = await prisma.business.create({
       data: {
         name: setup.business.name,
@@ -105,6 +111,17 @@ export const postgresBusinessRepository: BusinessRepository = {
         baseCurrency: setup.business.baseCurrency,
         language: setup.business.language,
         timezone: setup.business.timezone,
+
+		subscription: {
+      create: {
+        plan: "FREE_TRIAL",
+        status: "TRIALING",
+        trialStartedAt: new Date(),
+        trialEndsAt: new Date(
+          Date.now() + 14 * 24 * 60 * 60 * 1000,
+        ),
+      },
+    },
 
 		taxConfiguration: {
   create: {

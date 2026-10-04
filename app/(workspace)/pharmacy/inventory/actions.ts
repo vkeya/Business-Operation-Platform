@@ -4,6 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import {
   getCurrentBusiness,
 } from "@/lib/business/currentBusiness";
@@ -31,11 +32,11 @@ export async function adjustPharmacyBatchAction(
   const userId =
     await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
-    userId,
-    business.id,
-    "pharmacy.batch_adjust",
-  );
+  await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "pharmacy.batch_adjust",
+);
 
   if (
     !Number.isFinite(input.quantity) ||

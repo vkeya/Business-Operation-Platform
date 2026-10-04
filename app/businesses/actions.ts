@@ -11,6 +11,7 @@ import {
 import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 const businessService = createBusinessService(
   postgresBusinessRepository,
@@ -31,11 +32,11 @@ export async function ensureCurrentBoutiqueCategoriesAction() {
   const userId =
     await getAuthenticatedUserId();
 
-    await requireBusinessPermission(
-    userId,
-    business.id,
-    "inventory.manage",
-  );
+    await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "inventory.manage",
+);
 
   if (business.type !== "boutique") {
     throw new Error(

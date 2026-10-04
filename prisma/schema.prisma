@@ -53,6 +53,8 @@ model Business {
   suppliers           Supplier[]
   warehouses          Warehouse[]
 
+  subscription BusinessSubscription?
+
   pharmacyProfile PharmacyProfile?
 
   supermarketProfile SupermarketProfile?
@@ -63,6 +65,24 @@ model Business {
   pharmacyControlledDispensingRecords PharmacyControlledDispensingRecord[]
 
   @@index([status])
+}
+
+model BusinessSubscription {
+  id             String             @id @default(cuid())
+  businessId     String             @unique
+  plan           SubscriptionPlan
+  status         SubscriptionStatus
+  trialStartedAt DateTime?
+  trialEndsAt    DateTime?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([trialEndsAt])
 }
 
 model PharmacyProfile {
@@ -624,19 +644,19 @@ model Product {
 }
 
 model ProductSellingUnit {
-  id           String     @id @default(cuid())
-  productId    String
-  name         String
-  quantity     Decimal    @db.Decimal(18, 4)
-  unit         String
-  conversionQuantity Decimal? @db.Decimal(18, 4)
+  id                 String     @id @default(cuid())
+  productId          String
+  name               String
+  quantity           Decimal    @db.Decimal(18, 4)
+  unit               String
+  conversionQuantity Decimal?   @db.Decimal(18, 4)
   conversionUnit     String?
-  sellingPrice Decimal    @db.Decimal(18, 4)
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  saleItems    SaleItem[]
+  sellingPrice       Decimal    @db.Decimal(18, 4)
+  isActive           Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  product            Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  saleItems          SaleItem[]
 
   @@unique([productId, name, quantity, unit])
   @@index([productId])
@@ -1588,4 +1608,18 @@ enum InventoryContainerStatus {
   OPEN
   EMPTY
   DISPOSED
+}
+
+enum SubscriptionPlan {
+  FREE_TRIAL
+  STARTER
+  PROFESSIONAL
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }

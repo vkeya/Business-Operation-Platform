@@ -16,6 +16,7 @@ import {
   getAuthenticatedUserId,
 } from "@/lib/auth/auth";
 import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function createRestaurantMenuAction(
   input: Omit<
@@ -28,7 +29,7 @@ export async function createRestaurantMenuAction(
 
 	const userId = await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -68,7 +69,7 @@ export async function createRestaurantMenuItemAction(
 
 	const userId = await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -144,7 +145,7 @@ export async function createRestaurantRecipeAction(
 
   const userId = await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -197,7 +198,7 @@ export async function addRestaurantRecipeIngredientAction(
 
   const userId = await getAuthenticatedUserId();
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",
@@ -234,7 +235,7 @@ export async function consumeRestaurantRecipeStockAction(
 
 
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   userId,
   business.id,
   "inventory.manage",

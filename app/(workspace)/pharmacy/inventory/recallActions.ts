@@ -4,6 +4,7 @@ import { getAuthenticatedUserId } from "@/lib/auth/auth";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 import { pharmacyBatchRecallService } from "@/lib/pharmacy/stock/pharmacyBatchRecallService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function recallPharmacyBatchAction(input: {
   pharmacyBatchId: string;
@@ -13,11 +14,11 @@ export async function recallPharmacyBatchAction(input: {
   const business = await getCurrentBusiness();
   const userId = await getAuthenticatedUserId();
 
-  await requireBusinessPermission(
-    userId,
-    business.id,
-    "pharmacy.batch_recall",
-  );
+  await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "pharmacy.batch_recall",
+);
 
   if (!input.pharmacyBatchId) {
     throw new Error("Pharmacy batch is required.");

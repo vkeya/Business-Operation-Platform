@@ -6,7 +6,7 @@ import {
 import {
   expenseService,
 } from "@/lib/expenses/expenseService";
-
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
@@ -23,7 +23,7 @@ export async function createExpenseAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "expenses.manage",
@@ -99,7 +99,7 @@ export async function updateExpensePaymentStatusAction(
   const context =
     await getCurrentBusinessContext();
 
-	await requireBusinessPermission(
+	await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "expenses.manage",

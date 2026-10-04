@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import {
-  requireBusinessPermission,
-} from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { executePosCheckout } from "@/lib/pos/posCheckoutAdapter";
 import { recordAuditEvent } from "@/lib/audit/auditService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
 import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
 import type { PosCheckoutRequest } from "@/lib/pos/posTypes";
 
@@ -17,7 +16,7 @@ export async function POST(request: Request) {
   try {
     context = await getCurrentBusinessContext();;
 
-await requireBusinessPermission(
+await requireBusinessOperationAccess(
   context.user.id,
   context.business.id,
   "sales.manage",
@@ -123,7 +122,10 @@ try {
       status: 201,
     });
       } catch (error) {
-    if (error instanceof BusinessPermissionError) {
+    if (
+        error instanceof BusinessPermissionError ||
+        error instanceof SubscriptionEntitlementError
+      ) {
       return NextResponse.json(
         { error: error.message },
         { status: error.statusCode },

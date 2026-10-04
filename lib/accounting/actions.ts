@@ -10,6 +10,7 @@ import {
 import {
   requireBusinessPermission,
 } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 
 export async function getAccountsAction() {
   const business =
@@ -37,11 +38,11 @@ export async function initializeAccountsAction() {
 	const userId =
     await getAuthenticatedUserId();
 
-	await requireBusinessPermission(
-    userId,
-    business.id,
-    "accounting.manage",
-  );
+	await requireBusinessOperationAccess(
+  userId,
+  business.id,
+  "accounting.manage",
+);
 
   await accountService.createDefaultAccounts(
     business.id,
