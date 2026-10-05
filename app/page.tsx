@@ -103,7 +103,7 @@ export default async function HomePage() {
               href="/register"
               className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700"
             >
-              Get started
+              Start free trial
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -140,10 +140,10 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
+              <Benefit label="14-day free trial" />
+
               <Benefit label="One connected workspace" />
-
-              <Benefit label="Built around your business" />
-
+              
               <Benefit label="Ready to grow with you" />
             </div>
 
@@ -152,9 +152,13 @@ export default async function HomePage() {
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-7 py-4 text-sm font-extrabold text-white shadow-xl shadow-violet-600/20 transition hover:-translate-y-0.5 hover:bg-violet-700"
               >
-                Start with SmatPic
+                Start your 14-day free trial
                 <ArrowRight size={18} />
               </Link>
+			  
+			  <p className="mt-3 text-xs font-medium text-slate-500">
+                Create your account, set up your business, and your 14-day trial starts automatically.
+              </p>
 
               <Link
                 href="/login"
@@ -433,7 +437,7 @@ export default async function HomePage() {
               href="/register"
               className="mt-9 inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-extrabold text-slate-950 transition hover:bg-violet-50"
             >
-              Create your workspace
+              Start your 14-day free trial
               <ArrowRight size={18} />
             </Link>
           </div>
