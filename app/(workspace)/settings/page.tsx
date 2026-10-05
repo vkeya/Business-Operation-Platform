@@ -80,6 +80,17 @@ export default async function SettingsPage() {
   icon: CreditCard,
   iconLabel: "04",
 },
+
+{
+  title: "Subscription",
+  description:
+    "Manage your SmatPic plan, trial status, and subscription.",
+  href: "/settings/subscription",
+  action: "Manage subscription",
+  icon: CreditCard,
+  iconLabel: "05",
+},
+
     {
       title: "Users & Access",
       description:
@@ -87,7 +98,7 @@ export default async function SettingsPage() {
       href: "/settings/users",
       action: "Manage access",
       icon: Users,
-      iconLabel: "05",
+      iconLabel: "06",
     },
 
 	...(canReadAudit
@@ -99,7 +110,7 @@ export default async function SettingsPage() {
             href: "/settings/security/activity",
             action: "View activity",
             icon: ClipboardList,
-            iconLabel: "06",
+            iconLabel: "07",
           },
         ]
       : []),
@@ -111,7 +122,7 @@ export default async function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "07",
+      iconLabel: "08",
     },
 
 	{
@@ -121,7 +132,7 @@ export default async function SettingsPage() {
   href: "/privacy",
   action: "Manage privacy",
   icon: ShieldCheck,
-  iconLabel: "08",
+  iconLabel: "09",
 },
 {
   title: "Legal & Compliance",
@@ -130,7 +141,7 @@ export default async function SettingsPage() {
   href: "/legal",
   action: "View legal documents",
   icon: FileText,
-  iconLabel: "09",
+  iconLabel: "10",
 },
   ];
 

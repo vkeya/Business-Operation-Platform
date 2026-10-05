@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getBusinessSubscription } from "@/lib/subscription/subscriptionEntitlementService";
 import { getDashboardMetrics } from "@/lib/dashboard/dashboardMetrics";
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
@@ -81,7 +82,8 @@ function formatActivityDate(date: Date) {
 
 export default async function DashboardPage() {
   const business = await getCurrentBusiness();
-  
+  const subscription = await getBusinessSubscription(business.id);
+
   const locale = await getLocale();
   const t = getTranslations(locale);
 
@@ -297,6 +299,37 @@ const lowStockBalanceCount =
     metrics.lowStockItems === 0
       ? t.dashboard.stockAvailable
       : t.dashboard.noAvailableStock;
+
+  const now = new Date();
+
+  const trialEndsAt = subscription?.trialEndsAt
+    ? new Date(subscription.trialEndsAt)
+    : null;
+
+  const trialDaysRemaining =
+    subscription?.status === "TRIALING" && trialEndsAt
+      ? Math.max(
+          0,
+          Math.ceil(
+            (trialEndsAt.getTime() - now.getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : null;
+
+  const isTrialing =
+    subscription?.status === "TRIALING" &&
+    trialDaysRemaining !== null &&
+    trialDaysRemaining > 0;
+
+  const trialUrgency =
+    trialDaysRemaining === null
+      ? "normal"
+      : trialDaysRemaining <= 1
+        ? "urgent"
+        : trialDaysRemaining <= 3
+          ? "warning"
+          : "normal";
 	  
   const businessAlertCount =
   (metrics.lowStockItems > 0 ? 1 : 0) +
@@ -367,6 +400,44 @@ const businessAlertPriority =
               {inventoryStatusLabel}
             </span>
           </div>
+
+          {isTrialing && trialDaysRemaining !== null && (
+            <div
+              className={`mt-5 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border px-4 py-2.5 text-xs ${
+                trialUrgency === "urgent"
+                  ? "border-red-400/20 bg-red-400/10 text-red-100"
+                  : trialUrgency === "warning"
+                    ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
+                    : "border-violet-400/20 bg-violet-400/10 text-violet-100"
+              }`}
+            >
+              <span className="font-bold">
+                {trialDaysRemaining}{" "}
+                {trialDaysRemaining === 1 ? "day" : "days"} remaining
+              </span>
+
+              {trialEndsAt && (
+                <>
+                  <span className="text-white/30">•</span>
+                  <span>
+                    Trial ends{" "}
+                    {trialEndsAt.toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </>
+              )}
+
+              <Link
+                href="/settings/subscription"
+                className="font-semibold text-white underline-offset-4 hover:underline"
+              >
+                View subscription
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
