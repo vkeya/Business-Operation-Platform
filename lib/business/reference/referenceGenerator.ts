@@ -19,7 +19,8 @@ export type BusinessReferenceType =
   | "PAYMENT_REFUND"
   | "EXPENSE"
   | "JOURNAL_ENTRY"
-  | "INVENTORY_MOVEMENT";
+  | "INVENTORY_MOVEMENT"
+  | "BILLING_INVOICE";
 
 export interface GenerateReferenceInput {
   businessId: string;

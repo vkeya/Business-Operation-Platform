@@ -1,0 +1,2 @@
+ALTER TYPE "BusinessReferenceType"
+ADD VALUE 'BILLING_INVOICE';

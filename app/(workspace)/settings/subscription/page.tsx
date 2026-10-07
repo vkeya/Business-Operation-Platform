@@ -7,6 +7,7 @@ import {
   CreditCard,
   ShieldCheck,
 } from "lucide-react";
+import SubscriptionPlanManager from "./SubscriptionPlanManager";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { getBusinessSubscription } from "@/lib/subscription/subscriptionEntitlementService";
 
@@ -230,9 +231,10 @@ export default async function SubscriptionSettingsPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Plan selection and payment processing will be enabled here when
-            subscription billing is connected.
-          </p>
+           Choose a plan and continue securely with M-Pesa or card payment.
+         </p>
+
+         <SubscriptionPlanManager />
         </div>
       </section>
 

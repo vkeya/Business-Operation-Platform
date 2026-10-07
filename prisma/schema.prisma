@@ -55,6 +55,9 @@ model Business {
 
   subscription BusinessSubscription?
 
+  billingInvoices BillingInvoice[]
+  billingPayments BillingPayment[]
+
   pharmacyProfile PharmacyProfile?
 
   supermarketProfile SupermarketProfile?
@@ -76,13 +79,165 @@ model BusinessSubscription {
   trialEndsAt    DateTime?
   startedAt      DateTime?
   endedAt        DateTime?
+
+  billingCycle       BillingCycle?
+  billingCurrency String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  nextBillingDate    DateTime?
+  cancelAtPeriodEnd  Boolean      @default(false)
+
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  invoices  BillingInvoice[]
+  addOns    BusinessSubscriptionAddOn[]
+
   @@index([status])
   @@index([trialEndsAt])
+}
+
+model BillingInvoice {
+  id             String               @id @default(cuid())
+  businessId     String
+  subscriptionId String
+
+  invoiceNumber String
+  status        BillingInvoiceStatus @default(DRAFT)
+
+  plan        SubscriptionPlan
+  billingCycle BillingCycle
+
+  type BillingInvoiceType
+
+  currency String
+
+  subtotal    Decimal @db.Decimal(18, 4)
+  taxAmount   Decimal @db.Decimal(18, 4)
+  totalAmount Decimal @db.Decimal(18, 4)
+  amountPaid  Decimal @default(0) @db.Decimal(18, 4)
+  amountDue   Decimal @db.Decimal(18, 4)
+
+  issuedAt DateTime?
+  dueAt    DateTime?
+  paidAt   DateTime?
+
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subscription BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  items    BillingInvoiceItem[]
+  payments BillingPayment[]
+
+  @@unique([businessId, invoiceNumber])
+  @@index([businessId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([createdAt])
+}
+
+model BillingInvoiceItem {
+  id        String @id @default(cuid())
+  invoiceId String
+
+  description String
+
+  quantity  Decimal @default(1) @db.Decimal(18, 4)
+  unitPrice Decimal @db.Decimal(18, 4)
+
+  taxRate   Decimal @default(0) @db.Decimal(8, 4)
+  taxAmount Decimal @default(0) @db.Decimal(18, 4)
+
+  totalAmount Decimal @db.Decimal(18, 4)
+
+  createdAt DateTime @default(now())
+
+  invoice BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model BillingPayment {
+  id        String @id @default(cuid())
+  businessId String
+  invoiceId  String
+
+  amount   Decimal @db.Decimal(18, 4)
+  currency String
+
+  status BillingPaymentStatus @default(PENDING)
+
+  provider          String
+  providerReference String?
+  providerResponse Json?
+
+  failureReason String?
+
+  initiatedAt  DateTime  @default(now())
+  processedAt  DateTime?
+  failedAt     DateTime?
+  cancelledAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invoice  BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([provider])
+  @@index([providerReference])
+  @@index([createdAt])
+}
+
+model SubscriptionAddOn {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  billingType SubscriptionAddOnBillingType
+  active      Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions BusinessSubscriptionAddOn[]
+
+  @@index([active])
+}
+
+model BusinessSubscriptionAddOn {
+  id                    String   @id @default(cuid())
+  businessSubscriptionId String
+  addOnCode             String
+  quantity              Int      @default(1)
+  status                SubscriptionAddOnStatus
+  startedAt             DateTime @default(now())
+  endedAt               DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription BusinessSubscription @relation(fields: [businessSubscriptionId],references: [id],onDelete: Cascade)
+
+  addOn SubscriptionAddOn @relation(fields: [addOnCode],references: [code])
+
+  @@unique([businessSubscriptionId, addOnCode])
+  @@index([businessSubscriptionId])
+  @@index([addOnCode])
+  @@index([status])
 }
 
 model PharmacyProfile {
@@ -1525,6 +1680,7 @@ enum BusinessReferenceType {
   INVENTORY_MOVEMENT
   PHARMACY_PRESCRIPTION
   PHARMACY_CONTROLLED_DISPENSING
+  BILLING_INVOICE
 }
 
 enum ProductPriceType {
@@ -1610,6 +1766,17 @@ enum InventoryContainerStatus {
   DISPOSED
 }
 
+enum SubscriptionAddOnBillingType {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionAddOnStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
 enum SubscriptionPlan {
   FREE_TRIAL
   STARTER
@@ -1622,4 +1789,32 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum BillingInvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  PARTIALLY_PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum BillingPaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum BillingInvoiceType {
+  SUBSCRIPTION_PURCHASE
+  SUBSCRIPTION_RENEWAL
 }
