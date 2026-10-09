@@ -340,7 +340,7 @@ const pharmacyItems: Array<{
         tx,
         {
           businessId,
-		  operationId: resolvedOperationId,
+		  operationId: `INVENTORY_CONSUMPTION_BATCH:${sale.id}`,
           warehouseId: sale.warehouseId,
           currency: sale.currency,
           createdBy: sale.createdBy,
