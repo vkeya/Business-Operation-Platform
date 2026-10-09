@@ -41,6 +41,9 @@ import {
 import {
   mpesaPaymentService,
 } from "@/lib/payment/providers/mpesa/mpesaPaymentService";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -678,7 +681,7 @@ inventoryQuantity =
             input.businessId,
 
 		  operationId:
-		    input.operationId,
+           `INVENTORY_CONSUMPTION_BATCH:${input.operationId}`,
 
           warehouseId:
             input.warehouseId,
@@ -755,8 +758,7 @@ async function findExistingCheckoutOperation(
       businessId_operationId: {
         businessId:
           input.businessId,
-        operationId:
-           `SALE_PAYMENT:${input.operationId}`,
+        operationId: input.operationId,
       },
     },
   });
@@ -841,7 +843,7 @@ if (existingOperation) {
     };
   }
 
-  if (input.payment.method === "MPESA") {
+    if (input.payment.method === "MPESA") {
     const existingPaymentAttempt =
       await paymentAttemptService.findBySaleId(
         input.businessId,
@@ -849,17 +851,29 @@ if (existingOperation) {
       );
 
     if (existingPaymentAttempt) {
-      return {
-        sale: existingSale,
-        paymentAttempt: {
-  attemptId: existingPaymentAttempt.id,
-  status: "PENDING",
-  providerReference:
-    existingPaymentAttempt.providerReference ?? null,
-  message:
-    "Existing M-Pesa payment request is still pending.",
-},
-      };
+      if (existingPaymentAttempt.status === "PENDING") {
+        return {
+          sale: existingSale,
+          paymentAttempt: {
+            attemptId: existingPaymentAttempt.id,
+            status: "PENDING",
+            providerReference:
+              existingPaymentAttempt.providerReference ?? null,
+            message:
+              "Existing M-Pesa payment request is still pending.",
+          },
+        };
+      }
+
+      if (existingPaymentAttempt.status === "PAID") {
+        throw new Error(
+          "M-Pesa payment is marked PAID, but no sale payment record was found.",
+        );
+      }
+
+      throw new Error(
+        `The existing M-Pesa payment attempt is ${existingPaymentAttempt.status}. Check its status before retrying checkout.`,
+      );
     }
   }
 
@@ -875,6 +889,17 @@ if (existingOperation) {
     calculatedTaxAmount,
     calculatedTotalAmount,
   } = await calculateCheckoutTax(input);
+
+  // A pending M-Pesa checkout does not count as a completed sale.
+  // This preflight prevents starting a checkout when the monthly allowance
+  // is already exhausted. The final authoritative check belongs at the
+  // callback/completion boundary that changes the sale to COMPLETED.
+  if (input.payment.method === "MPESA") {
+    await requireWithinSubscriptionLimit({
+      businessId: input.businessId,
+      limit: "monthly_sales_transactions",
+    });
+  }
 
   /*
    * M-Pesa is asynchronous.
@@ -1061,6 +1086,8 @@ if (!sale) {
             input.createdBy,
         });
 
+
+
       return {
         sale,
         paymentAttempt: {
@@ -1071,8 +1098,8 @@ if (!sale) {
             "PENDING",
 
           providerReference:
-  paymentAttempt.providerReference ??
-  null,
+           paymentAttempt.providerReference ??
+           null,
 
           message:
             paymentAttempt.message,
@@ -1092,8 +1119,9 @@ if (!sale) {
   /*
    * Existing synchronous POS payment flow.
    */
-  return prisma.$transaction(
-  async (tx) => {
+    try {
+    return await prisma.$transaction(
+      async (tx) => {
     const operation =
       await tx.operationRequest.create({
         data: {
@@ -1104,6 +1132,11 @@ if (!sale) {
           createdBy: input.createdBy,
         },
       });
+
+    await requireWithinSubscriptionLimit({
+      businessId: input.businessId,
+      limit: "monthly_sales_transactions",
+    });
 
     const sale =
       await createPosSale(
@@ -1164,6 +1197,24 @@ if (!sale) {
           tx,
         );
 
+		await tx.operationRequest.update({
+          where: {
+            businessId_operationId: {
+              businessId: input.businessId,
+              operationId: input.operationId,
+            },
+          },
+          data: {
+            status: "COMPLETED",
+            entityType: "SALE",
+            entityId: completedSale.id,
+            response: {
+              saleId: completedSale.id,
+              status: completedSale.status,
+            },
+          },
+        });
+
       return {
         sale:
           completedSale,
@@ -1178,4 +1229,54 @@ if (!sale) {
   },
 
   );
+}catch (error) {
+    if (
+      !error ||
+      typeof error !== "object" ||
+      !("code" in error) ||
+      error.code !== "P2002"
+    ) {
+      throw error;
+    }
+
+    const existingOperation =
+      await findExistingCheckoutOperation(input);
+
+    if (
+      !existingOperation ||
+      existingOperation.operation !== "POS_CHECKOUT" ||
+      existingOperation.status !== "COMPLETED" ||
+      !existingOperation.entityId
+    ) {
+      throw error;
+    }
+
+    const existingSale =
+      await saleRepository.findById(
+        input.businessId,
+        existingOperation.entityId,
+      );
+
+    if (
+      !existingSale ||
+      existingSale.status !== "COMPLETED"
+    ) {
+      throw error;
+    }
+
+    const existingPayments =
+      await paymentService.listSalePayments(
+        input.businessId,
+        existingSale.id,
+      );
+
+    if (existingPayments.length === 0) {
+      throw error;
+    }
+
+    return {
+      sale: existingSale,
+      payment: existingPayments[0],
+    };
+  }
 }
