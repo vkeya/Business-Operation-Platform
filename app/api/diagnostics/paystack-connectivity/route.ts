@@ -1,6 +1,8 @@
 
 import { NextResponse } from "next/server";
-
+import {
+  getPaystackSecretKey,
+} from "@/lib/subscription/providers/paystack/paystackConfiguration";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -27,15 +29,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const secretKey =
-  process.env.SMATPIC_PAYSTACK_SECRET_KEY;
-
-if (!secretKey) {
-  return NextResponse.json(
-    { error: "Paystack secret key is not configured" },
-    { status: 503 },
-  );
-}
+    const secretKey = getPaystackSecretKey();
 
 const response = await fetch(
   "https://api.paystack.co/balance",
