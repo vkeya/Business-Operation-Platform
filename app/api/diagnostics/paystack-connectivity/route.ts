@@ -15,9 +15,15 @@ export async function GET(request: Request) {
     suppliedToken !== `Bearer ${expectedToken}`
   ) {
     return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 },
-    );
+  {
+    error: "Unauthorized",
+    tokenConfigured: Boolean(expectedToken),
+    authorizationHeaderReceived: Boolean(suppliedToken),
+    bearerPrefixReceived:
+      suppliedToken?.startsWith("Bearer ") ?? false,
+  },
+  { status: 401 },
+);
   }
 
   try {
@@ -49,5 +55,6 @@ export async function GET(request: Request) {
       },
       { status: 502 },
     );
+	
   }
 }
