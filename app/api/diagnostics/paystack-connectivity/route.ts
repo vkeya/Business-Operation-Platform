@@ -27,17 +27,32 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(
-      "https://api.paystack.co",
-      {
-        method: "GET",
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
-      },
-    );
+    const secretKey =
+  process.env.SMATPIC_PAYSTACK_SECRET_KEY;
+
+if (!secretKey) {
+  return NextResponse.json(
+    { error: "Paystack secret key is not configured" },
+    { status: 503 },
+  );
+}
+
+const response = await fetch(
+  "https://api.paystack.co/balance",
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10000),
+  },
+);
+      
 
     return NextResponse.json({
-      reachable: response.status !== 403,
+      reachable: true,
       httpStatus: response.status,
       contentType:
         response.headers.get("content-type"),
