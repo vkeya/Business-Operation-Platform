@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   {
     error: "Unauthorized",
     tokenConfigured: Boolean(expectedToken),
+	diagnosticVersion: "balance-check-v2",
     authorizationHeaderReceived: Boolean(suppliedToken),
     bearerPrefixReceived:
       suppliedToken?.startsWith("Bearer ") ?? false,
