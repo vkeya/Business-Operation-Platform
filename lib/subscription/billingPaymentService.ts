@@ -120,8 +120,14 @@ if (
       status: "PENDING",
     },
     data: {
-      status: "PROCESSING",
-    },
+  status: "PROCESSING",
+  ...(provider === "PAYSTACK" && paymentMethod
+    ? {
+        providerReference: payment.id,
+        providerResponse: { paymentMethod },
+      }
+    : {}),
+},
   });
 
 if (processingPayment.count === 0) {
@@ -144,7 +150,12 @@ try {
     paymentId: payment.id,
     amount: payment.amount.toNumber(),
     currency: payment.currency,
-    reference: payment.invoice.invoiceNumber,
+    // Paystack needs a unique reference for each payment attempt. Preserve
+    // the existing reference behavior for other billing providers.
+    reference:
+      provider === "PAYSTACK"
+        ? payment.id
+        : payment.invoice.invoiceNumber,
     description:
       `SmatPic subscription ${payment.invoice.invoiceNumber}`,
     metadata: {
@@ -166,20 +177,22 @@ try {
     },
   });
 } catch (error) {
-  await failBillingPayment(
-    input.businessId,
-    payment.id,
-    error instanceof Error
-      ? error.message
-      : "Billing payment provider initiation failed.",
-  );
+  if (provider !== "PAYSTACK") {
+    await failBillingPayment(
+      input.businessId,
+      payment.id,
+      error instanceof Error
+        ? error.message
+        : "Billing payment provider initiation failed.",
+    );
+  }
 
   throw error;
 }
 
 
 
-  return prisma.$transaction(
+  const initiated = await prisma.$transaction(
     async (tx) => {
       const updated =
         await tx.billingPayment.updateMany({
@@ -194,25 +207,83 @@ try {
               result.providerReference,
 
 			providerResponse:
-              result.providerResponse as Prisma.InputJsonValue,
+  (provider === "PAYSTACK" && paymentMethod
+    ? {
+        paymentMethod,
+        ...(result.providerResponse ?? {}),
+      }
+    : result.providerResponse) as Prisma.InputJsonValue,
           },
         });
 
       if (updated.count === 0) {
-        throw new Error(
-          "Billing payment could not be updated because its status changed.",
-        );
-      }
+  const currentPayment =
+    await tx.billingPayment.findFirst({
+      where: {
+        id: payment.id,
+        businessId: input.businessId,
+      },
+      select: {
+        id: true,
+        status: true,
+        providerReference: true,
+      },
+    });
+
+  if (
+    provider === "PAYSTACK" &&
+    currentPayment?.status === "SUCCEEDED"
+  ) {
+    return {
+      paymentId: currentPayment.id,
+      status: currentPayment.status,
+      providerReference:
+        currentPayment.providerReference,
+      message: "Payment has already been confirmed.",
+    };
+  }
+
+  throw new Error(
+    "Billing payment could not be updated because its status changed.",
+  );
+}
 
       return {
         paymentId: payment.id,
         status: result.status,
         providerReference:
-          result.providerReference,
+        result.providerReference,
         message: result.message,
+        providerResponse:
+          typeof result.providerResponse?.authorizationUrl === "string" &&
+          result.providerResponse.authorizationUrl
+            ? {
+                authorizationUrl:
+                  result.providerResponse.authorizationUrl,
+              }
+            : undefined,
       };
     },
   );
+
+  // Replay callbacks only after providerReference and providerResponse have
+  // committed. A retryable callback failure must not turn successful provider
+  // initiation into an API failure.
+  if (provider === "MPESA" && initiated.providerReference) {
+    try {
+      const { processPendingMpesaBillingCallbacks } = await import(
+        "@/lib/subscription/providers/mpesa/mpesaBillingCallbackProcessor"
+      );
+      await processPendingMpesaBillingCallbacks(initiated.providerReference);
+    } catch (error) {
+      console.error(
+        "Unable to replay pending M-Pesa billing callbacks:",
+        error,
+      );
+    }
+  }
+
+  return initiated;
 }
 
 function assertBillingPaymentTransition(
@@ -536,6 +607,8 @@ export async function succeedBillingPayment(
             periodStart: true,
             periodEnd: true,
             subscriptionId: true,
+            addOnCode: true,
+            addOnQuantity: true,
           },
         });
 
@@ -677,7 +750,73 @@ if (newInvoiceStatus === "PAID") {
     );
   }
 
-  if (invoice.type === "SUBSCRIPTION_RENEWAL") {
+  if (invoice.type === "SUBSCRIPTION_ADD_ON") {
+    if (subscription.status !== "ACTIVE") {
+      throw new Error(
+        `Subscription add-on cannot be applied to a ${subscription.status} subscription.`,
+      );
+    }
+
+    const currentSubscription = await tx.businessSubscription.findUnique({
+      where: { id: subscription.id },
+      select: { plan: true },
+    });
+
+    if (currentSubscription?.plan !== "PROFESSIONAL") {
+      throw new Error(
+        "Capacity add-ons are available on the Professional plan. Business has unlimited capacity.",
+      );
+    }
+
+    if (!invoice.addOnCode || !invoice.addOnQuantity || invoice.addOnQuantity <= 0) {
+      throw new Error("Paid add-on invoice is missing valid add-on metadata.");
+    }
+
+    const addOn = await tx.subscriptionAddOn.findFirst({
+      where: { code: invoice.addOnCode, active: true },
+      select: { code: true },
+    });
+
+    if (!addOn) {
+      throw new Error("The billed subscription add-on is no longer available.");
+    }
+
+    const existing = await tx.businessSubscriptionAddOn.findUnique({
+      where: {
+        businessSubscriptionId_addOnCode: {
+          businessSubscriptionId: subscription.id,
+          addOnCode: invoice.addOnCode,
+        },
+      },
+    });
+
+    const updatedAddOn = existing
+      ? await tx.businessSubscriptionAddOn.update({
+          where: { id: existing.id },
+          data: {
+            quantity: existing.quantity + invoice.addOnQuantity,
+            status: "ACTIVE",
+            endedAt: invoice.periodEnd,
+          },
+        })
+      : await tx.businessSubscriptionAddOn.create({
+          data: {
+            businessSubscriptionId: subscription.id,
+            addOnCode: invoice.addOnCode,
+            quantity: invoice.addOnQuantity,
+            status: "ACTIVE",
+            startedAt: now,
+            endedAt: invoice.periodEnd,
+          },
+        });
+
+    return {
+      payment: updatedPayment,
+      invoice: updatedInvoice,
+      subscription: null,
+      addOn: updatedAddOn,
+    };
+  } else if (invoice.type === "SUBSCRIPTION_RENEWAL") {
     if (subscription.status !== "ACTIVE") {
       throw new Error(
         `Subscription renewal cannot be applied to a ${subscription.status} subscription.`,

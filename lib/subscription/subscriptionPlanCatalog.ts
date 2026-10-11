@@ -55,13 +55,20 @@ export const subscriptionPlanCatalog: Record<
     plan: "FREE_TRIAL",
     name: "14-Day Free Trial",
     description:
-      "Full access to SmatPic Professional intelligence during the 14-day trial, excluding advanced execution and executive features.",
+      "Full access to the SmatPic platform during the 14-day trial period.",
     trialDays: 14,
     isTrial: true,
     pricing: {
-      KES: { monthly: null, annual: null },
-      USD: { monthly: null, annual: null },
-    },
+  KES: {
+    monthly: null,
+    annual: null,
+  },
+  USD: {
+    monthly: null,
+    annual: null,
+  },
+},
+
     features: [
       "dashboard",
       "inventory",
@@ -76,9 +83,12 @@ export const subscriptionPlanCatalog: Record<
       "accounting",
       "advanced_reports",
       "business_intelligence",
-      "vertical_intelligence",
       "autopilot",
+      "multi_location",
+      "api_integrations",
+      "vertical_intelligence",
     ],
+
     limits: {
       users: 5,
       branches: 2,
@@ -98,9 +108,16 @@ export const subscriptionPlanCatalog: Record<
     trialDays: null,
     isTrial: false,
     pricing: {
-      KES: { monthly: 2500, annual: 25000 },
-      USD: { monthly: 20, annual: 200 },
-    },
+  KES: {
+    monthly: 2500,
+    annual: 25000,
+  },
+  USD: {
+    monthly: 20,
+    annual: 200,
+  },
+},
+
     features: [
       "dashboard",
       "inventory",
@@ -113,6 +130,7 @@ export const subscriptionPlanCatalog: Record<
       "expenses",
       "reports",
     ],
+
     limits: {
       users: 3,
       branches: 1,
@@ -128,13 +146,20 @@ export const subscriptionPlanCatalog: Record<
     plan: "PROFESSIONAL",
     name: "Professional",
     description:
-      "Advanced business operations and intelligence for growing businesses.",
+      "Advanced business operations for growing businesses.",
     trialDays: null,
     isTrial: false,
     pricing: {
-      KES: { monthly: 5000, annual: 50000 },
-      USD: { monthly: 40, annual: 400 },
-    },
+  KES: {
+    monthly: 5000,
+    annual: 50000,
+  },
+  USD: {
+    monthly: 40,
+    annual: 400,
+  },
+},
+
     features: [
       "dashboard",
       "inventory",
@@ -149,8 +174,11 @@ export const subscriptionPlanCatalog: Record<
       "accounting",
       "advanced_reports",
       "business_intelligence",
+      "autopilot",
+      "multi_location",
       "vertical_intelligence",
     ],
+
     limits: {
       users: 10,
       branches: 5,
@@ -170,9 +198,16 @@ export const subscriptionPlanCatalog: Record<
     trialDays: null,
     isTrial: false,
     pricing: {
-      KES: { monthly: 10000, annual: 100000 },
-      USD: { monthly: 80, annual: 800 },
-    },
+  KES: {
+    monthly: 10000,
+    annual: 100000,
+  },
+  USD: {
+    monthly: 80,
+    annual: 800,
+  },
+},
+
     features: [
       "dashboard",
       "inventory",
@@ -193,6 +228,7 @@ export const subscriptionPlanCatalog: Record<
       "api_integrations",
       "vertical_intelligence",
     ],
+
     limits: {
       users: null,
       branches: null,
@@ -209,4 +245,50 @@ export function getSubscriptionPlanDefinition(
   plan: SubscriptionPlan,
 ): SubscriptionPlanDefinition {
   return subscriptionPlanCatalog[plan];
+}
+
+export type SubscriptionAddOnCode =
+  | "ADDITIONAL_USER"
+  | "ADDITIONAL_BRANCH"
+  | "AUTOPILOT_LITE";
+
+export interface SubscriptionAddOnPricing {
+  monthly: number;
+  annual: number;
+}
+
+/**
+ * Commercial pricing for subscription add-ons.
+ * These are intentionally separate from base-plan pricing.
+ */
+export const subscriptionAddOnPricing: Record<
+  SubscriptionAddOnCode,
+  SubscriptionAddOnPricing
+> = {
+  ADDITIONAL_USER: {
+    monthly: 300,
+    annual: 3000,
+  },
+  ADDITIONAL_BRANCH: {
+    monthly: 1000,
+    annual: 10000,
+  },
+  AUTOPILOT_LITE: {
+    monthly: 1500,
+    annual: 15000,
+  },
+};
+
+export function getSubscriptionAddOnPrice(input: {
+  addOnCode: SubscriptionAddOnCode;
+  billingCycle: "MONTHLY" | "ANNUAL";
+  currency: BillingCurrency;
+}): number {
+  if (input.currency !== "KES") {
+    throw new Error("Subscription add-on billing currently requires KES.");
+  }
+
+  return subscriptionAddOnPricing[input.addOnCode][
+    input.billingCycle === "MONTHLY" ? "monthly" : "annual"
+  ];
 }

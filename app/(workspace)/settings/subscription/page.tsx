@@ -1,15 +1,26 @@
 import Link from "next/link";
+import SubscriptionCancellationControls from "@/components/subscription/SubscriptionCancellationControls";
 import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
   Clock3,
   CreditCard,
+  Database,
+  GitBranch,
+  HardDrive,
+  Package,
   ShieldCheck,
+  ShoppingCart,
+  Users,
+  Warehouse,
 } from "lucide-react";
 import SubscriptionPlanManager from "./SubscriptionPlanManager";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { getBusinessSubscription } from "@/lib/subscription/subscriptionEntitlementService";
+import { getSubscriptionLimit } from "@/lib/subscription/subscriptionLimitService";
+import { getSubscriptionUsage } from "@/lib/subscription/subscriptionUsageService";
+import type { SubscriptionLimit } from "@/lib/subscription/subscriptionPlanCatalog";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +49,142 @@ function getStatusLabel(status: string | null | undefined) {
   }
 }
 
+type CapacityMetric = {
+  limit: SubscriptionLimit;
+  label: string;
+  icon: typeof Users;
+};
+
+const CAPACITY_METRICS: CapacityMetric[] = [
+  { limit: "users", label: "Users", icon: Users },
+  { limit: "branches", label: "Branches", icon: GitBranch },
+  { limit: "warehouses", label: "Warehouses", icon: Warehouse },
+  { limit: "products", label: "Products", icon: Package },
+  {
+    limit: "monthly_sales_transactions",
+    label: "Monthly sales",
+    icon: ShoppingCart,
+  },
+  {
+    limit: "monthly_purchase_transactions",
+    label: "Monthly purchases",
+    icon: Database,
+  },
+];
+
+async function getCapacityMetric(
+  businessId: string,
+  metric: CapacityMetric,
+) {
+  const resolution = await getSubscriptionLimit(
+    businessId,
+    metric.limit,
+  );
+  const usage = await getSubscriptionUsage(
+    businessId,
+    metric.limit,
+  );
+
+  return {
+    ...metric,
+    resolution,
+    usage,
+  };
+}
+
+function formatLimit(value: number | null) {
+  return value === null ? "Unlimited" : value.toLocaleString();
+}
+
+function formatUsagePeriod(start?: Date, end?: Date) {
+  if (!start || !end) return null;
+
+  return `${start.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  })} – ${new Date(end.getTime() - 1).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+}
+
+function CapacityCard({
+  metric,
+}: {
+  metric: Awaited<ReturnType<typeof getCapacityMetric>>;
+}) {
+  const Icon = metric.icon;
+  const { resolution, usage } = metric;
+  const limit = resolution.effectiveLimit;
+  const usagePercent =
+    limit === null
+      ? 0
+      : Math.min(100, Math.round((usage.currentUsage / limit) * 100));
+  const isNearLimit = limit !== null && usagePercent >= 80;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-violet-700">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">
+              {metric.label}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {resolution.addOnCapacity > 0
+                ? `Includes +${resolution.addOnCapacity.toLocaleString()} add-on capacity`
+                : "Plan capacity"}
+            </p>
+          </div>
+        </div>
+
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+            isNearLimit
+              ? "bg-amber-50 text-amber-700"
+              : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {resolution.isUnlimited ? "Unlimited" : `${usagePercent}% used`}
+        </span>
+      </div>
+
+      <div className="mt-5 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-2xl font-semibold tracking-tight text-slate-900">
+            {usage.currentUsage.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            of {formatLimit(limit)}
+          </p>
+        </div>
+
+        {metric.limit === "monthly_sales_transactions" ||
+        metric.limit === "monthly_purchase_transactions" ? (
+          <p className="text-right text-[10px] leading-4 text-slate-400">
+            {formatUsagePeriod(usage.periodStart, usage.periodEnd)}
+          </p>
+        ) : null}
+      </div>
+
+      {!resolution.isUnlimited && (
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={`h-full rounded-full ${
+              isNearLimit ? "bg-amber-500" : "bg-violet-500"
+            }`}
+            style={{ width: `${usagePercent}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function SubscriptionSettingsPage() {
   const context = await getCurrentBusinessContext();
   const subscription = await getBusinessSubscription(context.business.id);
@@ -62,6 +209,21 @@ export default async function SubscriptionSettingsPage() {
     subscription?.status === "TRIALING" &&
     trialDaysRemaining !== null &&
     trialDaysRemaining > 0;
+
+  const canReadUsage =
+    subscription?.status === "ACTIVE" || isTrialing;
+
+  const capacityMetrics = canReadUsage
+    ? await Promise.all(
+        CAPACITY_METRICS.map((metric) =>
+          getCapacityMetric(context.business.id, metric),
+        ),
+      )
+    : [];
+
+  const storageLimit = canReadUsage
+    ? await getSubscriptionLimit(context.business.id, "storage_gb")
+    : null;
 
   const trialUrgency =
     trialDaysRemaining === null
@@ -215,6 +377,17 @@ export default async function SubscriptionSettingsPage() {
               </p>
             </div>
           )}
+
+		  <SubscriptionCancellationControls
+            status={subscription?.status}
+            cancelAtPeriodEnd={subscription?.cancelAtPeriodEnd ?? false}
+            currentPeriodEnd={
+              subscription?.currentPeriodEnd
+                ? new Date(subscription.currentPeriodEnd)
+                : null
+            }
+          />
+
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -237,6 +410,53 @@ export default async function SubscriptionSettingsPage() {
          <SubscriptionPlanManager />
         </div>
       </section>
+
+      {canReadUsage && (
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                  Capacity & usage
+                </p>
+                <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">
+                  Business limits
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Live usage against the capacity included with your current plan and active capacity add-ons.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <HardDrive className="h-4 w-4" />
+                Storage allowance: {formatLimit(storageLimit?.effectiveLimit ?? null)} GB
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
+            {capacityMetrics.map((metric) => (
+              <CapacityCard key={metric.limit} metric={metric} />
+            ))}
+          </div>
+
+          <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
+            <p className="text-xs leading-5 text-slate-500">
+              Storage usage is not shown because SmatPic does not yet have a canonical storage metering source. The allowance above is the configured plan capacity only.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {subscription?.status && !canReadUsage && (
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-800">
+            Capacity usage is unavailable while the subscription is {statusLabel.toLowerCase()}.
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Restore an active subscription to view current usage and capacity.
+          </p>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-5 py-5 sm:px-6">

@@ -110,6 +110,10 @@ model BillingInvoice {
   plan        SubscriptionPlan
   billingCycle BillingCycle
 
+  addOnCode     String?
+  addOnQuantity Int?
+
+
   type BillingInvoiceType
 
   currency String
@@ -126,6 +130,10 @@ model BillingInvoice {
 
   periodStart DateTime?
   periodEnd   DateTime?
+
+  // Deterministic key used only for subscription renewal invoices.
+  // Nullable so non-renewal invoices are unaffected.
+  renewalKey String? @unique
 
   notes String?
 
@@ -194,12 +202,34 @@ model BillingPayment {
   business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   invoice  BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
 
+  @@unique([provider, providerReference])
   @@index([businessId])
   @@index([invoiceId])
   @@index([status])
   @@index([provider])
   @@index([providerReference])
   @@index([createdAt])
+}
+
+model BillingProviderCallback {
+  id String @id @default(cuid())
+
+  provider  String
+  eventKey  String
+  reference String?
+  payload   Json
+
+  status      BillingProviderCallbackStatus @default(RECEIVED)
+  attempts    Int                           @default(0)
+  processedAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, eventKey])
+  @@index([status, createdAt])
+  @@index([provider, reference])
 }
 
 model SubscriptionAddOn {
@@ -1817,4 +1847,13 @@ enum BillingPaymentStatus {
 enum BillingInvoiceType {
   SUBSCRIPTION_PURCHASE
   SUBSCRIPTION_RENEWAL
+  SUBSCRIPTION_ADD_ON
+}
+
+enum BillingProviderCallbackStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  RETRY
+  REJECTED
 }

@@ -6,9 +6,47 @@ import type { BillingPaymentStatus } from "@/generated/prisma/client";
 import { getSubscriptionPrice } from "@/lib/subscription/subscriptionPricingService";
 import { generateBusinessReference } from "@/lib/business/reference/referenceGenerator";
 import type { BillingCycle } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 export interface GenerateRenewalInvoiceInput {
   subscriptionId: string;
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
+}
+
+
+async function runSerializableTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, {
+        isolationLevel: "Serializable",
+      });
+    } catch (error) {
+      if (!isPrismaSerializationError(error) || attempt === 2) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Serializable billing transaction could not be completed.");
+}
+
+function isPrismaSerializationError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2034"
+  );
 }
 
 function calculateNextPeriodEnd(
@@ -33,7 +71,8 @@ export async function generateRenewalInvoice(
     throw new Error("Billing subscription is required.");
   }
 
-  return prisma.$transaction(
+  try {
+    return await runSerializableTransaction(
     async (tx) => {
       const subscription =
         await tx.businessSubscription.findUnique({
@@ -57,7 +96,10 @@ export async function generateRenewalInvoice(
         throw new Error("Billing subscription not found.");
       }
 
-      if (subscription.status !== "ACTIVE") {
+      if (
+  subscription.status !== "ACTIVE" &&
+  subscription.status !== "EXPIRED"
+) {
         throw new Error(
           `Renewal invoice cannot be generated for a subscription in ${subscription.status} status.`,
         );
@@ -109,13 +151,16 @@ if (
         subscription.billingCycle,
       );
 
+      const renewalKey = [
+        subscription.id,
+        periodStart.toISOString(),
+        periodEnd.toISOString(),
+      ].join(":");
+
       const existingInvoice =
-        await tx.billingInvoice.findFirst({
+        await tx.billingInvoice.findUnique({
           where: {
-            businessId: subscription.businessId,
-            subscriptionId: subscription.id,
-            periodStart,
-            periodEnd,
+            renewalKey,
           },
           include: {
             items: true,
@@ -154,6 +199,7 @@ if (
           paidAt: null,
           periodStart,
           periodEnd,
+          renewalKey,
           notes: "Subscription renewal invoice",
           items: {
             create: {
@@ -171,10 +217,43 @@ if (
         },
       });
     },
-    {
-      isolationLevel: "Serializable",
-    },
-  );
+    );
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const periodSubscription = await prisma.businessSubscription.findUnique({
+      where: { id: input.subscriptionId },
+      select: { currentPeriodEnd: true, billingCycle: true },
+    });
+
+    if (!periodSubscription?.currentPeriodEnd || !periodSubscription.billingCycle) {
+      throw error;
+    }
+
+    const periodStart = new Date(periodSubscription.currentPeriodEnd);
+    const periodEnd = calculateNextPeriodEnd(
+      periodStart,
+      periodSubscription.billingCycle,
+    );
+    const renewalKey = [
+      input.subscriptionId,
+      periodStart.toISOString(),
+      periodEnd.toISOString(),
+    ].join(":");
+
+    const existingInvoice = await prisma.billingInvoice.findUnique({
+      where: { renewalKey },
+      include: { items: true },
+    });
+
+    if (existingInvoice) {
+      return existingInvoice;
+    }
+
+    throw error;
+  }
 }
 
 export async function prepareRenewalPayment(input: {
@@ -189,7 +268,7 @@ export async function prepareRenewalPayment(input: {
     throw new Error("Renewal payment provider is required.");
   }
 
-  return prisma.$transaction(
+  return runSerializableTransaction(
     async (tx) => {
       const subscription =
         await tx.businessSubscription.findUnique({
@@ -208,7 +287,10 @@ export async function prepareRenewalPayment(input: {
         throw new Error("Billing subscription not found.");
       }
 
-      if (subscription.status !== "ACTIVE") {
+      if (
+  subscription.status !== "ACTIVE" &&
+  subscription.status !== "EXPIRED"
+) {
         throw new Error(
           `Renewal payment cannot be prepared for a subscription in ${subscription.status} status.`,
         );
@@ -308,9 +390,6 @@ export async function prepareRenewalPayment(input: {
         payment,
         created: true,
       };
-    },
-    {
-      isolationLevel: "Serializable",
     },
   );
 }

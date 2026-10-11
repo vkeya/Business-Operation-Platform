@@ -6,6 +6,10 @@ import { CreditCard, Loader2, Smartphone } from "lucide-react";
 type SubscriptionPlan = "STARTER" | "PROFESSIONAL" | "BUSINESS";
 type BillingCycle = "MONTHLY" | "ANNUAL";
 type PaymentMethod = "MPESA" | "CARD";
+type SubscriptionAddOnCode =
+  | "ADDITIONAL_USER"
+  | "ADDITIONAL_BRANCH"
+  | "AUTOPILOT_LITE";
 
 type PlanPricing = {
   monthly: number;
@@ -50,17 +54,105 @@ export default function SubscriptionPlanManager() {
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethod>("MPESA");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [addOnCode, setAddOnCode] = useState<SubscriptionAddOnCode>("ADDITIONAL_USER");
+  const [addOnQuantity, setAddOnQuantity] = useState(1);
   const [customerEmail, setCustomerEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const [paymentNeedsReconciliation, setPaymentNeedsReconciliation] =
+    useState(false);
 
   const amount = useMemo(
     () => PLAN_PRICING[plan][billingCycle === "MONTHLY" ? "monthly" : "annual"],
     [plan, billingCycle],
   );
 
-  async function handlePurchase() {
+  async function handleAddOnPurchase() {
+    if (paymentNeedsReconciliation) {
+      return;
+    }
     setError(null);
+    setPaymentNotice(null);
+
+    if (addOnQuantity < 1 || !Number.isInteger(addOnQuantity)) {
+      setError("Add-on quantity must be a positive whole number.");
+      return;
+    }
+
+    if (addOnCode === "AUTOPILOT_LITE" && addOnQuantity !== 1) {
+      setError("Autopilot Lite can only be purchased as a single add-on.");
+      return;
+    }
+
+    if (paymentMethod === "MPESA" && !customerPhone.trim()) {
+      setError("Enter the M-Pesa phone number to continue.");
+      return;
+    }
+
+    if (!customerEmail.trim()) {
+      setError("Enter your email address to continue.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/subscription/add-ons/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          addOnCode,
+          quantity: addOnQuantity,
+          billingCycle,
+          currency: "KES",
+          provider: "PAYSTACK",
+          paymentMethod,
+          customerPhone: paymentMethod === "MPESA" ? customerPhone.trim() : undefined,
+          customerEmail: customerEmail.trim(),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(typeof result?.error === "string" ? result.error : "Unable to start add-on payment.");
+      }
+
+      const authorizationUrl = result?.payment?.providerResponse?.authorizationUrl;
+      if (typeof authorizationUrl === "string" && authorizationUrl) {
+        window.location.assign(authorizationUrl);
+        return;
+      }
+
+      if (result?.payment?.status === "PROCESSING") {
+        setPaymentNeedsReconciliation(true);
+        setPaymentNotice(
+          typeof result?.payment?.message === "string"
+            ? result.payment.message
+            : "The payment may have been accepted. Do not retry until its status is verified.",
+        );
+        return;
+      }
+
+      if (paymentMethod === "MPESA") {
+        setError("M-Pesa add-on payment has been initiated. Complete the payment on your phone.");
+        return;
+      }
+
+      throw new Error("Payment was created, but no Paystack checkout URL was returned.");
+    } catch (purchaseError) {
+      setError(purchaseError instanceof Error ? purchaseError.message : "Unable to start add-on payment.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handlePurchase() {
+    if (paymentNeedsReconciliation) {
+      return;
+    }
+    setError(null);
+    setPaymentNotice(null);
 
     if (paymentMethod === "MPESA" && !customerPhone.trim()) {
       setError("Enter the M-Pesa phone number to continue.");
@@ -109,6 +201,16 @@ export default function SubscriptionPlanManager() {
 
       if (typeof authorizationUrl === "string" && authorizationUrl) {
         window.location.assign(authorizationUrl);
+        return;
+      }
+
+      if (result?.payment?.status === "PROCESSING") {
+        setPaymentNeedsReconciliation(true);
+        setPaymentNotice(
+          typeof result?.payment?.message === "string"
+            ? result.payment.message
+            : "The payment may have been accepted. Do not retry until its status is verified.",
+        );
         return;
       }
 
@@ -297,6 +399,77 @@ export default function SubscriptionPlanManager() {
         </div>
       )}
 
+      <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-5">
+        <div>
+          <p className="text-sm font-bold text-slate-900">Subscription add-ons</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Available on Professional. Business already includes unlimited users, branches, and included Autopilot capabilities.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <select
+            value={addOnCode}
+            onChange={(event) => setAddOnCode(event.target.value as SubscriptionAddOnCode)}
+            disabled={isSubmitting}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
+          >
+            <option value="ADDITIONAL_USER">Additional User — KES 300/mo</option>
+            <option value="ADDITIONAL_BRANCH">Additional Branch — KES 1,000/mo</option>
+            <option value="AUTOPILOT_LITE">Autopilot Lite — KES 1,500/mo</option>
+          </select>
+
+          <input
+            type="number"
+            min={1}
+            max={addOnCode === "AUTOPILOT_LITE" ? 1 : undefined}
+            step={1}
+            value={addOnQuantity}
+            onChange={(event) =>
+              setAddOnQuantity(
+                addOnCode === "AUTOPILOT_LITE"
+                  ? 1
+                  : Math.max(1, Number(event.target.value) || 1),
+              )
+            }
+            disabled={isSubmitting || addOnCode === "AUTOPILOT_LITE"}
+            aria-label="Add-on quantity"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
+          />
+
+          <button
+            type="button"
+            onClick={handleAddOnPurchase}
+            disabled={isSubmitting || paymentNeedsReconciliation}
+            className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Buy subscription add-on
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500">
+          Annual billing is KES {
+            addOnCode === "ADDITIONAL_USER"
+              ? "3,000"
+              : addOnCode === "ADDITIONAL_BRANCH"
+                ? "10,000"
+                : "15,000"
+          } per unit/year.
+          {addOnCode === "AUTOPILOT_LITE" && (
+            <span className="ml-1">Professional-tier Autopilot recommendations; quantity is limited to one.</span>
+          )}
+        </p>
+      </div>
+
+      {paymentNotice && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          {paymentNotice}
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -321,7 +494,7 @@ export default function SubscriptionPlanManager() {
         <button
           type="button"
           onClick={handlePurchase}
-          disabled={isSubmitting}
+          disabled={isSubmitting || paymentNeedsReconciliation}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting && (

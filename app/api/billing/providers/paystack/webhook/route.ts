@@ -9,7 +9,6 @@ import {
   getPaystackSecretKey,
 } from "@/lib/subscription/providers/paystack/paystackConfiguration";
 import {
-  failBillingPayment,
   succeedBillingPayment,
 } from "@/lib/subscription/billingPaymentService";
 
@@ -173,24 +172,12 @@ export async function POST(
     }
 
     if (
-      data.status &&
-      data.status.toLowerCase() !==
-        "success"
+      data.status?.trim().toLowerCase() !==
+      "success"
     ) {
-      const failedPayment =
-        await failBillingPayment(
-          payment.businessId,
-          payment.id,
-          data.gateway_response ||
-            "Paystack subscription payment failed.",
-        );
-
-      return NextResponse.json({
-        success: true,
-        alreadyProcessed: false,
-        status: failedPayment.status,
-        paymentId: payment.id,
-      });
+      throw new Error(
+        "Paystack charge.success webhook is missing an explicit successful transaction status.",
+      );
     }
 
     const expectedAmount =
