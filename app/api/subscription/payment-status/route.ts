@@ -4,24 +4,19 @@ import {
   failBillingPayment,
   succeedBillingPayment,
 } from "@/lib/subscription/billingPaymentService";
-import {
-  verifyPaystackPayment,
-} from "@/lib/subscription/providers/paystack/billingPaystackProvider";
+import { verifyPaystackPayment } from "@/lib/subscription/providers/paystack/billingPaystackProvider";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { prisma } from "@/lib/database/prisma";
 
 export async function GET(request: Request) {
   try {
     const context = await getCurrentBusinessContext();
-
     const url = new URL(request.url);
     const reference = url.searchParams.get("reference")?.trim();
 
     if (!reference) {
       return NextResponse.json(
-        {
-          error: "Payment reference is required.",
-        },
+        { error: "Payment reference is required." },
         { status: 400 },
       );
     }
@@ -59,15 +54,11 @@ export async function GET(request: Request) {
 
     if (!payment) {
       return NextResponse.json(
-        {
-          error: "Subscription payment not found.",
-        },
+        { error: "Subscription payment not found." },
         { status: 404 },
       );
     }
 
-    // Reconcile pending Paystack payments from the server, but throttle provider
-    // calls because the checkout page polls this endpoint frequently.
     if (
       (payment.status === "PENDING" || payment.status === "PROCESSING") &&
       payment.providerReference
@@ -87,13 +78,11 @@ export async function GET(request: Request) {
           ? Date.parse(storedResponse.lastVerificationAttemptAt)
           : Number.NaN;
       const now = Date.now();
-      const verificationCooldownMs = 15000;
 
       if (
         (paymentMethod === "CARD" || paymentMethod === "MPESA") &&
-        (!Number.isFinite(lastAttempt) || now - lastAttempt >= verificationCooldownMs)
+        (!Number.isFinite(lastAttempt) || now - lastAttempt >= 15000)
       ) {
-        const attemptAt = new Date(now).toISOString();
         const claimed = await prisma.billingPayment.updateMany({
           where: {
             id: payment.id,
@@ -104,7 +93,7 @@ export async function GET(request: Request) {
           data: {
             providerResponse: {
               ...storedResponse,
-              lastVerificationAttemptAt: attemptAt,
+              lastVerificationAttemptAt: new Date(now).toISOString(),
             } as never,
           },
         });
@@ -116,26 +105,18 @@ export async function GET(request: Request) {
               paymentMethod,
             );
             const expectedAmount = Math.round(payment.amount.toNumber() * 100);
-            const referenceMatches =
-              verification.reference === payment.providerReference;
+            const referenceMatches = verification.reference === payment.providerReference;
             const amountMatches = verification.amount === expectedAmount;
             const currencyMatches =
               verification.currency === payment.currency.trim().toUpperCase();
 
             if (
-              referenceMatches &&
-              amountMatches &&
-              currencyMatches &&
+              referenceMatches && amountMatches && currencyMatches &&
               verification.status === "success"
             ) {
-              await succeedBillingPayment(
-                context.business.id,
-                payment.id,
-              );
+              await succeedBillingPayment(context.business.id, payment.id);
             } else if (
-              referenceMatches &&
-              amountMatches &&
-              currencyMatches &&
+              referenceMatches && amountMatches && currencyMatches &&
               verification.status === "failed"
             ) {
               await failBillingPayment(
@@ -144,54 +125,90 @@ export async function GET(request: Request) {
                 verification.message || "Paystack confirmed that the payment failed.",
               );
             }
-            // Pending, incomplete, or mismatched verification is inconclusive;
-            // leave the payment unsettled for a later retry or verified webhook.
+            // Inconclusive or mismatched verification never settles the payment.
           } catch (verificationError) {
-            console.warn(
-              "Paystack payment reconciliation deferred:",
-              verificationError,
-            );
+            console.warn("Paystack payment reconciliation deferred:", verificationError);
           }
         }
       }
     }
 
-    const subscription = await prisma.businessSubscription.findFirst({
+    // Re-read after reconciliation: the original payment/invoice snapshot above
+    // may now be stale if verification or a concurrent webhook settled it.
+    const refreshedPayment = await prisma.billingPayment.findFirst({
       where: {
-        id: payment.invoice.subscriptionId,
+        id: payment.id,
         businessId: context.business.id,
+        provider: "PAYSTACK",
       },
       select: {
         id: true,
-        plan: true,
         status: true,
-        billingCycle: true,
-        billingCurrency: true,
-        currentPeriodStart: true,
-        currentPeriodEnd: true,
-        nextBillingDate: true,
+        amount: true,
+        currency: true,
+        provider: true,
+        providerReference: true,
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            type: true,
+            plan: true,
+            billingCycle: true,
+            amountPaid: true,
+            amountDue: true,
+            subscriptionId: true,
+          },
+        },
       },
     });
+
+    if (!refreshedPayment) {
+      return NextResponse.json(
+        { error: "Subscription payment not found." },
+        { status: 404 },
+      );
+    }
+
+    const subscription = refreshedPayment.invoice.subscriptionId
+      ? await prisma.businessSubscription.findFirst({
+          where: {
+            id: refreshedPayment.invoice.subscriptionId,
+            businessId: context.business.id,
+          },
+          select: {
+            id: true,
+            plan: true,
+            status: true,
+            billingCycle: true,
+            billingCurrency: true,
+            currentPeriodStart: true,
+            currentPeriodEnd: true,
+            nextBillingDate: true,
+          },
+        })
+      : null;
 
     return NextResponse.json({
       success: true,
       payment: {
-        id: payment.id,
-        status: payment.status,
-        amount: payment.amount,
-        currency: payment.currency,
-        provider: payment.provider,
-        providerReference: payment.providerReference,
+        id: refreshedPayment.id,
+        status: refreshedPayment.status,
+        amount: refreshedPayment.amount,
+        currency: refreshedPayment.currency,
+        provider: refreshedPayment.provider,
+        providerReference: refreshedPayment.providerReference,
       },
       invoice: {
-        id: payment.invoice.id,
-        invoiceNumber: payment.invoice.invoiceNumber,
-        status: payment.invoice.status,
-        type: payment.invoice.type,
-        plan: payment.invoice.plan,
-        billingCycle: payment.invoice.billingCycle,
-        amountPaid: payment.invoice.amountPaid,
-        amountDue: payment.invoice.amountDue,
+        id: refreshedPayment.invoice.id,
+        invoiceNumber: refreshedPayment.invoice.invoiceNumber,
+        status: refreshedPayment.invoice.status,
+        type: refreshedPayment.invoice.type,
+        plan: refreshedPayment.invoice.plan,
+        billingCycle: refreshedPayment.invoice.billingCycle,
+        amountPaid: refreshedPayment.invoice.amountPaid,
+        amountDue: refreshedPayment.invoice.amountDue,
       },
       subscription: subscription
         ? {
@@ -208,13 +225,11 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Subscription payment status lookup failed:", error);
-
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to retrieve subscription payment status.",
+        error: error instanceof Error
+          ? error.message
+          : "Unable to retrieve subscription payment status.",
       },
       { status: 500 },
     );

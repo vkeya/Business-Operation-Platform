@@ -92,9 +92,16 @@ export async function processSubscriptionLifecycle(
         };
       }
 
-      const updatedSubscription = await tx.businessSubscription.update({
+      // Guard the transition against a concurrent renewal or cancellation
+      // after the subscription was read above.
+      const updated = await tx.businessSubscription.updateMany({
         where: {
           id: subscription.id,
+          status: subscription.status,
+          cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+          ...(subscription.status === "TRIALING"
+            ? { trialEndsAt: { lte: now } }
+            : { currentPeriodEnd: { lte: now } }),
         },
         data: {
           status: nextStatus,
@@ -102,6 +109,19 @@ export async function processSubscriptionLifecycle(
           nextBillingDate: null,
         },
       });
+
+      if (updated.count === 0) {
+        const current = await tx.businessSubscription.findUnique({
+          where: { id: subscription.id },
+          select: { status: true },
+        });
+        return {
+          processed: false,
+          previousStatus: subscription.status,
+          status: current?.status ?? subscription.status,
+          expiredAddOns: 0,
+        };
+      }
 
       const expiredAddOns = await expireActiveAddOns(
         tx,
@@ -112,7 +132,7 @@ export async function processSubscriptionLifecycle(
       return {
         processed: true,
         previousStatus: subscription.status,
-        status: updatedSubscription.status,
+        status: nextStatus,
         expiredAddOns,
       };
     },
@@ -161,9 +181,12 @@ export async function processDueSubscriptions(
             id: true,
             status: true,
             cancelAtPeriodEnd: true,
+            trialEndsAt: true,
+            currentPeriodEnd: true,
           },
         });
 
+      let processed = 0;
       let expired = 0;
       let cancelled = 0;
       let expiredAddOns = 0;
@@ -175,9 +198,16 @@ export async function processDueSubscriptions(
             ? "CANCELLED"
             : "EXPIRED";
 
-        const updated = await tx.businessSubscription.update({
+        // Guard the transition against a concurrent renewal or cancellation
+        // update after the due-subscription query ran.
+        const updated = await tx.businessSubscription.updateMany({
           where: {
             id: subscription.id,
+            status: subscription.status,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            ...(subscription.status === "TRIALING"
+              ? { trialEndsAt: { lte: now } }
+              : { currentPeriodEnd: { lte: now } }),
           },
           data: {
             status: nextStatus,
@@ -186,13 +216,19 @@ export async function processDueSubscriptions(
           },
         });
 
+        if (updated.count === 0) {
+          continue;
+        }
+
+        processed += 1;
+
         expiredAddOns += await expireActiveAddOns(
           tx,
           subscription.id,
           now,
         );
 
-        if (updated.status === "CANCELLED") {
+        if (nextStatus === "CANCELLED") {
           cancelled += 1;
         } else {
           expired += 1;
@@ -200,7 +236,7 @@ export async function processDueSubscriptions(
       }
 
       return {
-        processed: dueSubscriptions.length,
+        processed,
         expired,
         cancelled,
         expiredAddOns,

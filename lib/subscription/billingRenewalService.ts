@@ -85,7 +85,7 @@ export async function generateRenewalInvoice(
             plan: true,
             status: true,
             billingCycle: true,
-			billingCurrency: true,
+            billingCurrency: true,
             currentPeriodStart: true,
             currentPeriodEnd: true,
             cancelAtPeriodEnd: true,
@@ -185,7 +185,7 @@ if (
           subscriptionId: subscription.id,
           invoiceNumber,
           status: "DRAFT",
-		  type: "SUBSCRIPTION_RENEWAL",
+          type: "SUBSCRIPTION_RENEWAL",
           plan: subscription.plan,
           billingCycle: subscription.billingCycle,
           currency: subscription.billingCurrency,
@@ -310,6 +310,7 @@ export async function prepareRenewalPayment(input: {
             status: {
               in: ["DRAFT", "OPEN"],
             },
+            type: "SUBSCRIPTION_RENEWAL",
             periodStart: {
               not: null,
             },
@@ -397,18 +398,33 @@ export async function prepareRenewalPayment(input: {
 export async function initiateRenewalPayment(input: {
   subscriptionId: string;
   provider: string;
-  customerPhone: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  paymentMethod?: "MPESA" | "CARD";
 }) {
-  if (!input.customerPhone.trim()) {
-    throw new Error(
-      "Customer M-Pesa phone number is required.",
-    );
+  const provider = input.provider.trim().toUpperCase();
+  const paymentMethod = input.paymentMethod?.trim().toUpperCase();
+
+  if (provider === "MPESA" && !input.customerPhone?.trim()) {
+    throw new Error("Customer M-Pesa phone number is required.");
+  }
+
+  if (provider === "PAYSTACK") {
+    if (paymentMethod !== "MPESA" && paymentMethod !== "CARD") {
+      throw new Error("Paystack renewal payment method must be MPESA or CARD.");
+    }
+    if (!input.customerEmail?.trim()) {
+      throw new Error("Customer email is required for Paystack renewal payments.");
+    }
+    if (paymentMethod === "MPESA" && !input.customerPhone?.trim()) {
+      throw new Error("Customer M-Pesa phone number is required for Paystack M-Pesa renewals.");
+    }
   }
 
   const prepared = await prepareRenewalPayment({
-  subscriptionId: input.subscriptionId,
-  provider: input.provider,
-});
+    subscriptionId: input.subscriptionId,
+    provider,
+  });
 
   const { initiateBillingPayment } = await import(
     "@/lib/subscription/billingPaymentService"
@@ -417,7 +433,13 @@ export async function initiateRenewalPayment(input: {
   const initiated = await initiateBillingPayment({
     businessId: prepared.payment.businessId,
     paymentId: prepared.payment.id,
-    customerPhone: input.customerPhone,
+    ...(input.customerPhone?.trim()
+      ? { customerPhone: input.customerPhone.trim() }
+      : {}),
+    ...(input.customerEmail?.trim()
+      ? { customerEmail: input.customerEmail.trim() }
+      : {}),
+    ...(paymentMethod ? { paymentMethod } : {}),
   });
 
   return {

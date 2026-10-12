@@ -12,6 +12,23 @@ import {
 
 type PaystackPaymentMethod = "MPESA" | "CARD";
 
+export type PaystackInitiationOutcome = "DEFINITIVE_FAILURE" | "AMBIGUOUS";
+
+export class PaystackInitiationError extends Error {
+  readonly outcome: PaystackInitiationOutcome;
+
+  constructor(message: string, outcome: PaystackInitiationOutcome) {
+    super(message);
+    this.name = "PaystackInitiationError";
+    this.outcome = outcome;
+  }
+}
+
+function definitiveInitiationError(message: string): PaystackInitiationError {
+  return new PaystackInitiationError(message, "DEFINITIVE_FAILURE");
+}
+
+
 interface PaystackApiResponse {
   status: boolean;
   message: string;
@@ -100,7 +117,7 @@ function getPaymentMethod(
     paymentMethod !== "MPESA" &&
     paymentMethod !== "CARD"
   ) {
-    throw new Error(
+    throw definitiveInitiationError(
       "Paystack payment method must be MPESA or CARD.",
     );
   }
@@ -115,7 +132,7 @@ function getCustomerEmail(
     request.metadata?.customerEmail?.trim();
 
   if (!email) {
-    throw new Error(
+    throw definitiveInitiationError(
       "Customer email is required for Paystack subscription billing.",
     );
   }
@@ -130,7 +147,7 @@ function getCustomerPhone(
     request.metadata?.customerPhone?.trim();
 
   if (!phone) {
-    throw new Error(
+    throw definitiveInitiationError(
       "Customer M-Pesa phone number is required for Paystack M-Pesa billing.",
     );
   }
@@ -142,7 +159,7 @@ function getPaystackCallbackUrl() {
   const appUrl = process.env.APP_URL?.trim();
 
   if (!appUrl) {
-    throw new Error(
+    throw definitiveInitiationError(
       "APP_URL must be configured for Paystack subscription billing.",
     );
   }
@@ -153,7 +170,7 @@ function getPaystackCallbackUrl() {
     process.env.NODE_ENV === "production" &&
     !callbackUrl.startsWith("https://")
   ) {
-    throw new Error(
+    throw definitiveInitiationError(
       "Paystack subscription callback URL must use HTTPS in production.",
     );
   }
@@ -169,7 +186,7 @@ function toSubunit(amount: number): number {
     !Number.isSafeInteger(subunitAmount) ||
     subunitAmount <= 0
   ) {
-    throw new Error(
+    throw definitiveInitiationError(
       "Paystack billing amount is invalid.",
     );
   }
@@ -190,20 +207,41 @@ async function callPaystack(
   path: string,
   body: Record<string, unknown>,
 ): Promise<PaystackApiResponse> {
-  const response = await fetch(
-    `https://api.paystack.co${path}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getPaystackSecretKey()}`,
-        "Content-Type": "application/json",
-        "User-Agent": "SmatPic-Billing/1.0",
-      },
+  let secretKey: string;
+  try {
+    secretKey = getPaystackSecretKey();
+  } catch (error) {
+    throw definitiveInitiationError(
+      error instanceof Error
+        ? error.message
+        : "Paystack secret key is not configured.",
+    );
+  }
 
-      body: JSON.stringify(body),
-      cache: "no-store",
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.paystack.co${path}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+          "User-Agent": "SmatPic-Billing/1.0",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      },
+    );
+  } catch (error) {
+    throw new PaystackInitiationError(
+      error instanceof Error
+        ? `Paystack initiation outcome is unknown: ${error.message}`
+        : "Paystack initiation outcome is unknown after a network failure.",
+      "AMBIGUOUS",
+    );
+  }
+
 
   const responseText = await response.text();
 
@@ -212,17 +250,30 @@ async function callPaystack(
   try {
     payload = JSON.parse(responseText) as PaystackApiResponse;
   } catch {
-    throw new Error(
-      `Paystack returned a non-JSON response (HTTP ${response.status}): ${
-        responseText.slice(0, 500) || "empty response"
-      }`,
+    const ambiguousHttpOutcome =
+      response.status === 408 ||
+      response.status === 429 ||
+      response.status >= 500;
+
+    throw new PaystackInitiationError(
+      `Paystack returned a non-JSON response (HTTP ${response.status}).`,
+      ambiguousHttpOutcome ? "AMBIGUOUS" : "DEFINITIVE_FAILURE",
     );
   }
 
   if (!response.ok || !payload.status) {
-    throw new Error(
+    const message =
       payload.message ||
-        `Paystack request failed with status ${response.status}.`,
+      `Paystack request failed with status ${response.status}.`;
+
+    const ambiguousHttpOutcome =
+      response.status === 408 ||
+      response.status === 429 ||
+      response.status >= 500;
+
+    throw new PaystackInitiationError(
+      message,
+      ambiguousHttpOutcome ? "AMBIGUOUS" : "DEFINITIVE_FAILURE",
     );
   }
 
@@ -240,7 +291,7 @@ export const billingPaystackProvider:
       request.currency.trim().toUpperCase();
 
     if (currency !== "KES") {
-      throw new Error(
+      throw definitiveInitiationError(
         "Paystack subscription billing currently supports KES only.",
       );
     }

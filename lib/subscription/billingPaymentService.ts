@@ -6,6 +6,9 @@ import {
 import {
   getBillingPaymentProvider,
 } from "@/lib/subscription/billingPaymentProviderResolver";
+import {
+  PaystackInitiationError,
+} from "@/lib/subscription/providers/paystack/billingPaystackProvider";
 
 import type { BillingPaymentStatus } from "@/generated/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
@@ -35,7 +38,7 @@ const ALLOWED_BILLING_PAYMENT_TRANSITIONS: Record<
     businessId: string;
     paymentId: string;
     customerPhone?: string;
-	customerEmail?: string;
+    customerEmail?: string;
     paymentMethod?: string;
   },
 ) {
@@ -177,7 +180,12 @@ try {
     },
   });
 } catch (error) {
-  if (provider !== "PAYSTACK") {
+  const definitivePaystackFailure =
+    provider === "PAYSTACK" &&
+    error instanceof PaystackInitiationError &&
+    error.outcome === "DEFINITIVE_FAILURE";
+
+  if (provider !== "PAYSTACK" || definitivePaystackFailure) {
     await failBillingPayment(
       input.businessId,
       payment.id,
@@ -187,6 +195,8 @@ try {
     );
   }
 
+  // Ambiguous Paystack outcomes deliberately remain PROCESSING. Never retry
+  // them automatically; reconcile the existing provider reference instead.
   throw error;
 }
 
@@ -206,7 +216,7 @@ try {
             providerReference:
               result.providerReference,
 
-			providerResponse:
+            providerResponse:
   (provider === "PAYSTACK" && paymentMethod
     ? {
         paymentMethod,
@@ -601,8 +611,8 @@ export async function succeedBillingPayment(
             totalAmount: true,
             amountPaid: true,
             amountDue: true,
-			type: true,
-			plan: true,
+                type: true,
+            plan: true,
             billingCycle: true,
             periodStart: true,
             periodEnd: true,
@@ -685,7 +695,7 @@ export async function succeedBillingPayment(
           ? "PAID"
           : "PARTIALLY_PAID";
 
-	  if (
+      if (
   newInvoiceStatus === "PAID" &&
   (!invoice.periodStart || !invoice.periodEnd)
 ) {
@@ -726,7 +736,7 @@ export async function succeedBillingPayment(
           },
         });
 
-		let updatedSubscription = null;
+      let updatedSubscription = null;
 
 if (newInvoiceStatus === "PAID") {
   const subscription =
@@ -741,6 +751,7 @@ if (newInvoiceStatus === "PAID") {
         startedAt: true,
         currentPeriodStart: true,
         currentPeriodEnd: true,
+        cancelAtPeriodEnd: true,
       },
     });
 
@@ -817,19 +828,25 @@ if (newInvoiceStatus === "PAID") {
       addOn: updatedAddOn,
     };
   } else if (invoice.type === "SUBSCRIPTION_RENEWAL") {
-    if (subscription.status !== "ACTIVE") {
+    if (subscription.status !== "ACTIVE" && subscription.status !== "EXPIRED") {
       throw new Error(
         `Subscription renewal cannot be applied to a ${subscription.status} subscription.`,
       );
     }
 
+    if (subscription.cancelAtPeriodEnd) {
+       throw new Error(
+         "Subscription renewal cannot be applied because cancellation is scheduled at period end.",
+       );
+     }
+
     if (
-      subscription.currentPeriodEnd &&
-      invoice.periodStart &&
-      invoice.periodStart < subscription.currentPeriodEnd
+      !subscription.currentPeriodEnd ||
+      !invoice.periodStart ||
+      invoice.periodStart.getTime() !== subscription.currentPeriodEnd.getTime()
     ) {
       throw new Error(
-        "Paid billing invoice period overlaps the current subscription period.",
+        "Renewal invoice period no longer matches the subscription's current period end.",
       );
     }
   } else if (invoice.type === "SUBSCRIPTION_PURCHASE") {
@@ -871,7 +888,7 @@ if (newInvoiceStatus === "PAID") {
       return {
         payment: updatedPayment,
         invoice: updatedInvoice,
-		subscription: updatedSubscription,
+        subscription: updatedSubscription,
       };
     },
     {
