@@ -105,25 +105,25 @@ export async function verifyPaystackPayment(
   };
 }
 
-function getPaymentMethod(
-  request: BillingPaymentProviderRequest,
-): PaystackPaymentMethod {
-  const paymentMethod =
-    request.metadata?.paymentMethod
-      ?.trim()
-      .toUpperCase();
-
-  if (
-    paymentMethod !== "MPESA" &&
-    paymentMethod !== "CARD"
-  ) {
-    throw definitiveInitiationError(
-      "Paystack payment method must be MPESA or CARD.",
-    );
+  function getPaymentMethod(
+    request: BillingPaymentProviderRequest,
+  ): PaystackPaymentMethod {
+    const paymentMethod =
+      request.metadata?.paymentMethod
+        ?.trim()
+        .toUpperCase();
+  
+    if (
+      paymentMethod !== "MPESA" &&
+      paymentMethod !== "CARD"
+    ) {
+      throw definitiveInitiationError(
+        "Paystack payment method must be MPESA or CARD.",
+      );
+    }
+  
+    return paymentMethod;
   }
-
-  return paymentMethod;
-}
 
 function getCustomerEmail(
   request: BillingPaymentProviderRequest,
