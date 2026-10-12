@@ -143,16 +143,32 @@ function getCustomerEmail(
 function getCustomerPhone(
   request: BillingPaymentProviderRequest,
 ): string {
-  const phone =
-    request.metadata?.customerPhone?.trim();
+  const input =
+    request.metadata?.customerPhone?.trim().replace(/\s+/g, "");
 
-  if (!phone) {
+  if (!input) {
     throw definitiveInitiationError(
       "Customer M-Pesa phone number is required for Paystack M-Pesa billing.",
     );
   }
 
-  return phone;
+  let phone = input;
+
+  if (phone.startsWith("+")) {
+    phone = phone.substring(1);
+  }
+
+  if (phone.startsWith("0")) {
+    phone = `254${phone.substring(1)}`;
+  }
+
+  if (!/^254(?:7|1)\d{8}$/.test(phone)) {
+    throw definitiveInitiationError(
+      "Enter a valid Kenyan M-Pesa number, e.g. 254712345678.",
+    );
+  }
+
+  return `+${phone}`;
 }
 
 function getPaystackCallbackUrl() {
