@@ -105,29 +105,44 @@ export async function GET(request: Request) {
               paymentMethod,
             );
             const expectedAmount = Math.round(payment.amount.toNumber() * 100);
-            const referenceMatches = verification.reference === payment.providerReference;
+            const referenceMatches =
+              verification.reference === payment.providerReference;
             const amountMatches = verification.amount === expectedAmount;
             const currencyMatches =
               verification.currency === payment.currency.trim().toUpperCase();
 
             if (
-              referenceMatches && amountMatches && currencyMatches &&
+              referenceMatches &&
+              amountMatches &&
+              currencyMatches &&
               verification.status === "success"
             ) {
               await succeedBillingPayment(context.business.id, payment.id);
             } else if (
-              referenceMatches && amountMatches && currencyMatches &&
+              referenceMatches &&
               verification.status === "failed"
             ) {
+              /*
+               * A failed charge does not settle or credit the invoice. Paystack's
+               * charge-verification response may omit amount/currency, so require
+               * the exact reference and an explicit failed status to release the
+               * payment from PROCESSING. Successful payments still require full
+               * reference, amount, and currency validation above.
+               */
               await failBillingPayment(
                 context.business.id,
                 payment.id,
-                verification.message || "Paystack confirmed that the payment failed.",
+                verification.message ||
+                  "Paystack confirmed that the payment failed.",
               );
             }
-            // Inconclusive or mismatched verification never settles the payment.
+            // Inconclusive responses and successful responses with mismatched
+            // reference, amount, or currency never settle the payment.
           } catch (verificationError) {
-            console.warn("Paystack payment reconciliation deferred:", verificationError);
+            console.warn(
+              "Paystack payment reconciliation deferred:",
+              verificationError,
+            );
           }
         }
       }
