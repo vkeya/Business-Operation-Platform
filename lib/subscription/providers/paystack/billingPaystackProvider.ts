@@ -276,6 +276,19 @@ async function callPaystack(
       ambiguousHttpOutcome ? "AMBIGUOUS" : "DEFINITIVE_FAILURE",
     );
   }
+  
+    console.info("[Paystack billing initiation diagnostic]", {
+    endpoint: path,
+    httpStatus: response.status,
+    accepted: response.ok && payload.status === true,
+    message: payload.message,
+    chargeStatus: payload.data?.status ?? null,
+    displayText: payload.data?.display_text ?? null,
+    hasReference: Boolean(payload.data?.reference),
+    referenceMatchesRequest:
+      typeof body.reference === "string" &&
+      payload.data?.reference === body.reference,
+  });
 
   if (!response.ok || !payload.status) {
     const message =
