@@ -35,6 +35,7 @@ interface PaystackApiResponse {
   data?: {
     reference?: string;
     status?: string;
+	message?: string;
     amount?: number;
     currency?: string;
     display_text?: string;
@@ -101,7 +102,9 @@ export async function verifyPaystackPayment(
     status: payload.data.status?.trim().toLowerCase() ?? "",
     amount: payload.data.amount,
     currency: payload.data.currency?.trim().toUpperCase(),
-    message: payload.message,
+    message:
+      payload.data.message?.trim() ||
+      payload.message,
   };
 }
 
