@@ -8,6 +8,9 @@ import {
   initiateBillingPayment,
 } from "@/lib/subscription/billingPaymentService";
 import type { BillingCycle } from "@/generated/prisma/client";
+import {
+  MpesaStkPushInitiationError,
+} from "@/lib/payment/providers/mpesa/mpesaStkPush";
 import { prisma } from "@/lib/database/prisma";
 import type { SubscriptionAddOnCode } from "@/lib/subscription/subscriptionPlanCatalog";
 
@@ -76,13 +79,43 @@ export async function POST(request: Request) {
       provider,
     });
 
-    const initiated = await initiateBillingPayment({
-      businessId: context.business.id,
-      paymentId: payment.id,
-      customerPhone: customerPhone || undefined,
-      customerEmail: customerEmail || undefined,
-      paymentMethod,
-    });
+    let initiated;
+
+try {
+  initiated = await initiateBillingPayment({
+    businessId: context.business.id,
+    paymentId: payment.id,
+    customerPhone: customerPhone || undefined,
+    customerEmail: customerEmail || undefined,
+    paymentMethod,
+  });
+} catch (error) {
+  if (
+    error instanceof MpesaStkPushInitiationError &&
+    error.outcome === "AMBIGUOUS"
+  ) {
+    return NextResponse.json(
+      {
+        success: true,
+        pending: true,
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: "OPEN",
+        },
+        payment: {
+          id: payment.id,
+          status: "PROCESSING",
+        },
+        message:
+          "Your M-Pesa request may have reached your phone. We are checking its status. Do not retry the payment yet.",
+      },
+      { status: 202 },
+    );
+  }
+
+  throw error;
+}
 
     return NextResponse.json({
       success: true,

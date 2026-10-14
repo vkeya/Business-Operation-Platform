@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { CreditCard, Loader2, Smartphone } from "lucide-react";
@@ -106,7 +106,7 @@ export default function SubscriptionPlanManager() {
           quantity: addOnQuantity,
           billingCycle,
           currency: "KES",
-          provider: "PAYSTACK",
+          provider: paymentMethod === "MPESA" ? "MPESA" : "PAYSTACK",
           paymentMethod,
           customerPhone: paymentMethod === "MPESA" ? customerPhone.trim() : undefined,
           customerEmail: customerEmail.trim(),
@@ -121,6 +121,21 @@ export default function SubscriptionPlanManager() {
       const authorizationUrl = result?.payment?.providerResponse?.authorizationUrl;
       if (typeof authorizationUrl === "string" && authorizationUrl) {
         window.location.assign(authorizationUrl);
+        return;
+      }
+
+	  const providerReference = result?.payment?.providerReference;
+
+      if (
+        paymentMethod === "MPESA" &&
+        typeof providerReference === "string" &&
+        providerReference.trim()
+      ) {
+        window.location.assign(
+          `/settings/subscription/payment?reference=${encodeURIComponent(
+            providerReference,
+          )}`,
+        );
         return;
       }
 
@@ -176,7 +191,7 @@ export default function SubscriptionPlanManager() {
           plan,
           billingCycle,
           currency: "KES",
-          provider: "PAYSTACK",
+          provider: paymentMethod === "MPESA" ? "MPESA" : "PAYSTACK",
           paymentMethod,
           customerPhone:
             paymentMethod === "MPESA"
@@ -203,6 +218,36 @@ export default function SubscriptionPlanManager() {
         window.location.assign(authorizationUrl);
         return;
       }
+
+	  const providerReference = result?.payment?.providerReference;
+const paymentId = result?.payment?.id;
+
+if (paymentMethod === "MPESA") {
+  if (
+    typeof providerReference === "string" &&
+    providerReference.trim()
+  ) {
+    window.location.assign(
+      `/settings/subscription/payment?reference=${encodeURIComponent(
+        providerReference,
+      )}`,
+    );
+    return;
+  }
+
+  if (
+    result?.pending === true &&
+    typeof paymentId === "string" &&
+    paymentId.trim()
+  ) {
+    window.location.assign(
+      `/settings/subscription/payment?paymentId=${encodeURIComponent(
+        paymentId,
+      )}`,
+    );
+    return;
+  }
+}
 
       if (result?.payment?.status === "PROCESSING") {
         setPaymentNeedsReconciliation(true);

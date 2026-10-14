@@ -14,11 +14,13 @@ type PaymentState =
 type PaymentStatusResponse = {
   success: boolean;
   payment?: {
+	id: string;
     status: string;
   };
   invoice?: {
     status: string;
     plan: string;
+	type: string;
   };
   subscription?: {
     status: string;
@@ -31,6 +33,7 @@ type PaymentPageProps = {
   searchParams: Promise<{
     reference?: string;
     trxref?: string;
+	paymentId?: string;
   }>;
 };
 
@@ -44,16 +47,22 @@ export default function SubscriptionPaymentPage({
   );
   const [plan, setPlan] = useState<string | null>(null);
 
+  const [isAddOnPayment, setIsAddOnPayment] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    async function checkPaymentStatus(paymentReference: string) {
+    async function checkPaymentStatus(
+      lookup: { reference?: string; paymentId?: string },
+    ) {
       try {
+        const query = lookup.paymentId
+          ? `paymentId=${encodeURIComponent(lookup.paymentId)}`
+          : `reference=${encodeURIComponent(lookup.reference ?? "")}`;
+
         const response = await fetch(
-          `/api/subscription/payment-status?reference=${encodeURIComponent(
-            paymentReference,
-          )}`,
+          `/api/subscription/payment-status?${query}`,
           {
             method: "GET",
             cache: "no-store",
@@ -82,22 +91,53 @@ export default function SubscriptionPaymentPage({
         const subscriptionStatus =
           result.subscription?.status?.toUpperCase();
 
+
         if (
           paymentStatus === "SUCCEEDED" &&
-          invoiceStatus === "PAID" &&
-          subscriptionStatus === "ACTIVE"
+          invoiceStatus === "PAID"
         ) {
-          setPlan(
-            result.subscription?.plan ??
-              result.invoice?.plan ??
-              null,
-          );
-          setState("SUCCEEDED");
-          setMessage(
-            "Your payment has been confirmed and your subscription is now active.",
-          );
-          return;
+          const invoiceType = result.invoice?.type?.toUpperCase();
+
+          if (
+            invoiceType === "SUBSCRIPTION_PURCHASE" &&
+            subscriptionStatus !== "ACTIVE"
+          ) {
+            setState("PENDING");
+            setMessage(
+              "Payment was received. We are waiting for subscription activation to complete.",
+            );
+
+            timer = setTimeout(() => {
+              void checkPaymentStatus(lookup);
+            }, 3000);
+
+            return;
+          }
+
+          if (
+            invoiceType === "SUBSCRIPTION_PURCHASE" ||
+            invoiceType === "SUBSCRIPTION_ADD_ON"
+          ) {
+
+			setIsAddOnPayment(
+              invoiceType === "SUBSCRIPTION_ADD_ON",
+            );
+
+            setPlan(
+              result.subscription?.plan ??
+                result.invoice?.plan ??
+                null,
+            );
+            setState("SUCCEEDED");
+            setMessage(
+              invoiceType === "SUBSCRIPTION_ADD_ON"
+                ? "Your add-on payment has been confirmed successfully."
+                : "Your payment has been confirmed and your subscription is now active.",
+            );
+            return;
+          }
         }
+
 
         if (paymentStatus === "FAILED") {
           setState("FAILED");
@@ -121,7 +161,7 @@ export default function SubscriptionPaymentPage({
         );
 
         timer = setTimeout(() => {
-          void checkPaymentStatus(paymentReference);
+          void checkPaymentStatus(lookup);
         }, 3000);
       } catch (error) {
         if (cancelled) {
@@ -136,33 +176,39 @@ export default function SubscriptionPaymentPage({
         );
 
         timer = setTimeout(() => {
-          void checkPaymentStatus(paymentReference);
+          void checkPaymentStatus(lookup);
         }, 5000);
       }
     }
 
-    void searchParams.then((params) => {
-      if (cancelled) {
-        return;
-      }
+    searchParams.then((params) => {
+  if (cancelled) {
+    return;
+  }
 
-      const resolvedReference =
-        params.reference?.trim() ||
-        params.trxref?.trim() ||
-        null;
+  const resolvedReference =
+    params.reference?.trim() ||
+    params.trxref?.trim() ||
+    null;
 
-      setReference(resolvedReference);
+  const resolvedPaymentId =
+    params.paymentId?.trim() || null;
 
-      if (!resolvedReference) {
-        setState("FAILED");
-        setMessage(
-          "No Paystack payment reference was returned.",
-        );
-        return;
-      }
+  setReference(resolvedReference);
 
-      void checkPaymentStatus(resolvedReference);
-    });
+  if (!resolvedReference && !resolvedPaymentId) {
+    setState("FAILED");
+    setMessage(
+      "No payment reference or payment ID was returned.",
+    );
+    return;
+  }
+
+  void checkPaymentStatus({
+    reference: resolvedReference ?? undefined,
+    paymentId: resolvedPaymentId ?? undefined,
+  });
+});
 
     return () => {
       cancelled = true;
@@ -246,8 +292,9 @@ export default function SubscriptionPaymentPage({
         {isSuccess && (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <p className="text-sm leading-6 text-emerald-800">
-              Your SmatPic subscription is active. You can now continue
-              using your business operations.
+              {isAddOnPayment
+                ? "Your add-on payment is confirmed. You can continue using SmatPic."
+                : "Your SmatPic subscription is active. You can now continue using your business operations."}
             </p>
           </div>
         )}
