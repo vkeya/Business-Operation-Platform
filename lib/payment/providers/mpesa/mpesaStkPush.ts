@@ -31,6 +31,7 @@ export class MpesaStkPushInitiationError extends Error {
 }
 
 export interface InitiateMpesaStkPushInput {
+  flow: "POS" | "SUBSCRIPTION";
   credentials: MpesaServerCredentials;
   consumerSecret: string;
   passkey: string;
@@ -123,6 +124,30 @@ export async function initiateMpesaStkPush(
     TransactionDesc:
       input.transactionDescription,
   };
+  
+  
+  console.info("M-Pesa STK request diagnostics", {
+    environment: input.credentials.environment,
+    merchantType: input.credentials.merchantType,
+    businessShortCode: input.credentials.shortcode,
+    transactionType,
+	flow: input.flow,
+    amount: input.amount,
+    normalizedPhoneLength: phoneNumber.length,
+    normalizedPhonePrefix: phoneNumber.slice(0, 3),
+    callbackUrlIsHttps: input.callbackUrl.startsWith("https://"),
+    callbackUrlHost: (() => {
+      try {
+        return new URL(input.callbackUrl).host;
+      } catch {
+        return "INVALID_URL";
+      }
+    })(),
+    accountReferenceLength: input.accountReference.length,
+    transactionDescriptionLength:
+      input.transactionDescription.length,
+  });
+
 
   const controller = new AbortController();
 
@@ -165,6 +190,18 @@ try {
 
 try {
   body = (await response.json()) as MpesaStkPushResponse;
+  
+  
+  console.info("M-Pesa STK initiation response diagnostics", {
+    httpStatus: response.status,
+    responseCode: body.ResponseCode ?? null,
+    responseDescription: body.ResponseDescription ?? null,
+    customerMessage: body.CustomerMessage ?? null,
+    checkoutRequestIdPresent: Boolean(body.CheckoutRequestID),
+    merchantRequestIdPresent: Boolean(body.MerchantRequestID),
+  });
+
+  
 } catch {
   throw new MpesaStkPushInitiationError(
     "M-Pesa returned an unreadable response; provider acceptance is unknown.",

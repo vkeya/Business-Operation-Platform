@@ -77,6 +77,7 @@ export const mpesaProvider:
 
     const result =
       await initiateMpesaStkPush({
+		flow: "POS",
         credentials,
         consumerSecret,
         passkey,
