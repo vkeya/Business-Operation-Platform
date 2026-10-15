@@ -92,6 +92,7 @@ export const billingMpesaProvider:
 
     const result =
       await initiateMpesaStkPush({
+		flow: "SUBSCRIPTION",
         credentials,
         consumerSecret,
         passkey,
