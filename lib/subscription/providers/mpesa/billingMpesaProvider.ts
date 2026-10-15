@@ -108,9 +108,7 @@ export const billingMpesaProvider:
         accountReference:
           request.reference,
 
-        transactionDescription:
-          request.description ||
-          `SmatPic subscription ${request.reference}`,
+        transactionDescription: "SMATPIC BILL",
       });
 
     return {
