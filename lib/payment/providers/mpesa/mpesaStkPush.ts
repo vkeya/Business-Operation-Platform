@@ -66,6 +66,26 @@ export async function initiateMpesaStkPush(
     );
   }
 
+  if (input.flow === "SUBSCRIPTION") {
+    if (
+      !input.accountReference.trim() ||
+      input.accountReference.length > 12
+    ) {
+      throw new Error(
+        "M-Pesa subscription AccountReference must contain 1–12 characters.",
+      );
+    }
+
+    if (
+      !input.transactionDescription.trim() ||
+      input.transactionDescription.length > 13
+    ) {
+      throw new Error(
+        "M-Pesa subscription TransactionDesc must contain 1–13 characters.",
+      );
+    }
+  }
+
   const phoneNumber =
     normalizeMpesaPhone(input.phoneNumber);
 
