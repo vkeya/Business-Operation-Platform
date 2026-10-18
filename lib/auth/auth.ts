@@ -205,7 +205,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (
         account?.provider !== "google" ||
         !account.providerAccountId ||
@@ -224,6 +224,24 @@ export const authOptions: NextAuthOptions = {
         });
 
       user.id = resolvedUser.id;
+
+      // Trust Google's explicit verification claim, not the identity link alone.
+      const googleEmailVerified =
+        profile &&
+        "email_verified" in profile &&
+        profile.email_verified === true;
+
+      if (googleEmailVerified) {
+        await prisma.user.updateMany({
+          where: {
+            id: resolvedUser.id,
+            emailVerifiedAt: null,
+          },
+          data: {
+            emailVerifiedAt: new Date(),
+          },
+        });
+      }
 
       await recordAuditEvent({
         actorId: resolvedUser.id,

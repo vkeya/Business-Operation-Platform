@@ -18,7 +18,7 @@ export interface EntitlementResolution {
   granted: boolean;
   code: EntitlementCode;
   definition: EntitlementDefinition;
-  plan: SubscriptionPlan;
+  plan: SubscriptionPlan | null;
   businessType: BusinessType;
   reason:
     | "GRANTED"
@@ -144,9 +144,19 @@ export async function resolveBusinessEntitlement(
 
   if (!subscription) {
     const definition = entitlementDefinitions[code];
-    throw new Error(
-      `Cannot resolve entitlement ${definition.name}: business has no subscription.`,
-    );
+
+    if (!definition) {
+      throw new Error(`Unknown subscription entitlement: ${code}.`);
+    }
+
+    return {
+      granted: false,
+      code,
+      definition,
+      plan: null,
+      businessType: await getBusinessType(businessId),
+      reason: "NO_SUBSCRIPTION",
+    };
   }
 
   const now = new Date();
