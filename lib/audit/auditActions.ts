@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = {
   BUSINESS_INVITATION_CREATED: "business.invitation.created",
   BUSINESS_INVITATION_RESENT: "business.invitation.resent",
   BUSINESS_INVITATION_REVOKED: "business.invitation.revoked",
+  SUBSCRIPTION_TRIAL_STARTED: "subscription.trial.started",
 
 
   // Products
