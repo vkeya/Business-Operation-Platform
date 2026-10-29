@@ -7,6 +7,12 @@ export interface TranslationSet {
     dashboard: string;
     sales: string;
     customers: string;
+      patients: string;
+      appointments: string;
+      admissions: string;
+      wardsBeds: string;
+      laboratory: string;
+    invoices: string;
     inventory: string;
     purchasing: string;
     purchases: string;
@@ -891,6 +897,12 @@ export const translations: Record<Locale, TranslationSet> = {
       dashboard: "Overview",
       sales: "Sales",
       customers: "Customers",
+      patients: "Patients",
+      appointments: "Appointments",
+      admissions: "Admissions",
+      wardsBeds: "Wards & Beds",
+      laboratory: "Laboratory",
+      invoices: "Invoices",
       inventory: "Inventory",
       purchasing: "Purchasing",
       purchases: "Purchases",
@@ -1885,6 +1897,12 @@ categoryName: "Category Name",
       dashboard: "Vue d'ensemble",
       sales: "Ventes",
       customers: "Clients",
+      patients: "Patients",
+      appointments: "Rendez-vous",
+      admissions: "Admissions",
+      wardsBeds: "Services et lits",
+      laboratory: "Laboratoire",
+      invoices: "Factures",
       inventory: "Stock",
       purchasing: "Achats",
       purchases: "Achats",
@@ -2901,6 +2919,12 @@ categoryName: "Nom de la catégorie",
       dashboard: "አጠቃላይ እይታ",
       sales: "ሽያጭ",
       customers: "ደንበኞች",
+      patients: "ታካሚዎች",
+      appointments: "ቀጠሮዎች",
+      admissions: "ታካሚ ቅበላ",
+      wardsBeds: "የሕክምና ክፍሎችና አልጋዎች",
+      laboratory: "ላቦራቶሪ",
+      invoices: "ደረሰኞች",
       inventory: "እቃ ክምችት",
       purchasing: "ግዢ",
       purchases: "ግዢዎች",

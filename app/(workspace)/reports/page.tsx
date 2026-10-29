@@ -16,16 +16,30 @@ import {
   getPharmacyRecallReportAction,
 } from "@/lib/reports/actions";
 
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { requireHospitalBusiness } from "@/lib/hospital/hospitalAccessService";
+import type { BusinessType } from "@/types";
+import HospitalFinancialSummaryWorkspace from "../settings/hospital/reports/financial/HospitalFinancialSummaryWorkspace";
 
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const business =
-    await getCurrentBusiness();
+  const context = await getCurrentBusinessContext();
+  const business = context.business;
 
-  const report =
+  if (business.type === "hospital") {
+    await requireBusinessOperationAccess(
+      context.user.id,
+      business.id,
+      "hospital.invoices.read",
+    );
+
+    requireHospitalBusiness(business.type as BusinessType);
+    return <HospitalFinancialSummaryWorkspace />;
+  }
+const report =
     await getBusinessReportAction();
 
   const controlledDispensingRegister =

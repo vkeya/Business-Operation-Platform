@@ -1,0 +1,227 @@
+import { NextResponse } from "next/server";
+
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { BusinessPermissionError } from "@/lib/business/businessPermissionService";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
+import {
+  HospitalAccessError,
+  requireHospitalBusiness,
+} from "@/lib/hospital/hospitalAccessService";
+import {
+  HospitalImagingError,
+  createHospitalImagingReport,
+} from "@/lib/hospital/hospitalImagingService";
+import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import type { BusinessType } from "@/types";
+
+function errorResponse(error: unknown, operation: string) {
+  if (
+    error instanceof Error &&
+    error.message === "Authentication is required."
+  ) {
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 },
+    );
+  }
+
+  if (
+    error instanceof BusinessPermissionError ||
+    error instanceof SubscriptionEntitlementError ||
+    error instanceof HospitalAccessError ||
+    error instanceof HospitalImagingError
+  ) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.statusCode },
+    );
+  }
+
+  console.error(`${operation} failed:`, error);
+
+  return NextResponse.json(
+    { error: "Unable to complete the hospital imaging report operation." },
+    { status: 500 },
+  );
+}
+
+async function authorize(permission: string) {
+  const context = await getCurrentBusinessContext();
+
+  await requireBusinessOperationAccess(
+    context.user.id,
+    context.business.id,
+    permission,
+  );
+
+  requireHospitalBusiness(context.business.type as BusinessType);
+
+  return context;
+}
+
+export async function GET(request: Request) {
+  try {
+    const context = await authorize("hospital.imaging.read");
+    const url = new URL(request.url);
+    const orderItemId = url.searchParams.get("orderItemId")?.trim();
+    const studyId = url.searchParams.get("studyId")?.trim();
+    const skip = Number(url.searchParams.get("skip") ?? 0);
+    const take = Number(url.searchParams.get("take") ?? 25);
+
+    if (!orderItemId && !studyId) {
+      return NextResponse.json(
+        { error: "An orderItemId or studyId filter is required." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !Number.isInteger(skip) ||
+      skip < 0 ||
+      !Number.isInteger(take) ||
+      take < 1 ||
+      take > 100
+    ) {
+      return NextResponse.json(
+        { error: "Invalid pagination parameters." },
+        { status: 400 },
+      );
+    }
+
+    const reports = await prisma.hospitalImagingReport.findMany({
+      where: {
+        businessId: context.business.id,
+        ...(orderItemId ? { orderItemId } : {}),
+        ...(studyId ? { studyId } : {}),
+      },
+      include: {
+        revisions: { orderBy: { revision: "desc" } },
+        study: {
+          select: { id: true, studyNumber: true, status: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    });
+
+    for (const report of reports) {
+      await recordAuditEvent({
+        businessId: context.business.id,
+        actorId: context.user.id,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_REPORT_VIEWED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingReport",
+        entityId: report.id,
+        metadata: {
+          orderItemId: report.orderItemId,
+          studyId: report.studyId,
+          status: report.status,
+          accessMode: "list",
+        },
+      });
+    }
+
+    return NextResponse.json({ reports });
+  } catch (error) {
+    return errorResponse(error, "Hospital imaging report lookup");
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    await authorize("hospital.imaging.manage");
+
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "A valid JSON imaging report object is required." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        { error: "A valid imaging report object is required." },
+        { status: 400 },
+      );
+    }
+
+    const input = body as Record<string, unknown>;
+    const allowedFields = new Set([
+      "orderItemId",
+      "studyId",
+      "findings",
+      "impression",
+      "recommendations",
+    ]);
+
+    for (const field of Object.keys(input)) {
+      if (!allowedFields.has(field)) {
+        return NextResponse.json(
+          { error: `Unsupported imaging report field: ${field}.` },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (
+      typeof input.orderItemId !== "string" ||
+      !input.orderItemId.trim() ||
+      typeof input.findings !== "string" ||
+      !input.findings.trim() ||
+      typeof input.impression !== "string" ||
+      !input.impression.trim()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Valid orderItemId, findings, and impression are required.",
+        },
+        { status: 400 },
+      );
+    }
+
+    for (const field of ["studyId", "recommendations"] as const) {
+      const value = input[field];
+
+      if (
+        value !== undefined &&
+        value !== null &&
+        typeof value !== "string"
+      ) {
+        return NextResponse.json(
+          { error: `Invalid value for ${field}.` },
+          { status: 400 },
+        );
+      }
+    }
+
+    const report = await createHospitalImagingReport({
+      orderItemId: input.orderItemId,
+      ...(typeof input.studyId === "string"
+        ? { studyId: input.studyId }
+        : {}),
+      findings: input.findings,
+      impression: input.impression,
+      ...(typeof input.recommendations === "string" ||
+      input.recommendations === null
+        ? { recommendations: input.recommendations }
+        : {}),
+    });
+
+    return NextResponse.json({ report }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error, "Hospital imaging report creation");
+  }
+}

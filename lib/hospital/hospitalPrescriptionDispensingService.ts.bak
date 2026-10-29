@@ -1,0 +1,330 @@
+import { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { pharmacyDispensingService } from "@/lib/pharmacy/dispensing/pharmacyDispensingService";
+import { HospitalPrescriptionError } from "@/lib/hospital/hospitalPrescriptionService";
+
+type DispenseHospitalPrescriptionInput = {
+  businessId: string;
+  userId: string;
+  prescriptionId: string;
+  prescriptionItemId: string;
+  warehouseId: string;
+  quantity: number | string;
+  operationId: string;
+  notes?: string | null;
+  pharmacistName?: string | null;
+  pharmacistLicense?: string | null;
+};
+
+export async function dispenseHospitalPrescription(
+  input: DispenseHospitalPrescriptionInput,
+) {
+  const businessId = input.businessId.trim();
+  const userId = input.userId.trim();
+  const prescriptionId = input.prescriptionId.trim();
+  const prescriptionItemId = input.prescriptionItemId.trim();
+  const warehouseId = input.warehouseId.trim();
+  const operationId = input.operationId.trim();
+
+  if (
+    !businessId ||
+    !userId ||
+    !prescriptionId ||
+    !prescriptionItemId ||
+    !warehouseId ||
+    !operationId
+  ) {
+    throw new HospitalPrescriptionError(
+      "Business, user, prescription, item, warehouse and operation ID are required.",
+    );
+  }
+
+  let quantity: Prisma.Decimal;
+
+  try {
+    quantity = new Prisma.Decimal(input.quantity);
+  } catch {
+    throw new HospitalPrescriptionError(
+      "Dispensing quantity must be a valid number.",
+    );
+  }
+
+  if (
+    !quantity.isFinite() ||
+    quantity.lessThanOrEqualTo(0) ||
+    quantity.decimalPlaces() > 4
+  ) {
+    throw new HospitalPrescriptionError(
+      "Dispensing quantity must be positive and have at most four decimal places.",
+    );
+  }
+
+  const notes = input.notes?.trim() || undefined;
+  const pharmacistName = input.pharmacistName?.trim() || undefined;
+  const pharmacistLicense = input.pharmacistLicense?.trim() || undefined;
+
+  if (notes && notes.length > 1000) {
+    throw new HospitalPrescriptionError(
+      "Dispensing notes cannot exceed 1,000 characters.",
+    );
+  }
+
+  if (pharmacistName && pharmacistName.length > 200) {
+    throw new HospitalPrescriptionError(
+      "Pharmacist name cannot exceed 200 characters.",
+    );
+  }
+
+  if (pharmacistLicense && pharmacistLicense.length > 100) {
+    throw new HospitalPrescriptionError(
+      "Pharmacist license cannot exceed 100 characters.",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // The prescription must belong to this hospital, not merely exist.
+    const prescription = await tx.pharmacyPrescription.findFirst({
+      where: {
+        id: prescriptionId,
+        businessId,
+        hospitalPatientId: { not: null },
+      },
+      select: {
+        id: true,
+        businessId: true,
+        hospitalPatientId: true,
+        hospitalEncounterId: true,
+        expiryDate: true,
+        status: true,
+      },
+    });
+
+    if (!prescription) {
+      throw new HospitalPrescriptionError(
+        "Hospital prescription not found.",
+        404,
+      );
+    }
+
+    if (
+      prescription.status === "CANCELLED" ||
+      prescription.status === "EXPIRED"
+    ) {
+      throw new HospitalPrescriptionError(
+        "This prescription cannot be dispensed because it is cancelled or expired.",
+        409,
+      );
+    }
+
+    if (
+      prescription.expiryDate &&
+      prescription.expiryDate <= new Date()
+    ) {
+      throw new HospitalPrescriptionError(
+        "This prescription has expired.",
+        409,
+      );
+    }
+
+    // Confirm that the linked encounter and patient are still in this business.
+    if (prescription.hospitalEncounterId) {
+      const encounter = await tx.hospitalEncounter.findFirst({
+        where: {
+          id: prescription.hospitalEncounterId,
+          businessId,
+          patientId: prescription.hospitalPatientId!,
+        },
+        select: { id: true },
+      });
+
+      if (!encounter) {
+        throw new HospitalPrescriptionError(
+          "The prescription's hospital encounter could not be verified.",
+          409,
+        );
+      }
+    }
+
+    const item = await tx.pharmacyPrescriptionItem.findFirst({
+      where: {
+        id: prescriptionItemId,
+        prescriptionId: prescription.id,
+      },
+      select: {
+        id: true,
+        productId: true,
+        quantityPrescribed: true,
+        quantityDispensed: true,
+      },
+    });
+
+    if (!item) {
+      throw new HospitalPrescriptionError(
+        "Prescription item not found.",
+        404,
+      );
+    }
+
+    const remaining = item.quantityPrescribed.sub(
+      item.quantityDispensed,
+    );
+
+    if (remaining.lessThanOrEqualTo(0)) {
+      throw new HospitalPrescriptionError(
+        "This prescription item has already been fully dispensed.",
+        409,
+      );
+    }
+
+    if (quantity.greaterThan(remaining)) {
+      throw new HospitalPrescriptionError(
+        `Dispensing quantity exceeds the remaining prescribed quantity of ${remaining.toString()}.`,
+        409,
+      );
+    }
+
+    const product = await tx.product.findFirst({
+      where: {
+        id: item.productId,
+        businessId,
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+        pharmacyProduct: {
+          select: {
+            id: true,
+            status: true,
+            prescriptionType: true,
+          },
+        },
+      },
+    });
+
+    if (!product?.pharmacyProduct ||
+        product.pharmacyProduct.status !== "ACTIVE") {
+      throw new HospitalPrescriptionError(
+        "The prescribed medicine is not an active pharmacy product in this hospital.",
+        409,
+      );
+    }
+
+    if (product.pharmacyProduct.prescriptionType === "CONTROLLED") {
+      throw new HospitalPrescriptionError(
+        "Controlled medicines are not supported by hospital dispensing PH-1. They require a compliant hospital-specific controlled-dispensing workflow.",
+        409,
+      );
+    }
+
+    if (product.pharmacyProduct.prescriptionType !== "PRESCRIPTION") {
+      throw new HospitalPrescriptionError(
+        "Hospital dispensing requires a prescription-only medicine.",
+        409,
+      );
+    }
+
+    // Keep idempotency business-scoped. A repeated completed request returns
+    // its original response without deducting stock or writing another audit.
+    const existingOperation = await tx.operationRequest.findUnique({
+      where: {
+        businessId_operationId: {
+          businessId,
+          operationId,
+        },
+      },
+    });
+
+    if (existingOperation) {
+      if (
+        existingOperation.status === "COMPLETED" &&
+        existingOperation.response
+      ) {
+        const response = existingOperation.response;
+
+        if (
+          typeof response === "object" &&
+          response !== null &&
+          "prescriptionId" in response &&
+          response.prescriptionId === prescriptionId &&
+          "prescriptionItemId" in response &&
+          response.prescriptionItemId === prescriptionItemId
+        ) {
+          return response;
+        }
+
+        throw new HospitalPrescriptionError(
+          "This operation ID has already been used for a different operation.",
+          409,
+        );
+      }
+
+      throw new HospitalPrescriptionError(
+        "An operation with this ID already exists and has not completed. Retry using a new operation ID after checking its status.",
+        409,
+      );
+    }
+
+    let result: Awaited<
+      ReturnType<typeof pharmacyDispensingService.dispense>
+    >;
+
+    try {
+      result = await pharmacyDispensingService.dispense(
+        {
+          businessId,
+          productId: item.productId,
+          warehouseId,
+          quantity,
+          operationId,
+          createdBy: userId,
+          referenceType: "HOSPITAL_PRESCRIPTION_DISPENSING",
+          referenceId: prescriptionId,
+          notes: notes ?? "Hospital prescription dispensing",
+          hasPrescription: true,
+          prescriptionId,
+          prescriptionItemId,
+          pharmacistName,
+          pharmacistLicense,
+          reason: "Hospital prescription dispensing",
+        },
+        tx,
+      );
+    } catch (error) {
+      // Translate expected domain errors into a client-visible conflict.
+      // Preserve Prisma/database errors so they remain server errors.
+      if (
+        error instanceof Error &&
+        !error.name.startsWith("Prisma")
+      ) {
+        throw new HospitalPrescriptionError(error.message, 409);
+      }
+
+      throw error;
+    }
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_PRESCRIPTION_DISPENSED,
+        category: "HOSPITAL",
+        entityType: "PharmacyPrescription",
+        entityId: prescriptionId,
+        metadata: {
+          prescriptionItemId,
+          productId: item.productId,
+          warehouseId,
+          quantity: quantity.toString(),
+          operationId,
+          movementId: result.movementId,
+          referenceType: "HOSPITAL_PRESCRIPTION_DISPENSING",
+        },
+      },
+      tx,
+    );
+
+    return result;
+  });
+}

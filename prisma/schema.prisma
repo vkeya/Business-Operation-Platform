@@ -62,6 +62,36 @@ model Business {
 
   supermarketProfile SupermarketProfile?
 
+  hospitalProfile HospitalProfile?
+
+  patients         Patient[]
+  hospitalInvoices HospitalInvoice[]
+
+  hospitalInvoicePayments HospitalInvoicePayment[]
+
+  hospitalAppointments  HospitalAppointment[]
+  hospitalEncounters    HospitalEncounter[]
+  hospitalClinicalNotes HospitalClinicalNote[]
+  hospitalDiagnoses     HospitalDiagnosis[]
+  hospitalObservations  HospitalObservation[]
+
+  hospitalLabOrders      HospitalLabOrder[]
+  hospitalLabOrderItems  HospitalLabOrderItem[]
+  hospitalLabSpecimens   HospitalLabSpecimen[]
+  hospitalLabResults     HospitalLabResult[]
+
+  hospitalLabResultRevisions HospitalLabResultRevision[]
+  hospitalImagingOrders HospitalImagingOrder[]
+  hospitalImagingOrderItems HospitalImagingOrderItem[]
+  hospitalImagingStudies HospitalImagingStudy[]
+  hospitalImagingReports HospitalImagingReport[]
+  hospitalImagingReportRevisions HospitalImagingReportRevision[]
+
+  hospitalWards       HospitalWard[]
+  hospitalBeds        HospitalBed[]
+  hospitalAdmissions  HospitalAdmission[]
+  hospitalBedAllocations HospitalBedAllocation[]
+
   supermarketAutopilotActions SupermarketAutopilotAction[]
 
   pharmacyPrescriptions               PharmacyPrescription[]
@@ -81,38 +111,37 @@ model BusinessSubscription {
   endedAt        DateTime?
 
   billingCycle       BillingCycle?
-  billingCurrency String?
+  billingCurrency    String?
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   nextBillingDate    DateTime?
-  cancelAtPeriodEnd  Boolean      @default(false)
+  cancelAtPeriodEnd  Boolean       @default(false)
 
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  invoices  BillingInvoice[]
-  addOns    BusinessSubscriptionAddOn[]
+  invoices BillingInvoice[]
+  addOns   BusinessSubscriptionAddOn[]
 
   @@index([status])
   @@index([trialEndsAt])
 }
 
 model BillingInvoice {
-  id             String               @id @default(cuid())
+  id             String @id @default(cuid())
   businessId     String
   subscriptionId String
 
   invoiceNumber String
   status        BillingInvoiceStatus @default(DRAFT)
 
-  plan        SubscriptionPlan
+  plan         SubscriptionPlan
   billingCycle BillingCycle
 
   addOnCode     String?
   addOnQuantity Int?
-
 
   type BillingInvoiceType
 
@@ -176,7 +205,7 @@ model BillingInvoiceItem {
 }
 
 model BillingPayment {
-  id        String @id @default(cuid())
+  id         String @id @default(cuid())
   businessId String
   invoiceId  String
 
@@ -187,14 +216,14 @@ model BillingPayment {
 
   provider          String
   providerReference String?
-  providerResponse Json?
+  providerResponse  Json?
 
   failureReason String?
 
-  initiatedAt  DateTime  @default(now())
-  processedAt  DateTime?
-  failedAt     DateTime?
-  cancelledAt  DateTime?
+  initiatedAt DateTime  @default(now())
+  processedAt DateTime?
+  failedAt    DateTime?
+  cancelledAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -233,12 +262,12 @@ model BillingProviderCallback {
 }
 
 model SubscriptionAddOn {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String                       @id @default(cuid())
+  code        String                       @unique
   name        String
   description String?
   billingType SubscriptionAddOnBillingType
-  active      Boolean  @default(true)
+  active      Boolean                      @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,25 +278,623 @@ model SubscriptionAddOn {
 }
 
 model BusinessSubscriptionAddOn {
-  id                    String   @id @default(cuid())
+  id                     String                  @id @default(cuid())
   businessSubscriptionId String
-  addOnCode             String
-  quantity              Int      @default(1)
-  status                SubscriptionAddOnStatus
-  startedAt             DateTime @default(now())
-  endedAt               DateTime?
+  addOnCode              String
+  quantity               Int                     @default(1)
+  status                 SubscriptionAddOnStatus
+  startedAt              DateTime                @default(now())
+  endedAt                DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subscription BusinessSubscription @relation(fields: [businessSubscriptionId],references: [id],onDelete: Cascade)
+  subscription BusinessSubscription @relation(fields: [businessSubscriptionId], references: [id], onDelete: Cascade)
 
-  addOn SubscriptionAddOn @relation(fields: [addOnCode],references: [code])
+  addOn SubscriptionAddOn @relation(fields: [addOnCode], references: [code])
 
   @@unique([businessSubscriptionId, addOnCode])
   @@index([businessSubscriptionId])
   @@index([addOnCode])
   @@index([status])
+}
+
+model HospitalProfile {
+  id         String @id @default(cuid())
+  businessId String @unique
+
+  facilityName       String?
+  facilityType       String?
+  registrationNumber String?
+  licenseNumber      String?
+
+  country String  @default("Kenya")
+  county  String?
+  address String?
+  phone   String?
+  email   String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([country])
+  @@index([county])
+  @@index([isActive])
+}
+
+model Patient {
+  id         String @id @default(cuid())
+  businessId String
+
+  patientNumber String
+  firstName     String
+  middleName    String?
+  lastName      String
+  dateOfBirth   DateTime?
+  sex           String?
+  phone         String?
+  email         String?
+  address       String?
+
+  emergencyContactName         String?
+  emergencyContactRelationship String?
+  emergencyContactPhone        String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  hospitalInvoices HospitalInvoice[]
+
+  hospitalAppointments  HospitalAppointment[]
+  hospitalEncounters    HospitalEncounter[]
+  hospitalClinicalNotes HospitalClinicalNote[]
+  hospitalDiagnoses     HospitalDiagnosis[]
+  hospitalObservations  HospitalObservation[]
+  hospitalPrescriptions PharmacyPrescription[]
+  hospitalLabOrders HospitalLabOrder[]
+  hospitalImagingOrders HospitalImagingOrder[]
+  hospitalAdmissions HospitalAdmission[]
+
+  @@unique([businessId, patientNumber])
+  @@unique([businessId, id])
+  @@index([businessId])
+  @@index([businessId, lastName, firstName])
+  @@index([phone])
+  @@index([email])
+}
+
+model HospitalAppointment {
+  id                String                    @id @default(cuid())
+  businessId        String
+  patientId         String
+  appointmentNumber String
+  clinicianId       String?
+  scheduledStart    DateTime
+  scheduledEnd      DateTime
+  reason            String
+  notes             String?
+  status            HospitalAppointmentStatus @default(SCHEDULED)
+  createdBy         String
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  business                Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient                 Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounters              HospitalEncounter[]
+  followUpFromEncounterId String?
+  followUpFromEncounter   HospitalEncounter?  @relation("HospitalEncounterFollowUps", fields: [followUpFromEncounterId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, appointmentNumber])
+  @@index([businessId, scheduledStart])
+  @@index([businessId, patientId, scheduledStart])
+  @@index([businessId, clinicianId, scheduledStart])
+  @@index([businessId, status, scheduledStart])
+  @@index([businessId, followUpFromEncounterId])
+}
+
+model HospitalEncounter {
+  id              String                  @id @default(cuid())
+  businessId      String
+  patientId       String
+  appointmentId   String?
+  encounterNumber String
+  type            HospitalEncounterType
+  status          HospitalEncounterStatus @default(OPEN)
+  clinicianId     String?
+  createdBy       String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  completedAt     DateTime?
+
+  business             Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient              Patient                @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment          HospitalAppointment?   @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  followUpAppointments HospitalAppointment[]  @relation("HospitalEncounterFollowUps")
+  clinicalNotes        HospitalClinicalNote[]
+  diagnoses            HospitalDiagnosis[]
+  observations         HospitalObservation[]
+  prescriptions        PharmacyPrescription[]
+  labOrders HospitalLabOrder[]
+  imagingOrders HospitalImagingOrder[]
+  hospitalAdmissions HospitalAdmission[]
+
+  @@unique([businessId, encounterNumber])
+  @@unique([businessId, id])
+  @@index([businessId, patientId, createdAt])
+  @@index([businessId, appointmentId])
+  @@index([businessId, status, createdAt])
+  @@index([businessId, clinicianId, createdAt])
+}
+
+model HospitalClinicalNote {
+  id          String   @id @default(cuid())
+  businessId  String
+  patientId   String
+  encounterId String
+  authorId    String
+  noteType    String   @default("PROGRESS")
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounter HospitalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, encounterId, createdAt])
+  @@index([businessId, patientId, createdAt])
+  @@index([businessId, authorId, createdAt])
+}
+
+model HospitalDiagnosis {
+  id             String   @id @default(cuid())
+  businessId     String
+  patientId      String
+  encounterId    String
+  authorId       String
+  code           String?
+  description    String
+  classification String?
+  createdAt      DateTime @default(now())
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounter HospitalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, encounterId, createdAt])
+  @@index([businessId, patientId, createdAt])
+  @@index([businessId, code])
+}
+
+model HospitalObservation {
+  id              String   @id @default(cuid())
+  businessId      String
+  patientId       String
+  encounterId     String
+  authorId        String
+  observationType String
+  value           String
+  numericValue    Decimal? @db.Decimal(18, 4)
+  unit            String?
+  observedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounter HospitalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, encounterId, observedAt])
+  @@index([businessId, patientId, observedAt])
+  @@index([businessId, observationType, observedAt])
+}
+
+model HospitalLabOrder {
+  id                String                 @id @default(cuid())
+  businessId        String
+  patientId         String
+  encounterId       String
+  orderNumber       String
+  orderedBy         String
+  priority          HospitalLabPriority    @default(ROUTINE)
+  status            HospitalLabOrderStatus @default(ORDERED)
+  clinicalIndication String?
+  notes             String?
+  orderedAt         DateTime               @default(now())
+  cancelledAt       DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounter HospitalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  items     HospitalLabOrderItem[]
+
+  @@unique([businessId, orderNumber])
+  @@index([businessId, patientId, orderedAt])
+  @@index([businessId, encounterId, orderedAt])
+  @@index([businessId, status, orderedAt])
+}
+
+model HospitalLabOrderItem {
+  id             String                @id @default(cuid())
+  businessId     String
+  orderId        String
+  testCode       String?
+  testName       String
+  specimenType   String
+  status         HospitalLabItemStatus @default(ORDERED)
+  instructions   String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  business  Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order     HospitalLabOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  specimens HospitalLabSpecimen[]
+  results   HospitalLabResult[]
+
+  @@index([businessId, orderId])
+  @@index([businessId, testCode])
+  @@index([businessId, status])
+}
+
+model HospitalLabSpecimen {
+  id               String                @id @default(cuid())
+  businessId       String
+  orderItemId      String
+  specimenNumber   String
+  specimenType     String
+  status           HospitalSpecimenStatus @default(PENDING)
+  collectedBy      String?
+  collectedAt      DateTime?
+  receivedAt       DateTime?
+  rejectionReason  String?
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  business  Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItem HospitalLabOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  results   HospitalLabResult[]
+
+  @@unique([businessId, specimenNumber])
+  @@index([businessId, orderItemId, createdAt])
+  @@index([businessId, status, createdAt])
+}
+
+model HospitalLabResult {
+  id                String                  @id @default(cuid())
+  businessId        String
+  orderItemId       String
+  specimenId        String?
+  resultValue       String                  @db.Text
+  numericValue      Decimal?                @db.Decimal(18, 4)
+  unit              String?
+  referenceRange    String?
+  abnormalFlag      String?
+  status            HospitalLabResultStatus @default(DRAFT)
+  enteredBy         String
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  releasedBy        String?
+  releasedAt        DateTime?
+  amendmentReason   String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  revisions HospitalLabResultRevision[]
+
+  business  Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItem HospitalLabOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  specimen  HospitalLabSpecimen? @relation(fields: [specimenId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, orderItemId, createdAt])
+  @@index([businessId, specimenId])
+  @@index([businessId, status, createdAt])
+}
+
+model HospitalLabResultRevision {
+  id          String   @id @default(cuid())
+  businessId  String
+  resultId    String
+  revision    Int
+  resultValue String   @db.Text
+  numericValue Decimal? @db.Decimal(18, 4)
+  unit        String?
+  referenceRange String?
+  abnormalFlag String?
+  status      HospitalLabResultStatus
+  amendedBy   String
+  amendmentReason String
+  createdAt   DateTime @default(now())
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  result   HospitalLabResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, resultId, revision])
+  @@index([businessId, resultId, createdAt])
+}
+
+
+model HospitalImagingOrder {
+  id              String                     @id @default(cuid())
+  businessId      String
+  patientId       String
+  encounterId     String
+  orderNumber     String
+  orderedBy       String
+  priority        HospitalImagingPriority    @default(ROUTINE)
+  status          HospitalImagingOrderStatus @default(ORDERED)
+  clinicalIndication String?
+  notes           String?
+  orderedAt       DateTime                   @default(now())
+  cancelledAt     DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  encounter HospitalEncounter @relation(fields: [encounterId], references: [id], onDelete: Restrict)
+  items    HospitalImagingOrderItem[]
+
+  @@unique([businessId, orderNumber])
+  @@index([businessId, patientId, orderedAt])
+  @@index([businessId, encounterId, orderedAt])
+  @@index([businessId, status, orderedAt])
+}
+
+model HospitalImagingOrderItem {
+  id          String                  @id @default(cuid())
+  businessId  String
+  orderId     String
+  studyName   String
+  modality    String
+  bodySite    String
+  laterality  String?
+  instructions String?
+  status      HospitalImagingItemStatus @default(ORDERED)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  business Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order    HospitalImagingOrder   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  studies  HospitalImagingStudy[]
+  reports  HospitalImagingReport[]
+
+  @@index([businessId, orderId, createdAt])
+  @@index([businessId, modality, status, createdAt])
+}
+
+model HospitalImagingStudy {
+  id          String                    @id @default(cuid())
+  businessId  String
+  orderItemId String
+  studyNumber String
+  status      HospitalImagingStudyStatus @default(SCHEDULED)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  performedBy String?
+  location    String?
+  notes       String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  business Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItem HospitalImagingOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  reports   HospitalImagingReport[]
+
+  @@unique([businessId, studyNumber])
+  @@index([businessId, orderItemId, createdAt])
+  @@index([businessId, status, scheduledAt])
+}
+
+model HospitalImagingReport {
+  id               String                     @id @default(cuid())
+  businessId       String
+  orderItemId      String
+  studyId          String?
+  findings         String                     @db.Text
+  impression       String                     @db.Text
+  recommendations  String?                    @db.Text
+  status           HospitalImagingReportStatus @default(DRAFT)
+  enteredBy        String
+  verifiedBy       String?
+  verifiedAt       DateTime?
+  releasedBy       String?
+  releasedAt       DateTime?
+  amendmentReason  String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  business Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItem HospitalImagingOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  study    HospitalImagingStudy?     @relation(fields: [studyId], references: [id], onDelete: Restrict)
+  revisions HospitalImagingReportRevision[]
+
+  @@index([businessId, orderItemId, createdAt])
+  @@index([businessId, studyId])
+  @@index([businessId, status, createdAt])
+}
+
+model HospitalImagingReportRevision {
+  id              String                     @id @default(cuid())
+  businessId      String
+  reportId        String
+  revision        Int
+  findings        String                     @db.Text
+  impression      String                     @db.Text
+  recommendations String?                    @db.Text
+  status          HospitalImagingReportStatus
+  amendedBy       String
+  amendmentReason String
+  createdAt       DateTime                   @default(now())
+
+  business Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  report   HospitalImagingReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, reportId, revision])
+  @@index([businessId, reportId, createdAt])
+}
+
+model HospitalWard {
+  id          String   @id @default(cuid())
+  businessId  String
+  code        String
+  name        String
+  type        HospitalWardType @default(GENERAL)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  beds     HospitalBed[]
+
+  @@unique([businessId, code])
+  @@unique([businessId, id])
+  @@index([businessId, isActive, name])
+}
+
+model HospitalBed {
+  id          String            @id @default(cuid())
+  businessId  String
+  wardId      String
+  bedNumber   String
+  status      HospitalBedStatus @default(AVAILABLE)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  business    Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ward HospitalWard @relation(fields: [businessId, wardId], references: [businessId, id], onDelete: Restrict)
+  allocations HospitalBedAllocation[]
+
+  @@unique([businessId, wardId, bedNumber])
+  @@index([businessId, status])
+  @@unique([businessId, id])
+  @@index([businessId, wardId, status])
+}
+
+model HospitalAdmission {
+  id              String                  @id @default(cuid())
+  businessId      String
+  patientId       String
+  encounterId     String?
+  admissionNumber String
+  status          HospitalAdmissionStatus @default(ADMITTED)
+  admittedAt      DateTime                @default(now())
+  dischargedAt    DateTime?
+  admissionReason String?
+  dischargeNotes  String?
+  clinicianId     String?
+  createdBy       String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  business    Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [businessId, patientId], references: [businessId, id], onDelete: Restrict)
+  encounter HospitalEncounter? @relation(fields: [businessId, encounterId], references: [businessId, id], onDelete: Restrict)
+  allocations HospitalBedAllocation[]
+
+  @@unique([businessId, admissionNumber])
+  @@unique([businessId, id])
+  @@index([businessId, status, admittedAt])
+  @@index([businessId, patientId, admittedAt])
+  @@index([businessId, encounterId])
+}
+
+model HospitalBedAllocation {
+  id          String    @id @default(cuid())
+  businessId  String
+  admissionId String
+  bedId       String
+  allocatedAt DateTime  @default(now())
+  releasedAt  DateTime?
+  allocatedBy String
+  releasedBy  String?
+  releaseReason String?
+  createdAt   DateTime  @default(now())
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  admission HospitalAdmission @relation(fields: [businessId, admissionId], references: [businessId, id], onDelete: Restrict)
+  bed HospitalBed @relation(fields: [businessId, bedId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, admissionId, allocatedAt])
+  @@index([businessId, bedId, releasedAt])
+}
+
+model HospitalInvoice {
+  id            String                @id @default(cuid())
+  businessId    String
+  patientId     String
+  invoiceNumber String
+  status        HospitalInvoiceStatus @default(DRAFT)
+  currency      String
+  subtotal      Decimal               @db.Decimal(18, 4)
+  discountTotal Decimal               @default(0) @db.Decimal(18, 4)
+  taxTotal      Decimal               @default(0) @db.Decimal(18, 4)
+  totalAmount   Decimal               @db.Decimal(18, 4)
+  amountPaid    Decimal               @default(0) @db.Decimal(18, 4)
+  notes         String?
+  issuedAt      DateTime?
+  dueAt         DateTime?
+  createdBy     String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  business Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient               @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  items    HospitalInvoiceItem[]
+
+  payments HospitalInvoicePayment[]
+
+  @@unique([businessId, invoiceNumber])
+  @@index([businessId, patientId, createdAt])
+  @@index([businessId, status, createdAt])
+}
+
+model HospitalInvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Decimal  @db.Decimal(18, 4)
+  unitPrice   Decimal  @db.Decimal(18, 4)
+  discount    Decimal  @default(0) @db.Decimal(18, 4)
+  taxRate     Decimal  @default(0) @db.Decimal(9, 4)
+  taxAmount   Decimal  @default(0) @db.Decimal(18, 4)
+  lineTotal   Decimal  @db.Decimal(18, 4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoice HospitalInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model HospitalInvoicePayment {
+  id         String   @id @default(cuid())
+  businessId String
+  invoiceId  String
+  reference  String
+  method     String
+  amount     Decimal  @db.Decimal(18, 4)
+  currency   String
+  notes      String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invoice  HospitalInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, reference])
+  @@index([businessId, invoiceId, createdAt])
+  @@index([invoiceId])
 }
 
 model PharmacyProfile {
@@ -426,26 +1053,30 @@ model PharmacyBatch {
 }
 
 model PharmacyPrescription {
-  id                 String                     @id @default(cuid())
-  businessId         String
-  customerId         String?
-  saleId             String?
-  prescriptionNumber String
-  prescriptionDate   DateTime
-  expiryDate         DateTime?
-  prescriberName     String
-  prescriberLicense  String?
-  diagnosis          String?
-  notes              String?
-  status             PharmacyPrescriptionStatus @default(ACTIVE)
-  createdBy          String
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
+  id                  String                     @id @default(cuid())
+  businessId          String
+  customerId          String?
+  saleId              String?
+  hospitalPatientId   String?
+  hospitalEncounterId String?
+  prescriptionNumber  String
+  prescriptionDate    DateTime
+  expiryDate          DateTime?
+  prescriberName      String
+  prescriberLicense   String?
+  diagnosis           String?
+  notes               String?
+  status              PharmacyPrescriptionStatus @default(ACTIVE)
+  createdBy           String
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
 
-  business Business                   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer Customer?                  @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  sale     Sale?                      @relation(fields: [saleId], references: [id], onDelete: SetNull)
-  items    PharmacyPrescriptionItem[]
+  business          Business                   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer          Customer?                  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sale              Sale?                      @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  hospitalPatient   Patient?                   @relation(fields: [hospitalPatientId], references: [id], onDelete: SetNull)
+  hospitalEncounter HospitalEncounter?         @relation(fields: [hospitalEncounterId], references: [id], onDelete: SetNull)
+  items             PharmacyPrescriptionItem[]
 
   saleItems SaleItem[]
 
@@ -455,6 +1086,8 @@ model PharmacyPrescription {
   @@index([businessId])
   @@index([customerId])
   @@index([saleId])
+  @@index([hospitalPatientId])
+  @@index([hospitalEncounterId])
   @@index([prescriptionDate])
   @@index([expiryDate])
   @@index([status])
@@ -956,22 +1589,23 @@ model InventoryBalance {
 }
 
 model InventoryMovement {
-  id            String                @id @default(cuid())
-  businessId    String
-  productId     String
-  warehouseId   String
-  type          InventoryMovementType
-  quantity      Decimal               @db.Decimal(18, 4)
-  unitCost      Decimal?              @db.Decimal(18, 4)
-  totalCost     Decimal?              @db.Decimal(18, 4)
-  referenceType String?
-  referenceId   String?
-  notes         String?
-  createdBy     String
-  createdAt     DateTime              @default(now())
-  business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  product       Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-  warehouse     Warehouse             @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  id                   String                @id @default(cuid())
+  businessId           String
+  productId            String
+  warehouseId          String
+  type                 InventoryMovementType
+  quantity             Decimal               @db.Decimal(18, 4)
+  unitCost             Decimal?              @db.Decimal(18, 4)
+  totalCost            Decimal?              @db.Decimal(18, 4)
+  referenceType        String?
+  referenceId          String?
+  notes                String?
+  containerAllocations Json?
+  createdBy            String
+  createdAt            DateTime              @default(now())
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product              Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse            Warehouse             @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
   @@index([productId])
@@ -1711,6 +2345,13 @@ enum BusinessReferenceType {
   PHARMACY_PRESCRIPTION
   PHARMACY_CONTROLLED_DISPENSING
   BILLING_INVOICE
+  HOSPITAL_PATIENT
+  HOSPITAL_APPOINTMENT
+  HOSPITAL_ENCOUNTER
+  HOSPITAL_LAB_ORDER
+  HOSPITAL_IMAGING_ORDER
+  HOSPITAL_ADMISSION
+  HOSPITAL_INVOICE_PAYMENT
 }
 
 enum ProductPriceType {
@@ -1856,4 +2497,136 @@ enum BillingProviderCallbackStatus {
   PROCESSED
   RETRY
   REJECTED
+}
+
+enum HospitalEncounterType {
+  OUTPATIENT
+  EMERGENCY
+  FOLLOW_UP
+  INPATIENT
+}
+
+enum HospitalEncounterStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum HospitalInvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+enum HospitalAppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+
+enum HospitalImagingPriority {
+  ROUTINE
+  URGENT
+  STAT
+}
+
+enum HospitalImagingOrderStatus {
+  ORDERED
+  IN_PROGRESS
+  PARTIALLY_COMPLETED
+  COMPLETED
+  CANCELLED
+}
+
+enum HospitalImagingItemStatus {
+  ORDERED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum HospitalImagingStudyStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum HospitalImagingReportStatus {
+  DRAFT
+  PRELIMINARY
+  VERIFIED
+  RELEASED
+  AMENDED
+}
+
+enum HospitalLabOrderStatus {
+  ORDERED
+  COLLECTED
+  IN_PROGRESS
+  PARTIALLY_RESULTED
+  COMPLETED
+  CANCELLED
+}
+
+enum HospitalLabPriority {
+  ROUTINE
+  URGENT
+  STAT
+}
+
+enum HospitalLabItemStatus {
+  ORDERED
+  PROCESSING
+  RESULTED
+  CANCELLED
+}
+
+enum HospitalSpecimenStatus {
+  PENDING
+  COLLECTED
+  RECEIVED
+  REJECTED
+}
+
+enum HospitalLabResultStatus {
+  DRAFT
+  PRELIMINARY
+  VERIFIED
+  RELEASED
+  AMENDED
+}
+
+enum HospitalAdmissionStatus {
+  ADMITTED
+  DISCHARGED
+  CANCELLED
+}
+
+enum HospitalWardType {
+  GENERAL
+  MATERNITY
+  PAEDIATRIC
+  SURGICAL
+  MEDICAL
+  ICU
+  EMERGENCY
+  OTHER
+}
+
+enum HospitalBedStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+  OUT_OF_SERVICE
 }

@@ -12,6 +12,7 @@ export type AuditCategory =
   | "PAYMENTS"
   | "ETIMS"
   | "PHARMACY"
+  | "HOSPITAL"
   | "ADMIN"
   | "SECURITY"
   | "SYSTEM"

@@ -1,0 +1,558 @@
+import { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/database/prisma";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { generateBusinessReference } from "@/lib/business/reference/referenceGenerator";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { requireHospitalBusiness } from "@/lib/hospital/hospitalAccessService";
+import { postHospitalInvoiceToAccounting } from "@/lib/hospital/hospitalAccountingService";
+import type { BusinessType } from "@/types";
+
+export class HospitalInvoiceError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode: number = 400,
+  ) {
+    super(message);
+    this.name = "HospitalInvoiceError";
+  }
+}
+
+export interface CreateHospitalInvoiceItemInput {
+  description: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  discount?: number | string;
+  taxRate?: number | string;
+}
+
+export interface CreateHospitalInvoiceInput {
+  patientId: string;
+  currency: string;
+  items: CreateHospitalInvoiceItemInput[];
+  notes?: string | null;
+  dueAt?: Date | null;
+}
+
+function toDecimal(value: number | string | undefined, field: string) {
+  if (value === undefined) return new Prisma.Decimal(0);
+
+  let result: Prisma.Decimal;
+  try {
+    result = new Prisma.Decimal(value);
+  } catch {
+    throw new HospitalInvoiceError(`${field} must be a valid number.`);
+  }
+
+  if (!result.isFinite()) {
+    throw new HospitalInvoiceError(`${field} must be a valid number.`);
+  }
+
+  return result;
+}
+
+async function getHospitalContext() {
+  const context = await getCurrentBusinessContext();
+
+  requireHospitalBusiness(context.business.type as BusinessType);
+
+  return {
+    businessId: context.business.id,
+    userId: context.user.id,
+  };
+}
+
+function normalizeItems(items: CreateHospitalInvoiceItemInput[]) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new HospitalInvoiceError("At least one invoice item is required.");
+  }
+
+  return items.map((item, index) => {
+    const lineNumber = index + 1;
+    const description = item.description?.trim();
+
+    if (!description) {
+      throw new HospitalInvoiceError(
+        `Description is required for invoice item ${lineNumber}.`,
+      );
+    }
+
+    const quantity = toDecimal(item.quantity, `Quantity on item ${lineNumber}`);
+    const unitPrice = toDecimal(item.unitPrice, `Unit price on item ${lineNumber}`);
+    const discount = toDecimal(item.discount, `Discount on item ${lineNumber}`);
+    const taxRate = toDecimal(item.taxRate, `Tax rate on item ${lineNumber}`);
+
+    if (quantity.lte(0)) {
+      throw new HospitalInvoiceError(
+        `Quantity on item ${lineNumber} must be greater than zero.`,
+      );
+    }
+
+    if (unitPrice.lt(0) || discount.lt(0)) {
+      throw new HospitalInvoiceError(
+        `Unit price and discount on item ${lineNumber} cannot be negative.`,
+      );
+    }
+
+    if (taxRate.lt(0) || taxRate.gt(100)) {
+      throw new HospitalInvoiceError(
+        `Tax rate on item ${lineNumber} must be between 0 and 100.`,
+      );
+    }
+
+    const gross = quantity.mul(unitPrice);
+    if (discount.gt(gross)) {
+      throw new HospitalInvoiceError(
+        `Discount on item ${lineNumber} cannot exceed its gross amount.`,
+      );
+    }
+
+    const taxableAmount = gross.sub(discount);
+    const taxAmount = taxableAmount.mul(taxRate).div(100);
+    const lineTotal = taxableAmount.add(taxAmount);
+
+    return {
+      description,
+      quantity,
+      unitPrice,
+      discount,
+      taxRate,
+      taxAmount,
+      lineTotal,
+      gross,
+    };
+  });
+}
+
+export async function createHospitalInvoice(
+  input: CreateHospitalInvoiceInput,
+) {
+  const { businessId, userId } = await getHospitalContext();
+  const patientId = input.patientId?.trim();
+  const currency = input.currency?.trim().toUpperCase();
+
+  if (!patientId) {
+    throw new HospitalInvoiceError("A patient is required.");
+  }
+
+  if (!currency || currency.length < 3 || currency.length > 10) {
+    throw new HospitalInvoiceError("A valid invoice currency is required.");
+  }
+
+  if (input.dueAt && Number.isNaN(input.dueAt.getTime())) {
+    throw new HospitalInvoiceError("A valid due date is required.");
+  }
+
+  const items = normalizeItems(input.items);
+  const subtotal = items.reduce(
+    (sum, item) => sum.add(item.gross),
+    new Prisma.Decimal(0),
+  );
+  const discountTotal = items.reduce(
+    (sum, item) => sum.add(item.discount),
+    new Prisma.Decimal(0),
+  );
+  const taxTotal = items.reduce(
+    (sum, item) => sum.add(item.taxAmount),
+    new Prisma.Decimal(0),
+  );
+  const totalAmount = subtotal.sub(discountTotal).add(taxTotal);
+
+  return prisma.$transaction(async (tx) => {
+    const patient = await tx.patient.findFirst({
+      where: {
+        id: patientId,
+        businessId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (!patient) {
+      throw new HospitalInvoiceError(
+        "Active patient not found in this business.",
+        404,
+      );
+    }
+
+    const invoiceNumber = await generateBusinessReference({
+      businessId,
+      referenceType: "BILLING_INVOICE",
+      prefix: "HINV",
+      padLength: 6,
+      client: tx,
+    });
+
+    const invoice = await tx.hospitalInvoice.create({
+      data: {
+        businessId,
+        patientId,
+        invoiceNumber,
+        currency,
+        subtotal,
+        discountTotal,
+        taxTotal,
+        totalAmount,
+        notes: input.notes?.trim() || null,
+        dueAt: input.dueAt ?? null,
+        createdBy: userId,
+        items: {
+          create: items.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            taxRate: item.taxRate,
+            taxAmount: item.taxAmount,
+            lineTotal: item.lineTotal,
+          })),
+        },
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            patientNumber: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+          },
+        },
+        items: true,
+      },
+    });
+	
+	await recordAuditEvent(
+  {
+    businessId,
+    actorId: userId,
+    action: AUDIT_ACTIONS.HOSPITAL_INVOICE_CREATED,
+    entityType: "HospitalInvoice",
+    entityId: invoice.id,
+    afterData: {
+      invoiceNumber: invoice.invoiceNumber,
+      patientId: invoice.patientId,
+      currency: invoice.currency,
+      status: invoice.status,
+      totalAmount: invoice.totalAmount.toString(),
+    },
+  },
+  tx,
+);
+
+return invoice;
+	
+  });
+}
+
+export async function listHospitalInvoices(options?: {
+  patientId?: string;
+  status?: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "VOID";
+  search?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const { businessId } = await getHospitalContext();
+  const skip = Math.max(0, options?.skip ?? 0);
+  const take = Math.min(100, Math.max(1, options?.take ?? 25));
+  const search = options?.search?.trim();
+
+  return prisma.hospitalInvoice.findMany({
+    where: {
+      businessId,
+      ...(options?.patientId ? { patientId: options.patientId } : {}),
+      ...(options?.status ? { status: options.status } : {}),
+      ...(search
+        ? {
+            OR: [
+              {
+                invoiceNumber: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+              {
+                patient: {
+                  OR: [
+                    {
+                      patientNumber: {
+                        contains: search,
+                        mode: "insensitive",
+                      },
+                    },
+                    {
+                      firstName: {
+                        contains: search,
+                        mode: "insensitive",
+                      },
+                    },
+                    {
+                      lastName: {
+                        contains: search,
+                        mode: "insensitive",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      patient: {
+        select: {
+          id: true,
+          patientNumber: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+      },
+      items: true,
+    },
+    orderBy: { createdAt: "desc" },
+    skip,
+    take,
+  });
+}
+
+export async function getHospitalInvoice(invoiceId: string) {
+  const { businessId } = await getHospitalContext();
+
+  const invoice = await prisma.hospitalInvoice.findFirst({
+    where: {
+      id: invoiceId,
+      businessId,
+    },
+    include: {
+      patient: true,
+      items: true,
+      payments: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  if (!invoice) {
+    throw new HospitalInvoiceError("Hospital invoice not found.", 404);
+  }
+
+  return invoice;
+}
+
+
+export async function issueHospitalInvoice(invoiceId: string) {
+  const { businessId, userId } = await getHospitalContext();
+
+  if (!invoiceId?.trim()) {
+    throw new HospitalInvoiceError("Invoice ID is required.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+	  
+	const lockedRows = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id"
+      FROM "HospitalInvoice"
+      WHERE "id" = ${invoiceId}
+        AND "businessId" = ${businessId}
+      FOR UPDATE
+    `;
+    
+    if (lockedRows.length === 0) {
+      throw new HospitalInvoiceError(
+        "Invoice not found in this business.",
+        404
+      );
+    }  
+	  
+    const existing = await tx.hospitalInvoice.findFirst({
+      where: {
+        id: invoiceId,
+        businessId,
+      },
+    });
+
+    if (!existing) {
+      throw new HospitalInvoiceError("Hospital invoice not found.", 404);
+    }
+
+    if (existing.status !== "DRAFT") {
+      throw new HospitalInvoiceError(
+        "Only draft invoices can be issued.",
+      );
+    }
+
+    const issuedAt = new Date();
+
+    const result = await tx.hospitalInvoice.updateMany({
+      where: {
+        id: invoiceId,
+        businessId,
+        status: "DRAFT",
+      },
+      data: {
+        status: "ISSUED",
+        issuedAt,
+      },
+    });
+
+    if (result.count !== 1) {
+      throw new HospitalInvoiceError(
+        "The invoice status changed. Refresh and try again.",
+        409,
+      );
+    }
+
+    const invoice = await tx.hospitalInvoice.findFirstOrThrow({
+      where: {
+        id: invoiceId,
+        businessId,
+      },
+      include: {
+        patient: true,
+        items: true,
+      },
+    });
+
+    const totalAmount = Number(invoice.totalAmount);
+    const taxAmount = Number(invoice.taxTotal);
+
+    await postHospitalInvoiceToAccounting({
+      businessId,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      totalAmount,
+      revenueAmount: totalAmount - taxAmount,
+      taxAmount,
+      currency: invoice.currency,
+      createdBy: userId,
+      client: tx,
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_INVOICE_ISSUED,
+        entityType: "HospitalInvoice",
+        entityId: invoice.id,
+        beforeData: {
+          status: existing.status,
+          issuedAt: existing.issuedAt?.toISOString() ?? null,
+        },
+        afterData: {
+          status: invoice.status,
+          issuedAt: invoice.issuedAt?.toISOString() ?? null,
+          invoiceNumber: invoice.invoiceNumber,
+        },
+      },
+      tx,
+    );
+
+    return invoice;
+  }, {
+    maxWait: 10_000,
+    timeout: 15_000,
+  });
+}
+
+export async function voidHospitalInvoice(invoiceId: string) {
+  const { businessId, userId } = await getHospitalContext();
+
+  if (!invoiceId?.trim()) {
+    throw new HospitalInvoiceError("Invoice ID is required.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+	  
+	const lockedRows = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id"
+      FROM "HospitalInvoice"
+      WHERE "id" = ${invoiceId}
+        AND "businessId" = ${businessId}
+      FOR UPDATE
+    `;
+    
+    if (lockedRows.length === 0) {
+      throw new HospitalInvoiceError(
+        "Invoice not found in this business.",
+        404
+      );
+    }  
+	  
+    const existing = await tx.hospitalInvoice.findFirst({
+      where: {
+        id: invoiceId,
+        businessId,
+      },
+    });
+
+    if (!existing) {
+      throw new HospitalInvoiceError("Hospital invoice not found.", 404);
+    }
+
+    if (!["DRAFT", "ISSUED"].includes(existing.status)) {
+      throw new HospitalInvoiceError(
+        "Only draft or issued invoices can be voided.",
+      );
+    }
+
+    if (existing.amountPaid.greaterThan(0)) {
+      throw new HospitalInvoiceError(
+        "An invoice with payments cannot be voided.",
+      );
+    }
+
+    const result = await tx.hospitalInvoice.updateMany({
+      where: {
+        id: invoiceId,
+        businessId,
+        status: existing.status,
+        amountPaid: new Prisma.Decimal(0),
+      },
+      data: {
+        status: "VOID",
+      },
+    });
+
+    if (result.count !== 1) {
+      throw new HospitalInvoiceError(
+        "The invoice changed or has a payment. Refresh and try again.",
+        409,
+      );
+    }
+
+    const invoice = await tx.hospitalInvoice.findFirstOrThrow({
+      where: {
+        id: invoiceId,
+        businessId,
+      },
+      include: {
+        patient: true,
+        items: true,
+      },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_INVOICE_VOIDED,
+        entityType: "HospitalInvoice",
+        entityId: invoice.id,
+        beforeData: {
+          status: existing.status,
+          amountPaid: existing.amountPaid.toString(),
+        },
+        afterData: {
+          status: invoice.status,
+          amountPaid: invoice.amountPaid.toString(),
+          invoiceNumber: invoice.invoiceNumber,
+        },
+      },
+      tx,
+    );
+
+    return invoice;
+  });
+}
+

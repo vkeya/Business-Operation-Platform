@@ -1,0 +1,829 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+type EncounterContext = {
+  id: string;
+  patientId: string;
+};
+
+type Medicine = {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  pharmacyProduct: {
+    strength: string | null;
+    dosageForm: string | null;
+    routeOfAdministration: string | null;
+    activeIngredient: string | null;
+  } | null;
+};
+
+type Warehouse = {
+  id: string;
+  name: string;
+};
+
+type PrescriptionItem = {
+  id: string;
+  productId: string;
+  quantityPrescribed: string | number;
+  quantityDispensed: string | number;
+  dosageInstructions: string | null;
+  duration: string | null;
+  notes: string | null;
+  product: {
+    id: string;
+    name: string;
+    sku: string;
+  };
+};
+
+type Prescription = {
+  id: string;
+  prescriptionNumber: string;
+  prescriptionDate: string;
+  expiryDate: string | null;
+  prescriberName: string;
+  prescriberLicense: string | null;
+  diagnosis: string | null;
+  notes: string | null;
+  status: string;
+  items: PrescriptionItem[];
+};
+
+type DraftItem = {
+  productId: string;
+  quantityPrescribed: string;
+  dosageInstructions: string;
+  duration: string;
+  notes: string;
+};
+
+async function readJson<T>(response: Response): Promise<T> {
+  const data = (await response.json()) as T & { error?: string };
+
+  if (!response.ok) {
+    throw new Error(data.error || "The request could not be completed.");
+  }
+
+  return data;
+}
+
+function remainingQuantity(item: PrescriptionItem): number {
+  return Math.max(
+    0,
+    Number(item.quantityPrescribed) - Number(item.quantityDispensed),
+  );
+}
+
+function medicineLabel(medicine: Medicine): string {
+  const details = [
+    medicine.pharmacyProduct?.strength,
+    medicine.pharmacyProduct?.dosageForm,
+  ].filter(Boolean);
+
+  return `${medicine.name}${details.length ? ` — ${details.join(", ")}` : ""}`;
+}
+
+export default function HospitalEncounterPrescriptions({
+  encounter,
+}: {
+  encounter: EncounterContext;
+}) {
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState("");
+  const [prescriberName, setPrescriberName] = useState("");
+  const [prescriberLicense, setPrescriberLicense] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [prescriptionNotes, setPrescriptionNotes] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [draftItems, setDraftItems] = useState<DraftItem[]>([
+    {
+      productId: "",
+      quantityPrescribed: "1",
+      dosageInstructions: "",
+      duration: "",
+      notes: "",
+    },
+  ]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dispensingItemId, setDispensingItemId] = useState("");
+  const [dispenseDialog, setDispenseDialog] = useState<{
+    prescription: Prescription;
+    item: PrescriptionItem;
+  } | null>(null);
+  const [dispenseQuantity, setDispenseQuantity] = useState("1");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
+
+  const loadPrescriptions = useCallback(async () => {
+    const data = await readJson<{ prescriptions: Prescription[] }>(
+      await fetch(
+        `/api/hospital/prescriptions?encounterId=${encodeURIComponent(encounter.id)}&take=100`,
+        { cache: "no-store" },
+      ),
+    );
+    setPrescriptions(data.prescriptions);
+  }, [encounter.id]);
+
+  const loadReferenceData = useCallback(async (query = "") => {
+    const [medicineData, warehouseData] = await Promise.all([
+      readJson<{ products: Medicine[] }>(
+        await fetch(
+          `/api/hospital/prescriptions/products${query ? `?q=${encodeURIComponent(query)}` : ""}`,
+          { cache: "no-store" },
+        ),
+      ),
+      readJson<{ warehouses: Warehouse[] }>(
+        await fetch("/api/inventory/warehouses", { cache: "no-store" }),
+      ),
+    ]);
+
+    setMedicines(medicineData.products);
+    setWarehouses(warehouseData.warehouses);
+
+    setSelectedWarehouse((current) => {
+      if (current && warehouseData.warehouses.some((w) => w.id === current)) {
+        return current;
+      }
+      return warehouseData.warehouses[0]?.id ?? "";
+    });
+  }, []);
+
+  const refresh = useCallback(async () => {
+    setError("");
+    try {
+      await Promise.all([loadPrescriptions(), loadReferenceData(search)]);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to refresh prescriptions.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [loadPrescriptions, loadReferenceData, search]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  function updateDraftItem(
+    index: number,
+    field: keyof DraftItem,
+    value: string,
+  ) {
+    setDraftItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  }
+
+  function addDraftItem() {
+    setDraftItems((current) => [
+      ...current,
+      {
+        productId: "",
+        quantityPrescribed: "1",
+        dosageInstructions: "",
+        duration: "",
+        notes: "",
+      },
+    ]);
+  }
+
+  function removeDraftItem(index: number) {
+    setDraftItems((current) =>
+      current.length === 1
+        ? current
+        : current.filter((_, itemIndex) => itemIndex !== index),
+    );
+  }
+
+  async function createPrescription(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+
+    if (!prescriberName.trim()) {
+      setError("Enter the prescriber's name.");
+      return;
+    }
+
+    if (draftItems.some((item) => !item.productId)) {
+      setError("Select a medicine for every prescription item.");
+      return;
+    }
+
+    if (
+      draftItems.some(
+        (item) =>
+          !item.quantityPrescribed.trim() ||
+          !Number.isFinite(Number(item.quantityPrescribed)) ||
+          Number(item.quantityPrescribed) <= 0,
+      )
+    ) {
+      setError("Each prescribed quantity must be a positive number.");
+      return;
+    }
+
+    if (
+      new Set(draftItems.map((item) => item.productId)).size !==
+      draftItems.length
+    ) {
+      setError("Each medicine may only appear once on a prescription.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await readJson<{ prescription: Prescription }>(
+        await fetch("/api/hospital/prescriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId: encounter.patientId,
+            encounterId: encounter.id,
+            prescriberName: prescriberName.trim(),
+            ...(prescriberLicense.trim()
+              ? { prescriberLicense: prescriberLicense.trim() }
+              : {}),
+            ...(diagnosis.trim() ? { diagnosis: diagnosis.trim() } : {}),
+            ...(prescriptionNotes.trim()
+              ? { notes: prescriptionNotes.trim() }
+              : {}),
+            ...(expiryDate ? { expiryDate } : {}),
+            items: draftItems.map((item) => ({
+              productId: item.productId,
+              quantityPrescribed: item.quantityPrescribed,
+              ...(item.dosageInstructions.trim()
+                ? { dosageInstructions: item.dosageInstructions.trim() }
+                : {}),
+              ...(item.duration.trim()
+                ? { duration: item.duration.trim() }
+                : {}),
+              ...(item.notes.trim() ? { notes: item.notes.trim() } : {}),
+            })),
+          }),
+        }),
+      );
+
+      setNotice("Prescription created successfully.");
+      setPrescriberName("");
+      setPrescriberLicense("");
+      setDiagnosis("");
+      setPrescriptionNotes("");
+      setExpiryDate("");
+      setDraftItems([
+        {
+          productId: "",
+          quantityPrescribed: "1",
+          dosageInstructions: "",
+          duration: "",
+          notes: "",
+        },
+      ]);
+      await loadPrescriptions();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to create the prescription.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function dispenseItem(
+    prescription: Prescription,
+    item: PrescriptionItem,
+  ) {
+    setError("");
+    setNotice("");
+
+    if (!selectedWarehouse) {
+      setError("Select a warehouse before dispensing.");
+      return;
+    }
+
+    const remaining = remainingQuantity(item);
+    if (remaining <= 0) {
+      setError("This item has no remaining quantity to dispense.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setDispenseQuantity(String(remaining));
+    setDispenseDialog({ prescription, item });
+  }
+
+  async function confirmDispense() {
+    if (!dispenseDialog) return;
+
+    const { prescription, item } = dispenseDialog;
+    const remaining = remainingQuantity(item);
+    const quantity = Number(dispenseQuantity);
+
+    if (
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      quantity > remaining
+    ) {
+      setError(`Enter a quantity greater than zero and no more than ${remaining}.`);
+      return;
+    }
+
+    if (!selectedWarehouse) {
+      setError("Select a warehouse before dispensing.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setDispensingItemId(item.id);
+
+    try {
+      await readJson<{ result: unknown }>(
+        await fetch(
+          `/api/hospital/prescriptions/${encodeURIComponent(prescription.id)}/dispense`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prescriptionItemId: item.id,
+              warehouseId: selectedWarehouse,
+              quantity: String(quantity),
+              operationId: crypto.randomUUID(),
+            }),
+          },
+        ),
+      );
+
+      setNotice(`Dispensed ${quantity} ${quantity === 1 ? "unit" : "units"} of ${item.product.name}.`);
+      setDispenseDialog(null);
+      await loadPrescriptions();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to dispense the prescription item.",
+      );
+    } finally {
+      setDispensingItemId("");
+    }
+  }
+
+  return (
+    <section className="mt-5 space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            Encounter prescriptions
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Prescriptions and dispensing for this encounter. Dispensing updates
+            pharmacy inventory through the hospital dispensing workflow.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading || saving || Boolean(dispensingItemId)}
+          className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          {notice}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-slate-200 p-4">
+        <h4 className="font-semibold text-slate-900">Create prescription</h4>
+        <form onSubmit={createPrescription} className="mt-4 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-medium text-slate-700">
+              Prescriber name *
+              <input
+                required
+                value={prescriberName}
+                onChange={(event) => setPrescriberName(event.target.value)}
+                maxLength={200}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Prescriber license
+              <input
+                value={prescriberLicense}
+                onChange={(event) => setPrescriberLicense(event.target.value)}
+                maxLength={100}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Diagnosis
+              <input
+                value={diagnosis}
+                onChange={(event) => setDiagnosis(event.target.value)}
+                maxLength={1000}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Expiry date (optional)
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(event) => setExpiryDate(event.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <label className="block text-sm font-medium text-slate-700">
+            Prescription notes
+            <textarea
+              value={prescriptionNotes}
+              onChange={(event) => setPrescriptionNotes(event.target.value)}
+              rows={2}
+              maxLength={2000}
+              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </label>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h5 className="font-semibold text-slate-800">Medicines</h5>
+              <button
+                type="button"
+                onClick={addDraftItem}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"
+              >
+                Add medicine
+              </button>
+            </div>
+
+            <label className="block text-sm text-slate-600">
+              Search eligible medicines
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Medicine name, SKU or barcode"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+
+            {draftItems.map((item, index) => (
+              <div key={index} className="rounded-xl border border-slate-200 p-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Medicine *
+                    <select
+                      required
+                      value={item.productId}
+                      onChange={(event) => updateDraftItem(index, "productId", event.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    >
+                      <option value="">Select medicine</option>
+                      {medicines.map((medicine) => (
+                        <option key={medicine.id} value={medicine.id}>
+                          {medicineLabel(medicine)} ({medicine.sku})
+                        </option>
+                      ))}
+                      {item.productId && !medicines.some((medicine) => medicine.id === item.productId) && (
+                        <option value={item.productId}>Previously selected medicine</option>
+                      )}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Quantity prescribed *
+                    <input
+                      required
+                      type="number"
+                      min="0.0001"
+                      max="999999999999"
+                      step="0.0001"
+                      value={item.quantityPrescribed}
+                      onChange={(event) => updateDraftItem(index, "quantityPrescribed", event.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Dosage instructions
+                    <input
+                      value={item.dosageInstructions}
+                      onChange={(event) => updateDraftItem(index, "dosageInstructions", event.target.value)}
+                      maxLength={1000}
+                      placeholder="e.g. Take one tablet twice daily"
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Duration
+                    <input
+                      value={item.duration}
+                      onChange={(event) => updateDraftItem(index, "duration", event.target.value)}
+                      maxLength={200}
+                      placeholder="e.g. 5 days"
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                    Item notes
+                    <input
+                      value={item.notes}
+                      onChange={(event) => updateDraftItem(index, "notes", event.target.value)}
+                      maxLength={1000}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    />
+                  </label>
+                </div>
+                {draftItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeDraftItem(index)}
+                    className="mt-3 text-sm font-medium text-rose-700 hover:text-rose-900"
+                  >
+                    Remove medicine
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving || loading}
+            className="rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-50"
+          >
+            {saving ? "Creating prescription…" : "Create prescription"}
+          </button>
+        </form>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h4 className="font-semibold text-slate-900">Prescriptions</h4>
+            <p className="mt-1 text-sm text-slate-500">
+              Review prescribed quantities, dispensing progress, and status.
+            </p>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            Dispensing warehouse
+            <select
+              value={selectedWarehouse}
+              onChange={(event) => setSelectedWarehouse(event.target.value)}
+              className="mt-1 block min-w-56 rounded-xl border border-slate-300 px-3 py-2"
+            >
+              <option value="">Select warehouse</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {loading ? (
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+            Loading prescriptions…
+          </p>
+        ) : prescriptions.length === 0 ? (
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+            No prescriptions have been recorded for this encounter.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {prescriptions.map((prescription) => (
+              <article key={prescription.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h5 className="font-semibold text-slate-900">
+                      {prescription.prescriptionNumber}
+                    </h5>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Prescriber: {prescription.prescriberName} ·{" "}
+                      {new Date(prescription.prescriptionDate).toLocaleDateString()}
+                    </p>
+                    {prescription.diagnosis && (
+                      <p className="mt-1 text-sm text-slate-600">
+                        Diagnosis: {prescription.diagnosis}
+                      </p>
+                    )}
+                    {prescription.expiryDate && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Expires: {new Date(prescription.expiryDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {prescription.status.replaceAll("_", " ")}
+                  </span>
+                </div>
+
+                <div className="mt-3 divide-y divide-slate-100">
+                  {prescription.items.map((item) => {
+                    const remaining = remainingQuantity(item);
+                    return (
+                      <div key={item.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-slate-800">{item.product.name}</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            Prescribed: {item.quantityPrescribed} · Dispensed: {item.quantityDispensed} · Remaining: {remaining}
+                          </p>
+                          {item.dosageInstructions && (
+                            <p className="mt-1 text-sm text-slate-600">
+                              Dosage: {item.dosageInstructions}
+                            </p>
+                          )}
+                          {item.duration && (
+                            <p className="mt-1 text-sm text-slate-600">
+                              Duration: {item.duration}
+                            </p>
+                          )}
+                        </div>
+                        {remaining > 0 &&
+                          prescription.status !== "CANCELLED" &&
+                          prescription.status !== "EXPIRED" && (
+                            <button
+                              type="button"
+                              onClick={() => void dispenseItem(prescription, item)}
+                              disabled={!selectedWarehouse || Boolean(dispensingItemId)}
+                              className="rounded-xl border border-cyan-200 px-3 py-2 text-sm font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-50"
+                            >
+                              {dispensingItemId === item.id ? "Dispensing…" : "Dispense"}
+                            </button>
+                          )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {dispenseDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !dispensingItemId) {
+              setDispenseDialog(null);
+              setError("");
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hospital-dispense-title"
+            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-cyan-700">
+                  Hospital pharmacy
+                </p>
+                <h3
+                  id="hospital-dispense-title"
+                  className="mt-1 text-xl font-semibold text-slate-900"
+                >
+                  Dispense medicine
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Confirm the quantity to dispense from the selected warehouse.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close dispensing dialog"
+                disabled={Boolean(dispensingItemId)}
+                onClick={() => {
+                  setDispenseDialog(null);
+                  setError("");
+                }}
+                className="rounded-lg px-2 py-1 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="font-semibold text-slate-900">
+                {dispenseDialog.item.product.name}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Prescription {dispenseDialog.prescription.prescriptionNumber}
+              </p>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-lg bg-white p-3">
+                  <p className="text-xs text-slate-500">Prescribed</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {dispenseDialog.item.quantityPrescribed}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white p-3">
+                  <p className="text-xs text-slate-500">Dispensed</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {dispenseDialog.item.quantityDispensed}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-cyan-50 p-3">
+                  <p className="text-xs text-cyan-800">Remaining</p>
+                  <p className="mt-1 text-lg font-semibold text-cyan-900">
+                    {remainingQuantity(dispenseDialog.item)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <label
+                htmlFor="hospital-dispense-quantity"
+                className="block text-sm font-medium text-slate-700"
+              >
+                Quantity to dispense *
+              </label>
+              <input
+                id="hospital-dispense-quantity"
+                type="number"
+                inputMode="decimal"
+                min="0.0001"
+                max={remainingQuantity(dispenseDialog.item)}
+                step="any"
+                value={dispenseQuantity}
+                onChange={(event) => setDispenseQuantity(event.target.value)}
+                disabled={Boolean(dispensingItemId)}
+                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-100"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Warehouse: {warehouses.find((warehouse) => warehouse.id === selectedWarehouse)?.name ?? "Not selected"}
+              </p>
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+              >
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                disabled={Boolean(dispensingItemId)}
+                onClick={() => {
+                  setDispenseDialog(null);
+                  setError("");
+                }}
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={
+                  Boolean(dispensingItemId) ||
+                  !selectedWarehouse ||
+                  !Number.isFinite(Number(dispenseQuantity)) ||
+                  Number(dispenseQuantity) <= 0 ||
+                  Number(dispenseQuantity) > remainingQuantity(dispenseDialog.item)
+                }
+                onClick={() => void confirmDispense()}
+                className="rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {dispensingItemId ? "Dispensing…" : "Confirm dispensing"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </section>
+  );
+}

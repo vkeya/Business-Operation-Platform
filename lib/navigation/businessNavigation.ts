@@ -28,6 +28,12 @@ const capabilityToNavigationModule:
   services: "services",
   pharmacy: "pharmacy",
   supermarket: "autopilot",
+  patients: "patients",
+  appointments: "appointments",
+  admissions: "admissions",
+  wardsBeds: "wardsBeds",
+  laboratory: "laboratory",
+  hospitalInvoices: "invoices",
 };
 
 export function getBusinessNavigation(
