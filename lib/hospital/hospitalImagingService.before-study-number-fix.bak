@@ -1,0 +1,1096 @@
+import { prisma } from "@/lib/database/prisma";
+import { recordAuditEvent } from "@/lib/audit/auditService";
+import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { generateBusinessReference } from "@/lib/business/reference/referenceGenerator";
+import { requireHospitalBusiness } from "@/lib/hospital/hospitalAccessService";
+import type { BusinessType } from "@/types";
+
+export class HospitalImagingError extends Error {
+  readonly statusCode: number;
+
+  constructor(message: string, statusCode = 400) {
+    super(message);
+    this.name = "HospitalImagingError";
+    this.statusCode = statusCode;
+  }
+}
+
+type HospitalImagingOrderItemInput = {
+  studyName: string;
+  modality: string;
+  bodySite: string;
+  laterality?: string | null;
+  instructions?: string | null;
+};
+
+type CreateHospitalImagingOrderInput = {
+  patientId: string;
+  encounterId: string;
+  priority?: "ROUTINE" | "URGENT" | "STAT";
+  clinicalIndication?: string | null;
+  notes?: string | null;
+  items: HospitalImagingOrderItemInput[];
+};
+
+type ListHospitalImagingOrdersOptions = {
+  patientId?: string;
+  encounterId?: string;
+  status?:
+    | "ORDERED"
+    | "IN_PROGRESS"
+    | "PARTIALLY_COMPLETED"
+    | "COMPLETED"
+    | "CANCELLED";
+  skip?: number;
+  take?: number;
+};
+
+async function getHospitalImagingContext() {
+  const context = await getCurrentBusinessContext();
+  requireHospitalBusiness(context.business.type as BusinessType);
+
+  return {
+    businessId: context.business.id,
+    userId: context.user.id,
+  };
+}
+
+function validatePagination(skip: number, take: number) {
+  if (!Number.isInteger(skip) || skip < 0) {
+    throw new HospitalImagingError("Invalid pagination offset.");
+  }
+
+  if (!Number.isInteger(take) || take < 1 || take > 100) {
+    throw new HospitalImagingError(
+      "Page size must be between 1 and 100.",
+    );
+  }
+}
+
+function optionalText(
+  value: string | null | undefined,
+  field: string,
+  maxLength: number,
+) {
+  const text = value?.trim() || null;
+
+  if (text && text.length > maxLength) {
+    throw new HospitalImagingError(
+      `${field} cannot exceed ${maxLength} characters.`,
+    );
+  }
+
+  return text;
+}
+
+function requiredText(
+  value: string,
+  field: string,
+  maxLength: number,
+) {
+  const text = value?.trim();
+
+  if (!text || text.length > maxLength) {
+    throw new HospitalImagingError(
+      `${field} is required and cannot exceed ${maxLength} characters.`,
+    );
+  }
+
+  return text;
+}
+
+export async function listHospitalImagingOrders(
+  options: ListHospitalImagingOrdersOptions = {},
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const skip = options.skip ?? 0;
+  const take = options.take ?? 25;
+
+  validatePagination(skip, take);
+
+  const patientId = options.patientId?.trim();
+  const encounterId = options.encounterId?.trim();
+
+  if (!patientId && !encounterId) {
+    throw new HospitalImagingError(
+      "Filter imaging orders by patientId or encounterId.",
+    );
+  }
+
+  const orders = await prisma.hospitalImagingOrder.findMany({
+    where: {
+      businessId,
+      ...(patientId ? { patientId } : {}),
+      ...(encounterId ? { encounterId } : {}),
+      ...(options.status ? { status: options.status } : {}),
+    },
+    include: {
+      items: {
+        include: {
+          studies: true,
+          reports: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              revisions: {
+                orderBy: { revision: "desc" },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { orderedAt: "desc" },
+    skip,
+    take,
+  });
+
+  for (const order of orders) {
+    await recordAuditEvent({
+      businessId,
+      actorId: userId,
+      action: AUDIT_ACTIONS.HOSPITAL_IMAGING_ORDER_VIEWED,
+      category: "HOSPITAL",
+      entityType: "HospitalImagingOrder",
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        patientId: order.patientId,
+        encounterId: order.encounterId,
+        accessMode: "list",
+      },
+    });
+  }
+
+  return orders;
+}
+
+export async function createHospitalImagingOrder(
+  input: CreateHospitalImagingOrderInput,
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const patientId = input.patientId?.trim();
+  const encounterId = input.encounterId?.trim();
+
+  if (!patientId || !encounterId) {
+    throw new HospitalImagingError(
+      "A patient and encounter are required.",
+    );
+  }
+
+  if (!Array.isArray(input.items) || input.items.length === 0) {
+    throw new HospitalImagingError(
+      "An imaging order must contain at least one study.",
+    );
+  }
+
+  if (input.items.length > 100) {
+    throw new HospitalImagingError(
+      "An imaging order cannot contain more than 100 studies.",
+    );
+  }
+
+  const priority = input.priority ?? "ROUTINE";
+
+  if (!["ROUTINE", "URGENT", "STAT"].includes(priority)) {
+    throw new HospitalImagingError("Invalid imaging order priority.");
+  }
+
+  const clinicalIndication = optionalText(
+    input.clinicalIndication,
+    "Clinical indication",
+    2000,
+  );
+  const notes = optionalText(input.notes, "Order notes", 4000);
+
+  const items = input.items.map((item) => ({
+    studyName: requiredText(item.studyName, "Study name", 200),
+    modality: requiredText(item.modality, "Modality", 50).toUpperCase(),
+    bodySite: requiredText(item.bodySite, "Body site", 200),
+    laterality: optionalText(item.laterality, "Laterality", 50),
+    instructions: optionalText(item.instructions, "Study instructions", 2000),
+  }));
+
+  return prisma.$transaction(
+    async (tx) => {
+      const patient = await tx.patient.findFirst({
+        where: {
+          id: patientId,
+          businessId,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      if (!patient) {
+        throw new HospitalImagingError(
+          "Active patient not found in this hospital.",
+          404,
+        );
+      }
+
+      const encounter = await tx.hospitalEncounter.findFirst({
+        where: {
+          id: encounterId,
+          businessId,
+          patientId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+      if (!encounter) {
+        throw new HospitalImagingError(
+          "Encounter not found for this patient in this hospital.",
+          404,
+        );
+      }
+
+      if (
+        encounter.status === "COMPLETED" ||
+        encounter.status === "CANCELLED"
+      ) {
+        throw new HospitalImagingError(
+          "Imaging orders cannot be created for a completed or cancelled encounter.",
+          409,
+        );
+      }
+
+      const orderNumber = await generateBusinessReference({
+        businessId,
+        referenceType: "HOSPITAL_IMAGING_ORDER",
+        prefix: "IMG",
+        client: tx,
+      });
+
+      const order = await tx.hospitalImagingOrder.create({
+        data: {
+          businessId,
+          patientId,
+          encounterId,
+          orderNumber,
+          orderedBy: userId,
+          priority,
+          clinicalIndication,
+          notes,
+          items: {
+            create: items.map((item) => ({
+              businessId,
+              ...item,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      await recordAuditEvent(
+        {
+          businessId,
+          actorId: userId,
+          action: AUDIT_ACTIONS.HOSPITAL_IMAGING_ORDER_CREATED,
+          category: "HOSPITAL",
+          entityType: "HospitalImagingOrder",
+          entityId: order.id,
+          metadata: {
+            orderNumber,
+            patientId,
+            encounterId,
+            itemCount: order.items.length,
+            priority,
+          },
+        },
+        tx,
+      );
+
+      return order;
+    },
+    { maxWait: 10_000, timeout: 15_000 },
+  );
+}
+
+
+type CreateHospitalImagingStudyInput = {
+  orderItemId: string;
+  scheduledAt?: Date | null;
+  performedBy?: string | null;
+  location?: string | null;
+  notes?: string | null;
+};
+
+type UpdateHospitalImagingStudyInput = {
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  scheduledAt?: Date | null;
+  performedBy?: string | null;
+  location?: string | null;
+  notes?: string | null;
+};
+
+const ALLOWED_IMAGING_STUDY_TRANSITIONS = {
+  SCHEDULED: ["IN_PROGRESS", "CANCELLED", "NO_SHOW"],
+  IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
+  CANCELLED: [],
+  NO_SHOW: [],
+} as const;
+
+function validateOptionalDate(value: Date | null | undefined, field: string) {
+  if (value !== undefined && value !== null &&
+      (!(value instanceof Date) || Number.isNaN(value.getTime()))) {
+    throw new HospitalImagingError(`Invalid ${field} date.`);
+  }
+}
+
+export async function createHospitalImagingStudy(
+  input: CreateHospitalImagingStudyInput,
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const orderItemId = input.orderItemId?.trim();
+
+  if (!orderItemId) {
+    throw new HospitalImagingError("Imaging order item ID is required.");
+  }
+
+  validateOptionalDate(input.scheduledAt, "scheduled");
+
+  const performedBy = optionalText(input.performedBy, "Performer", 200);
+  const location = optionalText(input.location, "Study location", 200);
+  const notes = optionalText(input.notes, "Study notes", 4000);
+
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.hospitalImagingOrderItem.findFirst({
+      where: { id: orderItemId, businessId },
+      include: {
+        order: {
+          select: {
+            id: true,
+            businessId: true,
+            orderNumber: true,
+            status: true,
+          },
+        },
+        studies: { select: { id: true, status: true } },
+      },
+    });
+
+    if (!item || item.order.businessId !== businessId) {
+      throw new HospitalImagingError(
+        "Imaging order item not found in this hospital.",
+        404,
+      );
+    }
+
+    if (
+      item.status === "CANCELLED" ||
+      item.order.status === "CANCELLED" ||
+      item.order.status === "COMPLETED"
+    ) {
+      throw new HospitalImagingError(
+        "Studies cannot be added to a cancelled or completed imaging order.",
+        409,
+      );
+    }
+
+    if (item.studies.some((study) =>
+      study.status === "SCHEDULED" || study.status === "IN_PROGRESS"
+    )) {
+      throw new HospitalImagingError(
+        "This order item already has an active imaging study.",
+        409,
+      );
+    }
+
+    const studyNumber = `${item.order.orderNumber}-S${item.studies.length + 1}`;
+
+    const study = await tx.hospitalImagingStudy.create({
+      data: {
+        businessId,
+        orderItemId: item.id,
+        studyNumber,
+        status: "SCHEDULED",
+        scheduledAt: input.scheduledAt ?? null,
+        performedBy,
+        location,
+        notes,
+      },
+    });
+
+    await tx.hospitalImagingOrderItem.update({
+      where: { id: item.id },
+      data: { status: "SCHEDULED" },
+    });
+
+    await tx.hospitalImagingOrder.update({
+      where: { id: item.order.id },
+      data: { status: "IN_PROGRESS" },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_STUDY_CREATED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingStudy",
+        entityId: study.id,
+        metadata: {
+          studyNumber,
+          orderId: item.order.id,
+          orderItemId: item.id,
+          previousItemStatus: item.status,
+          status: study.status,
+        },
+      },
+      tx,
+    );
+
+    return study;
+  }, { maxWait: 10_000, timeout: 15_000 });
+}
+
+export async function updateHospitalImagingStudy(
+  studyId: string,
+  input: UpdateHospitalImagingStudyInput,
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const id = studyId?.trim();
+
+  if (!id) {
+    throw new HospitalImagingError("Imaging study ID is required.");
+  }
+
+  if (!input || !input.status ||
+      !["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"].includes(input.status)) {
+    throw new HospitalImagingError("A valid imaging study status is required.");
+  }
+
+  validateOptionalDate(input.scheduledAt, "scheduled");
+
+  const performedBy = input.performedBy === undefined
+    ? undefined
+    : optionalText(input.performedBy, "Performer", 200);
+  const location = input.location === undefined
+    ? undefined
+    : optionalText(input.location, "Study location", 200);
+  const notes = input.notes === undefined
+    ? undefined
+    : optionalText(input.notes, "Study notes", 4000);
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.hospitalImagingStudy.findFirst({
+      where: { id, businessId },
+      include: {
+        orderItem: {
+          include: {
+            order: {
+              select: {
+                id: true,
+                businessId: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      !existing ||
+      existing.orderItem.businessId !== businessId ||
+      existing.orderItem.order.businessId !== businessId
+    ) {
+      throw new HospitalImagingError(
+        "Imaging study not found in this hospital.",
+        404,
+      );
+    }
+
+    const item = existing.orderItem;
+    const order = item.order;
+
+    if (
+      item.status === "CANCELLED" ||
+      order.status === "CANCELLED" ||
+      order.status === "COMPLETED"
+    ) {
+      throw new HospitalImagingError(
+        "Studies cannot be updated for cancelled or completed imaging orders.",
+        409,
+      );
+    }
+
+    if (!ALLOWED_IMAGING_STUDY_TRANSITIONS[existing.status].includes(input.status as never) &&
+        existing.status !== input.status) {
+      throw new HospitalImagingError(
+        `Cannot change imaging study status from ${existing.status} to ${input.status}.`,
+        409,
+      );
+    }
+
+    if (
+      existing.status === "COMPLETED" ||
+      existing.status === "CANCELLED" ||
+      existing.status === "NO_SHOW"
+    ) {
+      throw new HospitalImagingError(
+        "Completed, cancelled, or no-show imaging studies cannot be edited.",
+        409,
+      );
+    }
+
+    const now = new Date();
+    const updated = await tx.hospitalImagingStudy.update({
+      where: { id: existing.id },
+      data: {
+        status: input.status,
+        ...(input.scheduledAt !== undefined
+          ? { scheduledAt: input.scheduledAt }
+          : {}),
+        ...(performedBy !== undefined ? { performedBy } : {}),
+        ...(location !== undefined ? { location } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(input.status === "IN_PROGRESS" && !existing.startedAt
+          ? { startedAt: now }
+          : {}),
+        ...(input.status === "COMPLETED" ? { completedAt: now } : {}),
+      },
+    });
+
+    const studies = await tx.hospitalImagingStudy.findMany({
+      where: { businessId, orderItemId: item.id },
+      select: { status: true },
+    });
+
+    const itemStatus =
+      studies.length > 0 && studies.every((study) =>
+        study.status === "COMPLETED" ||
+        study.status === "CANCELLED" ||
+        study.status === "NO_SHOW"
+      )
+        ? (studies.some((study) => study.status === "COMPLETED")
+            ? "COMPLETED"
+            : "CANCELLED")
+        : studies.some((study) => study.status === "IN_PROGRESS")
+          ? "IN_PROGRESS"
+          : studies.some((study) => study.status === "SCHEDULED")
+            ? "SCHEDULED"
+            : "ORDERED";
+
+    await tx.hospitalImagingOrderItem.update({
+      where: { id: item.id },
+      data: { status: itemStatus },
+    });
+
+    const items = await tx.hospitalImagingOrderItem.findMany({
+      where: { businessId, orderId: order.id },
+      select: { status: true },
+    });
+
+    const orderStatus =
+      items.length > 0 && items.every((entry) => entry.status === "COMPLETED")
+        ? "COMPLETED"
+        : items.length > 0 && items.every((entry) =>
+            entry.status === "CANCELLED"
+          )
+          ? "CANCELLED"
+          : items.some((entry) =>
+              entry.status === "COMPLETED" || entry.status === "CANCELLED"
+            )
+            ? "PARTIALLY_COMPLETED"
+            : items.some((entry) =>
+                entry.status === "IN_PROGRESS" || entry.status === "SCHEDULED"
+              )
+              ? "IN_PROGRESS"
+              : "ORDERED";
+
+    await tx.hospitalImagingOrder.update({
+      where: { id: order.id },
+      data: { status: orderStatus },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_STUDY_UPDATED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingStudy",
+        entityId: updated.id,
+        beforeData: existing,
+        afterData: updated,
+        metadata: {
+          studyNumber: updated.studyNumber,
+          orderId: order.id,
+          orderItemId: item.id,
+          previousStatus: existing.status,
+          status: updated.status,
+          itemStatus,
+          orderStatus,
+        },
+      },
+      tx,
+    );
+
+    return updated;
+  }, { maxWait: 10_000, timeout: 15_000 });
+}
+
+type CreateHospitalImagingReportInput = {
+  orderItemId: string;
+  studyId: string;
+  findings: string;
+  impression: string;
+  recommendations?: string | null;
+};
+
+export async function createHospitalImagingReport(
+  input: CreateHospitalImagingReportInput,
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const orderItemId = requiredText(input.orderItemId, "Order item ID", 128);
+  const studyId = requiredText(input.studyId, "Study ID", 128);
+  const findings = requiredText(input.findings, "Findings", 20_000);
+  const impression = requiredText(input.impression, "Impression", 10_000);
+  const recommendations = optionalText(
+    input.recommendations,
+    "Recommendations",
+    10_000,
+  );
+
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.hospitalImagingOrderItem.findFirst({
+      where: { id: orderItemId, businessId },
+      include: {
+        order: {
+          select: { id: true, businessId: true, status: true },
+        },
+      },
+    });
+
+    if (!item || item.order.businessId !== businessId) {
+      throw new HospitalImagingError(
+        "Imaging order item not found in this hospital.",
+        404,
+      );
+    }
+
+    if (item.status === "CANCELLED" || item.order.status === "CANCELLED") {
+      throw new HospitalImagingError(
+        "Reports cannot be created for cancelled imaging orders or items.",
+        409,
+      );
+    }
+
+    // Serialize report creation for this study to prevent duplicate reports.
+    const lockedStudies = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "HospitalImagingStudy"
+      WHERE "id" = ${studyId}
+        AND "businessId" = ${businessId}
+        AND "orderItemId" = ${orderItemId}
+        AND "status" = 'COMPLETED'::"HospitalImagingStudyStatus"
+      FOR UPDATE
+    `;
+
+    if (lockedStudies.length === 0) {
+      throw new HospitalImagingError(
+        "A completed imaging study for this order item was not found in this hospital.",
+        409,
+      );
+    }
+
+    const existingReport = await tx.hospitalImagingReport.findFirst({
+      where: { businessId, studyId },
+      select: { id: true },
+    });
+
+    if (existingReport) {
+      throw new HospitalImagingError(
+        "A report already exists for this imaging study. Amend the existing report instead.",
+        409,
+      );
+    }
+
+    const report = await tx.hospitalImagingReport.create({
+      data: {
+        businessId,
+        orderItemId,
+        studyId,
+        findings,
+        impression,
+        recommendations,
+        status: "DRAFT",
+        enteredBy: userId,
+      },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_REPORT_CREATED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingReport",
+        entityId: report.id,
+        afterData: report,
+        metadata: {
+          orderItemId,
+          studyId,
+          status: report.status,
+        },
+      },
+      tx,
+    );
+
+    return report;
+  }, { maxWait: 10_000, timeout: 15_000 });
+}
+
+export async function verifyHospitalImagingReport(reportId: string) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const id = requiredText(reportId, "Report ID", 128);
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`
+      SELECT "id"
+      FROM "HospitalImagingReport"
+      WHERE "id" = ${id} AND "businessId" = ${businessId}
+      FOR UPDATE
+    `;
+
+    const report = await tx.hospitalImagingReport.findFirst({
+      where: { id, businessId },
+      include: {
+        orderItem: {
+          include: {
+            order: {
+              select: { businessId: true, status: true },
+            },
+          },
+        },
+        study: {
+          select: { id: true, businessId: true, orderItemId: true, status: true },
+        },
+      },
+    });
+
+    if (
+      !report ||
+      report.orderItem.businessId !== businessId ||
+      report.orderItem.order.businessId !== businessId ||
+      (report.study &&
+        (report.study.businessId !== businessId ||
+          report.study.orderItemId !== report.orderItemId))
+    ) {
+      throw new HospitalImagingError(
+        "Imaging report not found in this hospital.",
+        404,
+      );
+    }
+
+    if (report.status !== "DRAFT" && report.status !== "AMENDED") {
+      throw new HospitalImagingError(
+        "Only draft or amended imaging reports can be verified.",
+        409,
+      );
+    }
+
+    if (
+      report.orderItem.status === "CANCELLED" ||
+      report.orderItem.order.status === "CANCELLED" ||
+      !report.study ||
+      report.study.status !== "COMPLETED"
+    ) {
+      throw new HospitalImagingError(
+        "A completed, active imaging study is required to verify this report.",
+        409,
+      );
+    }
+
+    const updated = await tx.hospitalImagingReport.update({
+      where: { id: report.id },
+      data: {
+        status: "VERIFIED",
+        verifiedBy: userId,
+        verifiedAt: new Date(),
+        releasedBy: null,
+        releasedAt: null,
+      },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_REPORT_VERIFIED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingReport",
+        entityId: updated.id,
+        beforeData: report,
+        afterData: updated,
+        metadata: {
+          orderItemId: report.orderItemId,
+          studyId: report.studyId,
+          previousStatus: report.status,
+          status: updated.status,
+        },
+      },
+      tx,
+    );
+
+    return updated;
+  }, { maxWait: 10_000, timeout: 15_000 });
+}
+
+export async function releaseHospitalImagingReport(reportId: string) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const id = requiredText(reportId, "Report ID", 128);
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`
+      SELECT "id"
+      FROM "HospitalImagingReport"
+      WHERE "id" = ${id} AND "businessId" = ${businessId}
+      FOR UPDATE
+    `;
+
+    const report = await tx.hospitalImagingReport.findFirst({
+      where: { id, businessId },
+      include: {
+        orderItem: {
+          include: {
+            order: {
+              select: { businessId: true, status: true },
+            },
+          },
+        },
+        study: {
+          select: {
+            id: true,
+            businessId: true,
+            orderItemId: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (
+      !report ||
+      report.orderItem.businessId !== businessId ||
+      report.orderItem.order.businessId !== businessId ||
+      !report.study ||
+      report.study.businessId !== businessId ||
+      report.study.orderItemId !== report.orderItemId
+    ) {
+      throw new HospitalImagingError(
+        "Imaging report not found in this hospital or is missing its study.",
+        404,
+      );
+    }
+
+    if (
+      report.status !== "VERIFIED" ||
+      !report.verifiedBy ||
+      !report.verifiedAt
+    ) {
+      throw new HospitalImagingError(
+        "Only verified imaging reports can be released.",
+        409,
+      );
+    }
+
+    if (
+      report.orderItem.status === "CANCELLED" ||
+      report.orderItem.order.status === "CANCELLED" ||
+      report.study.status !== "COMPLETED"
+    ) {
+      throw new HospitalImagingError(
+        "Reports for cancelled orders or incomplete studies cannot be released.",
+        409,
+      );
+    }
+
+    const updated = await tx.hospitalImagingReport.update({
+      where: { id: report.id },
+      data: {
+        status: "RELEASED",
+        releasedBy: userId,
+        releasedAt: new Date(),
+      },
+    });
+
+    await recordAuditEvent(
+      {
+        businessId,
+        actorId: userId,
+        action: AUDIT_ACTIONS.HOSPITAL_IMAGING_REPORT_RELEASED,
+        category: "HOSPITAL",
+        entityType: "HospitalImagingReport",
+        entityId: updated.id,
+        beforeData: report,
+        afterData: updated,
+        metadata: {
+          orderItemId: report.orderItemId,
+          studyId: report.studyId,
+          verifiedBy: report.verifiedBy,
+          status: updated.status,
+        },
+      },
+      tx,
+    );
+
+    return updated;
+  }, { maxWait: 10_000, timeout: 15_000 });
+}
+
+export async function amendHospitalImagingReport(
+  reportId: string,
+  input: {
+    findings: string;
+    impression: string;
+    recommendations?: string | null;
+    amendmentReason: string;
+  },
+) {
+  const { businessId, userId } = await getHospitalImagingContext();
+  const id = requiredText(reportId, "Report ID", 128);
+  const findings = requiredText(input.findings, "Findings", 20_000);
+  const impression = requiredText(input.impression, "Impression", 10_000);
+  const recommendations = optionalText(
+    input.recommendations,
+    "Recommendations",
+    10_000,
+  );
+  const amendmentReason = requiredText(
+    input.amendmentReason,
+    "Amendment reason",
+    2_000,
+  );
+
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "HospitalImagingReport"
+        WHERE "id" = ${id} AND "businessId" = ${businessId}
+        FOR UPDATE
+      `;
+
+      const report = await tx.hospitalImagingReport.findFirst({
+        where: { id, businessId },
+        include: {
+          orderItem: {
+            include: {
+              order: {
+                select: { businessId: true, status: true },
+              },
+            },
+          },
+          study: {
+            select: {
+              id: true,
+              businessId: true,
+              orderItemId: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (
+        !report ||
+        report.orderItem.businessId !== businessId ||
+        report.orderItem.order.businessId !== businessId ||
+        !report.study ||
+        report.study.businessId !== businessId ||
+        report.study.orderItemId !== report.orderItemId
+      ) {
+        throw new HospitalImagingError(
+          "Imaging report not found in this hospital or is missing its study.",
+          404,
+        );
+      }
+
+      if (report.status !== "RELEASED" && report.status !== "AMENDED") {
+        throw new HospitalImagingError(
+          "Only released imaging reports can be amended.",
+          409,
+        );
+      }
+
+      if (
+        report.orderItem.status === "CANCELLED" ||
+        report.orderItem.order.status === "CANCELLED" ||
+        report.study.status !== "COMPLETED"
+      ) {
+        throw new HospitalImagingError(
+          "Reports for cancelled orders or incomplete studies cannot be amended.",
+          409,
+        );
+      }
+
+      const latestRevision =
+        await tx.hospitalImagingReportRevision.aggregate({
+          where: { businessId, reportId: report.id },
+          _max: { revision: true },
+        });
+      const revision = (latestRevision._max.revision ?? 0) + 1;
+
+      await tx.hospitalImagingReportRevision.create({
+        data: {
+          businessId,
+          reportId: report.id,
+          revision,
+          findings: report.findings,
+          impression: report.impression,
+          recommendations: report.recommendations,
+          status: report.status,
+          amendedBy: userId,
+          amendmentReason,
+        },
+      });
+
+      const updated = await tx.hospitalImagingReport.update({
+        where: { id: report.id },
+        data: {
+          findings,
+          impression,
+          recommendations,
+          status: "AMENDED",
+          amendmentReason,
+          verifiedBy: null,
+          verifiedAt: null,
+          releasedBy: null,
+          releasedAt: null,
+        },
+      });
+
+      await recordAuditEvent(
+        {
+          businessId,
+          actorId: userId,
+          action: AUDIT_ACTIONS.HOSPITAL_IMAGING_REPORT_AMENDED,
+          category: "HOSPITAL",
+          entityType: "HospitalImagingReport",
+          entityId: updated.id,
+          beforeData: report,
+          afterData: updated,
+          metadata: {
+            revision,
+            previousStatus: report.status,
+            status: updated.status,
+            orderItemId: report.orderItemId,
+            studyId: report.studyId,
+            amendmentReason,
+          },
+        },
+        tx,
+      );
+
+      return updated;
+    },
+    { maxWait: 10_000, timeout: 15_000 },
+  );
+}

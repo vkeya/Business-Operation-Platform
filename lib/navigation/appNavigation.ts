@@ -14,7 +14,13 @@ export type NavigationModule =
   | "services"
   | "pos"
   | "pharmacy"
-  | "autopilot";
+  | "autopilot"
+  | "patients"
+  | "appointments"
+  | "admissions"
+  | "wardsBeds"
+  | "laboratory"
+  | "invoices"
 
 export interface NavigationItem {
   id: NavigationModule;
@@ -81,6 +87,44 @@ export const appNavigation: NavigationItem[] = [
     descriptionKey: "navigationDescriptions.customers",
     href: "/customers",
   },
+
+  {
+    id: "patients",
+    labelKey: "patients",
+    descriptionKey: "navigationDescriptions.patients",
+    href: "/settings/hospital/patients",
+  },
+  {
+    id: "appointments",
+    labelKey: "appointments",
+    descriptionKey: "navigationDescriptions.appointments",
+    href: "/settings/hospital/appointments",
+  },
+  {
+    id: "admissions",
+    labelKey: "admissions",
+    descriptionKey: "navigationDescriptions.admissions",
+    href: "/settings/hospital/admissions",
+  },
+  {
+    id: "wardsBeds",
+    labelKey: "wardsBeds",
+    descriptionKey: "navigationDescriptions.wardsBeds",
+    href: "/settings/hospital/wards",
+  },
+  {
+    id: "laboratory",
+    labelKey: "laboratory",
+    descriptionKey: "navigationDescriptions.laboratory",
+    href: "/settings/hospital/laboratory",
+  },
+  {
+    id: "invoices",
+    labelKey: "invoices",
+    descriptionKey: "navigationDescriptions.patients",
+    href: "/settings/hospital/invoices",
+  },
+
   {
     id: "suppliers",
     labelKey: "suppliers",

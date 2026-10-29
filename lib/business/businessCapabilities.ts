@@ -15,7 +15,13 @@ export type BusinessCapability =
   | "menu"
   | "services"
   | "pharmacy"
-  | "supermarket";
+  | "supermarket"
+  | "patients"
+  | "appointments"
+  | "admissions"
+  | "wardsBeds"
+  | "laboratory"
+  | "hospitalInvoices"
 
 export const coreBusinessCapabilities: BusinessCapability[] = [
   "dashboard",
@@ -54,11 +60,17 @@ export const businessCapabilities: Record<
 
   hospital: [
     ...coreBusinessCapabilities,
+    "patients",
+    "appointments",
+    "admissions",
+    "wardsBeds",
+    "laboratory",
+    "hospitalInvoices",
   ],
 
   supermarket: [
     ...coreBusinessCapabilities,
-	"supermarket",
+    "supermarket",
   ],
 
   shop: [

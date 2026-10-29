@@ -65,6 +65,14 @@ function getNavigation(
         groups[0].items.push(item);
         break;
 
+	  case "appointments":
+        groups[0].items.push(item);
+        break;
+
+      case "patients":
+        groups[0].items.push(item);
+        break;
+
       case "sales":
       case "customers":
         groups[1].items.push(item);
@@ -82,6 +90,7 @@ function getNavigation(
       case "expenses":
       case "money":
       case "accounting":
+      case "invoices":
         groups[4].items.push(item);
         break;
 

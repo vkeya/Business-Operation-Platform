@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = {
   BUSINESS_INVITATION_CREATED: "business.invitation.created",
   BUSINESS_INVITATION_RESENT: "business.invitation.resent",
   BUSINESS_INVITATION_REVOKED: "business.invitation.revoked",
+  SUBSCRIPTION_TRIAL_STARTED: "subscription.trial.started",
 
 
   // Products
@@ -79,11 +80,37 @@ export const AUDIT_ACTIONS = {
   ETIMS_INVOICE_REJECTED: "etims.invoice.rejected",
   ETIMS_INVOICE_CANCELLED: "etims.invoice.cancelled",
 
+  // Hospital Invoice
+  HOSPITAL_INVOICE_CREATED: "hospital.invoice.created",
+  HOSPITAL_INVOICE_ISSUED: "hospital.invoice.issued",
+  HOSPITAL_INVOICE_VOIDED: "hospital.invoice.voided",
+  HOSPITAL_INVOICE_PAYMENT_RECORDED: "hospital.invoice.payment.recorded",
+
   // Pharmacy
   PRESCRIPTION_CREATED: "pharmacy.prescription.created",
   CONTROLLED_DISPENSING: "pharmacy.controlled.dispensing",
   CONTROLLED_DISPENSING_REVERSED:
     "pharmacy.controlled.dispensing.reversed",
+
+    // Hospital patient management
+  HOSPITAL_PATIENT_CREATED:
+    "hospital.patient.created",
+  HOSPITAL_PATIENT_UPDATED:
+    "hospital.patient.updated",
+  HOSPITAL_PATIENT_DEACTIVATED:
+    "hospital.patient.deactivated",
+  HOSPITAL_PATIENT_VIEWED:
+    "hospital.patient.viewed",
+
+  // Hospital ward and bed management
+  HOSPITAL_WARD_CREATED: "hospital.ward.created",
+  HOSPITAL_WARD_UPDATED: "hospital.ward.updated",
+  HOSPITAL_BED_CREATED: "hospital.bed.created",
+  HOSPITAL_BED_STATUS_CHANGED: "hospital.bed.status_changed",
+  HOSPITAL_BED_ALLOCATION_CREATED:
+    "hospital.bed.allocation_created",
+  HOSPITAL_BED_ALLOCATION_RELEASED:
+    "hospital.bed.allocation_released",
 
     // Supermarket Autopilot
   SUPERMARKET_AUTOPILOT_ACTION_UPDATED:
@@ -108,6 +135,109 @@ export const AUDIT_ACTIONS = {
   SECURITY_SESSION_INVALIDATED:
     "security.session.invalidated",
 
+    // Hospital appointment management
+  HOSPITAL_APPOINTMENT_CREATED:
+    "hospital.appointment.created",
+  HOSPITAL_APPOINTMENT_UPDATED:
+    "hospital.appointment.updated",
+  HOSPITAL_APPOINTMENT_STATUS_CHANGED:
+    "hospital.appointment.status_changed",
+  HOSPITAL_APPOINTMENT_VIEWED:
+    "hospital.appointment.viewed",
+
+  // Hospital admissions
+  HOSPITAL_ADMISSION_CREATED:
+    "hospital.admission.created",
+  HOSPITAL_ADMISSION_STATUS_CHANGED:
+    "hospital.admission.status_changed",
+  HOSPITAL_ADMISSION_VIEWED:
+    "hospital.admission.viewed",
+
+  // Hospital clinical encounters
+  HOSPITAL_ENCOUNTER_CREATED:
+    "hospital.encounter.created",
+  HOSPITAL_ENCOUNTER_UPDATED:
+    "hospital.encounter.updated",
+  HOSPITAL_ENCOUNTER_STATUS_CHANGED:
+    "hospital.encounter.status_changed",
+  HOSPITAL_ENCOUNTER_VIEWED:
+    "hospital.encounter.viewed",
+
+  // Hospital clinical notes
+  HOSPITAL_CLINICAL_NOTE_CREATED:
+    "hospital.clinical_note.created",
+  HOSPITAL_CLINICAL_NOTE_VIEWED:
+    "hospital.clinical_note.viewed",
+
+  // Hospital diagnoses
+  HOSPITAL_DIAGNOSIS_CREATED:
+    "hospital.diagnosis.created",
+  HOSPITAL_DIAGNOSIS_VIEWED:
+    "hospital.diagnosis.viewed",
+
+  // Hospital observations
+  HOSPITAL_OBSERVATION_CREATED:
+    "hospital.observation.created",
+  HOSPITAL_OBSERVATION_VIEWED:
+    "hospital.observation.viewed",
+
+  // Hospital prescriptions
+  HOSPITAL_PRESCRIPTION_CREATED:
+    "hospital.prescription.created",
+  HOSPITAL_PRESCRIPTION_VIEWED:
+    "hospital.prescription.viewed",
+  HOSPITAL_PRESCRIPTION_DISPENSED:
+    "hospital.prescription.dispensed",
+
+  // Hospital laboratory
+  HOSPITAL_LAB_ORDER_CREATED:
+    "hospital.lab_order.created",
+  HOSPITAL_LAB_ORDER_VIEWED:
+    "hospital.lab_order.viewed",
+  HOSPITAL_LAB_ORDER_CANCELLED:
+    "hospital.lab_order.cancelled",
+  HOSPITAL_LAB_SPECIMEN_CREATED:
+    "hospital.lab_specimen.created",
+  HOSPITAL_LAB_SPECIMEN_COLLECTED:
+    "hospital.lab_specimen.collected",
+  HOSPITAL_LAB_SPECIMEN_RECEIVED:
+    "hospital.lab_specimen.received",
+  HOSPITAL_LAB_SPECIMEN_REJECTED:
+    "hospital.lab_specimen.rejected",
+  HOSPITAL_LAB_RESULT_CREATED:
+    "hospital.lab_result.created",
+  HOSPITAL_LAB_RESULT_VIEWED:
+    "hospital.lab_result.viewed",
+  HOSPITAL_LAB_RESULT_VERIFIED:
+    "hospital.lab_result.verified",
+  HOSPITAL_LAB_RESULT_RELEASED:
+    "hospital.lab_result.released",
+  HOSPITAL_LAB_RESULT_AMENDED:
+    "hospital.lab_result.amended",
+
+  // Hospital imaging
+  HOSPITAL_IMAGING_ORDER_CREATED:
+    "hospital.imaging_order.created",
+  HOSPITAL_IMAGING_ORDER_VIEWED:
+    "hospital.imaging_order.viewed",
+  HOSPITAL_IMAGING_ORDER_CANCELLED:
+    "hospital.imaging_order.cancelled",
+  HOSPITAL_IMAGING_STUDY_CREATED:
+    "hospital.imaging_study.created",
+  HOSPITAL_IMAGING_STUDY_UPDATED:
+    "hospital.imaging_study.updated",
+  HOSPITAL_IMAGING_STUDY_VIEWED:
+    "hospital.imaging_study.viewed",
+  HOSPITAL_IMAGING_REPORT_CREATED:
+    "hospital.imaging_report.created",
+  HOSPITAL_IMAGING_REPORT_VIEWED:
+    "hospital.imaging_report.viewed",
+  HOSPITAL_IMAGING_REPORT_VERIFIED:
+    "hospital.imaging_report.verified",
+  HOSPITAL_IMAGING_REPORT_RELEASED:
+    "hospital.imaging_report.released",
+  HOSPITAL_IMAGING_REPORT_AMENDED:
+    "hospital.imaging_report.amended",
 
 } as const;
 
