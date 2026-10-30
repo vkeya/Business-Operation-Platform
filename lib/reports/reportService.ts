@@ -517,4 +517,125 @@ export const reportService = {
     }));
   },
   
+
+  async getHospitalFinancialSummary(
+    businessId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    if (!businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    if (
+      Number.isNaN(startDate.getTime()) ||
+      Number.isNaN(endDate.getTime()) ||
+      startDate > endDate
+    ) {
+      throw new Error("A valid report date range is required.");
+    }
+
+    const summary =
+      await reportRepository.getHospitalFinancialSummary(
+        businessId,
+        startDate,
+        endDate,
+      );
+
+    const invoiceStatuses = summary.invoiceStatuses.map((group) => ({
+      currency: group.currency,
+      status: group.status,
+      count: group._count._all,
+      subtotal: Number(group._sum.subtotal ?? 0),
+      discountTotal: Number(group._sum.discountTotal ?? 0),
+      taxTotal: Number(group._sum.taxTotal ?? 0),
+      totalAmount: Number(group._sum.totalAmount ?? 0),
+      amountPaid: Number(group._sum.amountPaid ?? 0),
+    }));
+
+    const paymentCollections = summary.paymentCollections.map((group) => ({
+      currency: group.currency,
+      paymentCount: group._count._all,
+      amountCollected: Number(group._sum.amount ?? 0),
+    }));
+
+    const collectibleInvoices = summary.collectibleInvoices
+      .map((invoice) => {
+        const totalAmount = Number(invoice.totalAmount);
+        const amountPaid = Number(invoice.amountPaid);
+        const balanceDue = Math.max(0, totalAmount - amountPaid);
+
+        return {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          currency: invoice.currency,
+          status: invoice.status,
+          totalAmount,
+          amountPaid,
+          balanceDue,
+          dueAt: invoice.dueAt,
+          issuedAt: invoice.issuedAt,
+          patientNumber: invoice.patient.patientNumber,
+          patientName: [
+            invoice.patient.firstName,
+            invoice.patient.lastName,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        };
+      })
+      .filter((invoice) => invoice.balanceDue > 0);
+
+    const overdueInvoices = collectibleInvoices.filter(
+      (invoice) =>
+        invoice.dueAt !== null &&
+        invoice.dueAt < endDate,
+    );
+
+    return {
+      period: {
+        startDate,
+        endDate,
+      },
+      invoiceStatuses,
+      paymentCollections,
+      outstanding: {
+        invoices: collectibleInvoices,
+        count: collectibleInvoices.length,
+        totalsByCurrency: Object.entries(
+          collectibleInvoices.reduce<Record<string, number>>(
+            (totals, invoice) => {
+              totals[invoice.currency] =
+                (totals[invoice.currency] ?? 0) +
+                invoice.balanceDue;
+              return totals;
+            },
+            {},
+          ),
+        ).map(([currency, balanceDue]) => ({
+          currency,
+          balanceDue,
+        })),
+      },
+      overdue: {
+        invoices: overdueInvoices,
+        count: overdueInvoices.length,
+        totalsByCurrency: Object.entries(
+          overdueInvoices.reduce<Record<string, number>>(
+            (totals, invoice) => {
+              totals[invoice.currency] =
+                (totals[invoice.currency] ?? 0) +
+                invoice.balanceDue;
+              return totals;
+            },
+            {},
+          ),
+        ).map(([currency, balanceDue]) => ({
+          currency,
+          balanceDue,
+        })),
+      },
+    };
+  },
+
 };
