@@ -43,6 +43,21 @@ function getNavigationSections(
         (item) => item.id === "dashboard",
       ),
     },
+
+    {
+      id: "hospital",
+      label: "Hospital",
+      items: navigation.filter((item) =>
+        [
+          "patients",
+          "appointments",
+          "admissions",
+          "wardsBeds",
+          "laboratory",
+        ].includes(item.id),
+      ),
+    },
+
     {
       id: "restaurant",
       label: t.navigation.menu,
