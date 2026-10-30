@@ -20,7 +20,14 @@ export type BusinessReferenceType =
   | "EXPENSE"
   | "JOURNAL_ENTRY"
   | "INVENTORY_MOVEMENT"
-  | "BILLING_INVOICE";
+  | "BILLING_INVOICE"
+  | "HOSPITAL_PATIENT"
+  | "HOSPITAL_APPOINTMENT"
+  | "HOSPITAL_ENCOUNTER"
+  | "HOSPITAL_LAB_ORDER"
+  | "HOSPITAL_IMAGING_ORDER"
+  | "HOSPITAL_ADMISSION"
+  | "HOSPITAL_INVOICE_PAYMENT";
 
 export interface GenerateReferenceInput {
   businessId: string;
