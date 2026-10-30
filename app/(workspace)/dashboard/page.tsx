@@ -10,8 +10,11 @@ import HealthCard from "@/components/dashboard/HealthCard";
 import AttentionPanel from "@/components/dashboard/AttentionPanel";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import ActivityList from "@/components/dashboard/ActivityList";
+import CashIntelligenceCard from "@/components/dashboard/CashIntelligenceCard";
+import BusinessPulseCard from "@/components/dashboard/BusinessPulseCard";
 import { getLocale } from "@/lib/i18n/locale";
 import { getTranslations } from "@/lib/i18n";
+import HospitalDashboard from "./HospitalDashboard";
 import {
   Activity,
   AlertTriangle,
@@ -86,6 +89,12 @@ export default async function DashboardPage() {
 
   const locale = await getLocale();
   const t = getTranslations(locale);
+
+  if (business.type === "hospital") {
+    return <HospitalDashboard businessName={business.name} />;
+  }
+
+  // Existing retail dashboard data queries continue unchanged below.
 
   const metrics =
     await getDashboardMetrics(
@@ -616,6 +625,15 @@ const businessAlertPriority =
       </div>
     </section>
 
+    {/* Cash Intelligence presentation boundary */}
+    <CashIntelligenceCard
+      businessId={business.id}
+      cashPosition={metrics.cashPosition}
+      receivables={metrics.receivables}
+      payables={metrics.payables}
+      currency={business.baseCurrency}
+    />
+
     {/* Business health */}
     <section className="grid gap-4 lg:grid-cols-2">
       {/* Cash position */}
@@ -1104,6 +1122,20 @@ const businessAlertPriority =
         </div>
       </div>
     </section>
+
+    {/* Business Pulse presentation boundary */}
+    <BusinessPulseCard
+      businessId={business.id}
+      revenue={metrics.revenue}
+      profit={metrics.profit}
+      cashPosition={metrics.cashPosition}
+      receivables={metrics.receivables}
+      payables={metrics.payables}
+      inventoryValue={metrics.inventoryValue}
+      salesCount={metrics.salesCount}
+      lowStockItems={metrics.lowStockItems}
+      currency={business.baseCurrency}
+    />
 
     {/* SmatPic intelligence */}
     <section className="relative overflow-hidden rounded-[32px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-purple-50 p-7 sm:p-8">
