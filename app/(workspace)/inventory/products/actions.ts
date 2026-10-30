@@ -11,31 +11,56 @@ import {
 } from "@/lib/auth/auth";
 import { productService } from "@/lib/inventory/productService";
 import type { CreateProductInput } from "@/lib/inventory/productRepository";
+import { SubscriptionEntitlementError } from "@/lib/subscription/subscriptionEntitlementService";
+import { SubscriptionLimitError } from "@/lib/subscription/subscriptionLimitService";
 
 export async function createProductAction(
-  input: Omit<
-    CreateProductInput,
-    "businessId" | "sku"
-  > & {
+  input: Omit<CreateProductInput, "businessId" | "sku"> & {
     operationId: string;
   },
 ) {
   const business = await getCurrentBusiness();
+  const userId = await getAuthenticatedUserId();
 
-  const userId =
-  await getAuthenticatedUserId();
+  try {
+    await requireBusinessOperationAccess(
+      userId,
+      business.id,
+      "inventory.manage",
+    );
 
-  await requireBusinessOperationAccess(
-  userId,
-  business.id,
-  "inventory.manage",
-);
+    const product = await productService.createProduct({
+      ...input,
+      businessId: business.id,
+      createdBy: userId,
+    });
 
-  return productService.createProduct({
-  ...input,
-  businessId: business.id,
-  createdBy: userId,
-});
+    if (!product) {
+      return {
+        ok: false as const,
+        code: "PRODUCT_CREATE_FAILED" as const,
+        message: "Unable to create the product.",
+      };
+    }
+
+    return { ok: true as const, product };
+  } catch (error) {
+    if (
+      error instanceof SubscriptionEntitlementError ||
+      error instanceof SubscriptionLimitError
+    ) {
+      return {
+        ok: false as const,
+        code:
+          error instanceof SubscriptionEntitlementError
+            ? "SUBSCRIPTION_REQUIRED" as const
+            : "SUBSCRIPTION_LIMIT_REACHED" as const,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
 }
 
 export async function getProductDefaultsAction() {
