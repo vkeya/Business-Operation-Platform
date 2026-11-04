@@ -127,36 +127,41 @@ export default function ProductForm({
         attributes,
       };
 
-      const savedProduct = isEdit
-  ? await (async () => {
-      if (!product?.id) {
-        throw new Error(
-          t.inventory.productIdRequired,
+      let savedProductId: string;
+
+      if (isEdit) {
+        if (!product?.id) {
+          throw new Error(t.inventory.productIdRequired);
+        }
+      
+        const updatedProduct = await updateProductAction(
+          product.id,
+          input,
         );
+      
+        if (!updatedProduct) {
+          throw new Error("Unable to update the product.");
+        }
+      
+        savedProductId = updatedProduct.id;
+      } else {
+        const result = await createProductAction({
+          ...input,
+          operationId: crypto.randomUUID(),
+        });
+      
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+      
+        savedProductId = result.product.id;
       }
-
-      return updateProductAction(
-        product.id,
-        input,
-      );
-    })()
-  : await createProductAction({
-      ...input,
-      operationId: crypto.randomUUID(),
-    });
-
-	if (!savedProduct) {
-  throw new Error(
-    isEdit
-      ? "Unable to update the product."
-      : "Unable to create the product.",
-  );
-}
 
       await Promise.all(
         sellingUnits.map((sellingUnit) =>
           createProductSellingUnitAction(
-            savedProduct.id,
+            savedProductId,
             {
               name: sellingUnit.name.trim(),
               quantity: Number(sellingUnit.quantity),
