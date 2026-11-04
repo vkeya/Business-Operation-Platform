@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarDays,
   ChevronDown,
+  CircleHelp,
   ClipboardList,
   FlaskConical,
   HandCoins,
@@ -242,6 +243,20 @@ export default function DashboardNavigation({
             );
           });
         })}
+
+        <Link
+          href="/support"
+          aria-current={pathname.startsWith("/support") ? "page" : undefined}
+          className={[
+            "ml-2 flex shrink-0 items-center gap-2 rounded-xl border-l border-slate-200 px-4 py-2 text-sm font-semibold transition-all duration-200",
+            pathname.startsWith("/support")
+              ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
+              : "text-slate-500 hover:bg-violet-50 hover:text-violet-700",
+          ].join(" ")}
+        >
+          <CircleHelp className="h-4 w-4 shrink-0" />
+          <span className="whitespace-nowrap">Help &amp; Support</span>
+        </Link>
       </div>
     </nav>
   );
