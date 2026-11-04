@@ -385,17 +385,14 @@ pharmacy: isPharmacyBusiness
   : undefined,
       });
 
-      if (!product.ok) {
-        setError(product.message);
-        return;
-      }
-
-      const createdProduct = product.product;
+	  if (!product) {
+  throw new Error("Unable to create the product.");
+}
 
       await Promise.all(
         sellingUnits.map((sellingUnit) =>
           createProductSellingUnitAction(
-            createdProduct.id,
+            product.id,
             {
               name: sellingUnit.name.trim(),
               quantity: Number(sellingUnit.quantity),

@@ -177,17 +177,30 @@ export async function POST(request: Request) {
         verificationUrl,
       });
 
-    await sendTransactionalEmail({
-      to: user.email,
-      subject: verificationEmail.subject,
-      html: verificationEmail.html,
-      text: verificationEmail.text,
-    });
+    let verificationEmailSent = false;
+
+    try {
+      const emailResult = await sendTransactionalEmail({
+        to: user.email,
+        subject: verificationEmail.subject,
+        html: verificationEmail.html,
+        text: verificationEmail.text,
+      });
+
+      verificationEmailSent = Boolean(emailResult.id);
+    } catch (emailError) {
+      console.error(
+        "Registration verification email failed:",
+        emailError,
+      );
+    }
 
     return NextResponse.json(
       {
-        message:
-          "Account created. Please check your email to verify your account.",
+        message: verificationEmailSent
+          ? "Account created. Please check your email to verify your account."
+          : "Account created, but the verification email could not be sent. Please request another verification email from the login page.",
+        verificationEmailSent,
         user: {
           id: user.id,
           name: user.name,
