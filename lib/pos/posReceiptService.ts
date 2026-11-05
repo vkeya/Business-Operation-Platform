@@ -2,6 +2,7 @@ import { saleService } from "@/lib/sales/saleService";
 import { paymentService } from "@/lib/payment/paymentService";
 import { createBusinessService } from "@/lib/business/businessService";
 import { postgresBusinessRepository } from "@/lib/business/postgresBusinessRepository";
+import { prisma } from "@/lib/database/prisma";
 
 const businessService = createBusinessService(
   postgresBusinessRepository,
@@ -151,6 +152,37 @@ export const posReceiptService = {
           Number(sale.totalAmount),
       );
 
+	const sellingUnitIds = [
+      ...new Set(
+        sale.items
+          .map((item) => item.sellingUnitId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const sellingUnits = sellingUnitIds.length
+      ? await prisma.productSellingUnit.findMany({
+          where: {
+            id: { in: sellingUnitIds },
+            productId: {
+              in: [...new Set(sale.items.map((item) => item.productId))],
+            },
+          },
+          select: {
+            id: true,
+            productId: true,
+            name: true,
+          },
+        })
+      : [];
+
+    const sellingUnitNames = new Map(
+      sellingUnits.map((unit) => [
+        `${unit.productId}:${unit.id}`,
+        unit.name,
+      ]),
+    );
+
     return {
       saleId: sale.id,
       referenceNumber: sale.referenceNumber,
@@ -194,8 +226,11 @@ export const posReceiptService = {
           productName:
             item.productName,
           sku: item.sku,
-		  sellingUnitName:
-            item.sellingUnit?.name ?? null,
+		  sellingUnitName: item.sellingUnitId
+           ? sellingUnitNames.get(
+               `${item.productId}:${item.sellingUnitId}`,
+             ) ?? null
+           : null,
           quantity:
             Number(item.quantity),
           unitPrice:
