@@ -48,6 +48,8 @@ export interface CreateProductInput {
 
   attributes?: ProductAttributes;
 
+  inventoryMode?: "DISCRETE" | "LIQUID";
+
   costPrice: number;
   sellingPrice: number;
   currency: string;
@@ -112,12 +114,14 @@ function serializeProduct<
     taxRate?: { toNumber(): number } | null;
     minimumStock?: { toNumber(): number } | null;
     reorderLevel?: { toNumber(): number } | null;
+
     sellingUnits?: Array<{
   id: string;
   name: string;
   unit: string;
   quantity: { toNumber(): number };
   sellingPrice: { toNumber(): number };
+  conversionQuantity?: { toNumber(): number } | null;
 }>;
   },
 >(product: T) {
@@ -150,6 +154,8 @@ function serializeProduct<
                 sellingUnit.quantity.toNumber(),
               sellingPrice:
                 sellingUnit.sellingPrice.toNumber(),
+			  conversionQuantity:
+                 sellingUnit.conversionQuantity?.toNumber() ?? null,
             }),
           ),
         }
@@ -173,6 +179,7 @@ export const productRepository = {
         description: input.description,
         unit: input.unit,
         attributes: input.attributes,
+		inventoryMode: input.inventoryMode ?? "DISCRETE",
         costPrice: input.costPrice,
         sellingPrice: input.sellingPrice,
         currency: input.currency,
@@ -309,6 +316,7 @@ export const productRepository = {
     const product = await prisma.product.update({
       where: {
         id: productId,
+		businessId,
       },
       data: {
         categoryId: input.categoryId,
@@ -319,6 +327,7 @@ export const productRepository = {
         description: input.description,
         unit: input.unit,
 		attributes: input.attributes,
+		inventoryMode: input.inventoryMode,
         costPrice: input.costPrice,
         sellingPrice: input.sellingPrice,
         currency: input.currency,
@@ -484,6 +493,33 @@ async listByTypeAndCategory(
   return products.map(serializeProduct);
 },
 
+  async findById(
+    businessId: string,
+    productId: string,
+  ) {
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        businessId,
+        status: "ACTIVE",
+      },
+      include: {
+        category: true,
+        pharmacyProduct: true,
+        sellingUnits: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    return product ? serializeProduct(product) : null;
+  },
+
   async findBySku(
     businessId: string,
     sku: string,
@@ -530,22 +566,23 @@ async listByTypeAndCategory(
       : null;
   },
 
-    async findById(
-    businessId: string,
-    productId: string,
-  ) {
-    const product =
-      await prisma.product.findFirst({
+    async findByIdWithSellingUnits(
+      businessId: string,
+      productId: string,
+    ) {
+      return prisma.product.findFirst({
         where: {
           id: productId,
           businessId,
         },
+        include: {
+          sellingUnits: {
+            where: { isActive: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
       });
-
-    return product
-      ? serializeProduct(product)
-      : null;
-  },
+    },
 
   async createSellingUnit(
   input: CreateProductSellingUnitInput,
@@ -564,11 +601,13 @@ async listByTypeAndCategory(
     });
 
   return {
-    ...sellingUnit,
-    quantity: sellingUnit.quantity.toNumber(),
-    sellingPrice:
-      sellingUnit.sellingPrice.toNumber(),
-  };
+  ...sellingUnit,
+  quantity: sellingUnit.quantity.toNumber(),
+  sellingPrice:
+    sellingUnit.sellingPrice.toNumber(),
+  conversionQuantity:
+    sellingUnit.conversionQuantity?.toNumber() ?? null,
+};
 },
 
   async findSellingUnitById(
@@ -597,6 +636,57 @@ async listByTypeAndCategory(
         }
       : null;
   },
+
+async updateSellingUnit(
+  productId: string,
+  sellingUnitId: string,
+  input: {
+    name: string;
+    quantity: number;
+    unit: string;
+    conversionQuantity?: number;
+    conversionUnit?: string;
+    sellingPrice: number;
+  },
+  client: PrismaTransactionClient = prisma,
+) {
+  const existing = await client.productSellingUnit.findFirst({
+    where: {
+      id: sellingUnitId,
+      productId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Selling unit not found.");
+  }
+
+  const sellingUnit = await client.productSellingUnit.update({
+    where: {
+      id: existing.id,
+    },
+    data: {
+      name: input.name.trim(),
+      quantity: input.quantity,
+      unit: input.unit.trim(),
+      conversionQuantity: input.conversionQuantity ?? null,
+      conversionUnit: input.conversionUnit?.trim() || null,
+      sellingPrice: input.sellingPrice,
+    },
+  });
+
+  return {
+    ...sellingUnit,
+    quantity: sellingUnit.quantity.toNumber(),
+    sellingPrice: sellingUnit.sellingPrice.toNumber(),
+    conversionQuantity:
+      sellingUnit.conversionQuantity?.toNumber() ?? null,
+  };
+},
 
 async listSellingUnits(
   productId: string,

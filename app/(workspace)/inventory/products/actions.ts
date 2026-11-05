@@ -117,14 +117,44 @@ await requireBusinessOperationAccess(
   );
 }
 
-export async function createProductSellingUnitAction(
+export async function saveProductSellingUnitsAction(
   productId: string,
-  input: {
+  sellingUnits: Array<{
+    id?: string;
     name: string;
     quantity: number;
     unit: string;
+    conversionQuantity?: number;
+    conversionUnit?: string;
     sellingPrice: number;
-  },
+  }>,
+) {
+  const business = await getCurrentBusiness();
+  const userId = await getAuthenticatedUserId();
+
+  await requireBusinessOperationAccess(
+    userId,
+    business.id,
+    "inventory.manage",
+  );
+
+  return productService.reconcileSellingUnits(
+    business.id,
+    productId,
+    sellingUnits,
+  );
+}
+
+export async function createProductSellingUnitAction(
+  productId: string,
+  input: {
+  name: string;
+  quantity: number;
+  unit: string;
+  conversionQuantity?: number;
+  conversionUnit?: string;
+  sellingPrice: number;
+},
 ) {
   const business = await getCurrentBusiness();
 

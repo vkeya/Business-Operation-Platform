@@ -125,6 +125,8 @@ export default async function InventoryPage() {
       return {
         id: balance.id,
         productName: product.name,
+        inventoryMode: product.inventoryMode,
+        unit: product.unit,
         sku: product.sku,
         warehouseName: warehouse.name,
         warehouseCode: warehouse.code,
@@ -140,12 +142,18 @@ export default async function InventoryPage() {
         row !== null,
     );
 
-  const totalUnitsInStock =
-    activeBalances.reduce(
-      (total, balance) =>
-        total + balance.quantity,
-      0,
-    );
+const totalDiscreteUnitsInStock = activeBalances.reduce(
+  (total, balance) => {
+    const product = productMap.get(balance.productId);
+
+    if (product?.inventoryMode === "LIQUID") {
+      return total;
+    }
+
+    return total + balance.quantity;
+  },
+  0,
+);
 
   const lowStockCount =
     inventoryProducts.filter(
@@ -359,9 +367,16 @@ export default async function InventoryPage() {
                   {t.inventory.unitsInStock}
                 </p>
 
-                <p className="mt-4 text-2xl font-semibold tracking-tight text-emerald-900">
-                  {totalUnitsInStock.toLocaleString()}
-                </p>
+              <div className="mt-4">
+               <p className="text-2xl font-semibold tracking-tight text-emerald-900">
+                 {totalDiscreteUnitsInStock.toLocaleString()}
+               </p>
+
+               <p className="text-xs text-slate-500">
+                 Discrete units
+               </p>
+              </div>
+
               </div>
 
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-emerald-700">
@@ -571,7 +586,7 @@ export default async function InventoryPage() {
 
                     <div className="shrink-0 text-right">
                       <p className="text-sm font-semibold text-slate-900">
-                        {row.quantity.toLocaleString()}
+                        {row.quantity.toLocaleString()} {row.unit}
                       </p>
 
                       <p className="mt-1 text-[11px] text-slate-400">

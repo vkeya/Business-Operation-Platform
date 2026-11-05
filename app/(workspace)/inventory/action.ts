@@ -162,6 +162,7 @@ export async function transferStockAction(input: {
   fromWarehouseId: string;
   toWarehouseId: string;
   quantity: number;
+  containerIds?: string[];
   currency: string;
   notes?: string;
 }) {
@@ -186,10 +187,83 @@ export async function transferStockAction(input: {
     toWarehouseId:
       input.toWarehouseId,
     quantity: input.quantity,
+	containerIds: input.containerIds,
     currency: input.currency,
     createdBy: userId,
     notes: input.notes,
   });
+}
+
+export async function getTransferableContainersAction(
+  productId: string,
+  warehouseId: string,
+) {
+  const business = await getCurrentBusiness();
+
+  const userId = await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+    userId,
+    business.id,
+    "inventory.read",
+  );
+
+  if (!productId || !warehouseId) {
+    throw new Error(
+      "Product and source warehouse are required.",
+    );
+  }
+
+  const product = await prisma.product.findFirst({
+    where: {
+      id: productId,
+      businessId: business.id,
+      inventoryMode: "LIQUID",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!product) {
+    throw new Error(
+      "Liquid inventory product not found.",
+    );
+  }
+
+  const containers =
+    await prisma.inventoryContainer.findMany({
+      where: {
+        businessId: business.id,
+        productId,
+        warehouseId,
+        status: {
+          in: ["SEALED", "OPEN"],
+        },
+        remainingQuantity: {
+          gt: 0,
+        },
+      },
+      select: {
+        id: true,
+        containerType: true,
+        status: true,
+        remainingQuantity: true,
+        unit: true,
+      },
+      orderBy: [
+        { receivedAt: "asc" },
+        { createdAt: "asc" },
+      ],
+    });
+
+  return containers.map((container) => ({
+    id: container.id,
+    containerType: container.containerType,
+    status: container.status as "SEALED" | "OPEN",
+    remainingQuantity: container.remainingQuantity.toNumber(),
+    unit: container.unit,
+  }));
 }
 
 export async function adjustStockAction(input: {

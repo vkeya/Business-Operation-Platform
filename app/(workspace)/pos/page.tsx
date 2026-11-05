@@ -18,6 +18,7 @@ import {
   Trash2,
   WalletCards,
 } from "lucide-react";
+import { getInventoryQuantityForSale } from "@/lib/inventory/sellingUnitConversion";
 import { calculateTax } from "@/lib/tax/taxCalculationService";
 
 import { posCartService } from "@/lib/pos/posCartService";
@@ -153,6 +154,9 @@ export default function PosPage() {
   const [discountInput, setDiscountInput] = useState("");
 
   const [productQuery, setProductQuery] = useState("");
+
+  const [pendingLiquidProduct, setPendingLiquidProduct] =
+        useState<PosProduct | null>(null);
 
   const [searchResults, setSearchResults] = useState<PosProduct[]>([]);
 
@@ -732,7 +736,13 @@ export default function PosPage() {
 
     const unitPrice = sellingUnit?.sellingPrice ?? product.sellingPrice;
 
-    const inventoryQuantity = sellingUnit?.quantity ?? 1;
+    const inventoryQuantity = sellingUnit
+  ? getInventoryQuantityForSale(
+      product,
+      sellingUnit,
+      1,
+    )
+  : 1;
 
     if (product.trackInventory && product.availableQuantity <= 0) {
       setError(`Insufficient stock for ${product.name}.`);
@@ -1079,10 +1089,16 @@ export default function PosPage() {
                           key={product.productId}
                           type="button"
                           onClick={() => {
-                            handleProductSelection(product);
-                            setProductQuery("");
-                            setSearchResults([]);
-                          }}
+                          if (
+                            product.inventoryMode === "LIQUID" &&
+                            product.sellingUnits.length > 0
+                          ) {
+                            setPendingLiquidProduct(product);
+                            return;
+                          }
+
+                          handleProductSelection(product);
+                        }}
                           className="flex min-h-16 w-full items-center justify-between gap-4 border-b border-slate-800 px-4 py-3 text-left last:border-b-0 hover:bg-slate-800 active:bg-slate-800"
                         >
                           <div className="min-w-0">
@@ -1099,6 +1115,61 @@ export default function PosPage() {
                           </span>
                         </button>
                       ))}
+
+					  {pendingLiquidProduct && (
+  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="mb-3">
+      <p className="font-semibold text-slate-900">
+        Choose serving
+      </p>
+      <p className="text-sm text-slate-500">
+        {pendingLiquidProduct.name}
+      </p>
+    </div>
+
+    <div className="grid grid-cols-2 gap-2">
+      {pendingLiquidProduct.sellingUnits.map((unit) => (
+        <button
+          key={unit.id}
+          type="button"
+          disabled={pendingLiquidProduct.availableQuantity <= 0}
+          onClick={() => {
+            addProduct(pendingLiquidProduct, unit.id);
+            setPendingLiquidProduct(null);
+            setProductQuery("");
+            setSearchResults([]);
+          }}
+          className="rounded-lg border border-slate-200 p-3 text-left transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className="block font-medium text-slate-900">
+            {unit.name}
+          </span>
+
+          <span className="mt-1 block text-xs text-slate-500">
+            {unit.quantity} {unit.unit}
+          </span>
+
+          <span className="mt-2 block font-semibold text-slate-900">
+            {pendingLiquidProduct.currency}{" "}
+            {unit.sellingPrice.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </button>
+      ))}
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setPendingLiquidProduct(null)}
+      className="mt-3 text-sm text-slate-500 hover:text-slate-900"
+    >
+      Cancel
+    </button>
+  </div>
+)}
+
                     </div>
                   )}
                 </div>

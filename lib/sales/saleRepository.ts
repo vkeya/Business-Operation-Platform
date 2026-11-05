@@ -85,6 +85,7 @@ function serializeSale<
     discountAmount: { toNumber(): number };
     taxAmount: { toNumber(): number };
     totalAmount: { toNumber(): number };
+	taxRate?: { toNumber(): number } | null;
     items: Array<{
   id: string;
   productId: string;
@@ -99,6 +100,7 @@ function serializeSale<
       discountAmount: { toNumber(): number };
       taxAmount: { toNumber(): number };
       totalAmount: { toNumber(): number };
+
     }>;
   },
 >(sale: T) {
@@ -120,8 +122,12 @@ function serializeSale<
     totalAmount:
       sale.totalAmount.toNumber(),
 
+	taxRate: sale.taxRate?.toNumber() ?? null,
+
     items: sale.items.map(
       serializeSaleItem,
+
+
     ),
   };
 }

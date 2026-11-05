@@ -3,13 +3,19 @@ import { Prisma } from "@/generated/prisma/client";
 import { saleRepository } from "./saleRepository";
 import { postSaleToAccounting } from "@/lib/accounting/posting/salesPosting";
 import { inventoryRepository } from "@/lib/inventory/inventoryRepository";
-import { productService } from "@/lib/inventory/productService";
+
 import { recipeService } from "@/lib/restaurant/recipeService";
 import {
   pharmacyDispensingService,
 } from "@/lib/pharmacy/dispensing/pharmacyDispensingService";
 import { recordAuditEvent } from "@/lib/audit/auditService";
 import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
+import {
+  getInventoryQuantityForSale,
+} from "@/lib/inventory/sellingUnitConversion";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -48,6 +54,8 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       },
       {
         isolationLevel: "Serializable",
+		maxWait: 10000,
+        timeout: 15000,
       },
     );
   } catch (error) {
@@ -236,6 +244,19 @@ await tx.operationRequest.create({
       }
     }
 
+    /*
+     * Authoritative subscription-capacity check.
+     *
+     * Sale usage is counted when a sale becomes COMPLETED, so this
+     * check must run inside the same transaction that performs the
+     * completion. This also covers asynchronous M-Pesa completion.
+     */
+    await requireWithinSubscriptionLimit({
+      businessId,
+      limit: "monthly_sales_transactions",
+      client: tx,
+    });
+
     if (sale.items.length === 0) {
       throw new Error(
         "A sale must contain at least one item.",
@@ -268,6 +289,87 @@ const pharmacyItems: Array<{
   prescriptionItemId?: string | null;
 }> = [];
 
+const productIds = sale.items
+  .filter((item) => !item.menuItemId)
+  .map((item) => item.productId);
+
+const products = await tx.product.findMany({
+  where: {
+    businessId,
+    id: {
+      in: productIds,
+    },
+  },
+  select: {
+    id: true,
+    unit: true,
+    inventoryMode: true,
+    attributes: true,
+  },
+});
+
+const productMap = new Map(
+  products.map((product) => [
+    product.id,
+    product,
+  ]),
+);
+
+const sellingUnits = await tx.productSellingUnit.findMany({
+  where: {
+    productId: {
+      in: productIds,
+    },
+    isActive: true,
+  },
+  select: {
+    id: true,
+    productId: true,
+    name: true,
+    quantity: true,
+    unit: true,
+    conversionQuantity: true,
+    conversionUnit: true,
+    sellingPrice: true,
+    isActive: true,
+  },
+});
+
+const sellingUnitMap = new Map(
+  sellingUnits.map((sellingUnit) => [
+    `${sellingUnit.productId}:${sellingUnit.id}`,
+    {
+      ...sellingUnit,
+      quantity: sellingUnit.quantity.toNumber(),
+      sellingPrice:
+        sellingUnit.sellingPrice.toNumber(),
+      conversionQuantity:
+        sellingUnit.conversionQuantity?.toNumber() ?? null,
+    },
+  ]),
+);
+
+const pharmacyProducts =
+  await tx.pharmacyProduct.findMany({
+    where: {
+      productId: {
+        in: productIds,
+      },
+    },
+    select: {
+      id: true,
+      productId: true,
+      status: true,
+    },
+  });
+
+const pharmacyProductMap = new Map(
+  pharmacyProducts.map((pharmacyProduct) => [
+    pharmacyProduct.productId,
+    pharmacyProduct,
+  ]),
+);
+
     for (const item of sale.items) {
   if (item.menuItemId) {
     continue;
@@ -278,12 +380,9 @@ const pharmacyItems: Array<{
 
   if (item.sellingUnitId) {
     const sellingUnit =
-      await productService.findSellingUnitById(
-        businessId,
-        item.productId,
-        item.sellingUnitId,
-        tx,
-      );
+  sellingUnitMap.get(
+    `${item.productId}:${item.sellingUnitId}`,
+  );
 
     if (!sellingUnit) {
       throw new Error(
@@ -291,21 +390,36 @@ const pharmacyItems: Array<{
       );
     }
 
-    inventoryQuantity =
-      Number(item.quantity) *
-      sellingUnit.quantity;
+    const product = productMap.get(item.productId);
+
+if (!product) {
+  throw new Error(
+    `Product "${item.productName}" not found.`,
+  );
+}
+
+inventoryQuantity =
+  getInventoryQuantityForSale(
+    {
+      unit: product.unit,
+      inventoryMode: product.inventoryMode,
+      attributes:
+        product.attributes &&
+        typeof product.attributes === "object" &&
+        !Array.isArray(product.attributes)
+          ? (product.attributes as Record<
+              string,
+              string | number
+            >)
+          : null,
+    },
+    sellingUnit,
+    Number(item.quantity),
+  );
   }
 
   const pharmacyProduct =
-    await tx.pharmacyProduct.findUnique({
-      where: {
-        productId: item.productId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
+  pharmacyProductMap.get(item.productId);
 
   if (pharmacyProduct) {
    pharmacyItems.push({
