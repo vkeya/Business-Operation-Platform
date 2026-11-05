@@ -11,6 +11,10 @@ import {
 } from "@/lib/supermarket/supermarketAccessService";
 import { supermarketBasketIntelligenceService } from "@/lib/supermarket/supermarketBasketIntelligenceService";
 import type { BusinessType } from "@/types";
+import {
+  SubscriptionEntitlementError,
+  requireEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
 
 const DEFAULT_LOOKBACK_DAYS = 30;
 const DEFAULT_MIN_BASKETS = 3;
@@ -28,6 +32,11 @@ export async function GET(request: Request) {
 
     requireSupermarketBusiness(
       context.business.type as BusinessType,
+    );
+
+    await requireEntitlement(
+      context.business.id,
+      "SUPERMARKET_BASKET_INTELLIGENCE",
     );
 
     const { searchParams } =
@@ -92,7 +101,9 @@ export async function GET(request: Request) {
       error instanceof
         BusinessPermissionError ||
       error instanceof
-        SupermarketAccessError
+        SupermarketAccessError ||
+      error instanceof
+        SubscriptionEntitlementError
     ) {
       return NextResponse.json(
         {

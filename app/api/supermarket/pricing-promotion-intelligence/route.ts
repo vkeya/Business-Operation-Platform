@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import {
+  SubscriptionEntitlementError,
+  requireEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
+
+import {
   getCurrentBusinessContext,
 } from "@/lib/business/currentBusiness";
 
@@ -33,6 +38,11 @@ export async function GET(
 
     requireSupermarketBusiness(
       context.business.type as import("@/types").BusinessType,
+    );
+
+    await requireEntitlement(
+      context.business.id,
+      "SUPERMARKET_PRICING_INTELLIGENCE",
     );
 
     const url = new URL(
@@ -83,7 +93,9 @@ export async function GET(
       error instanceof
         BusinessPermissionError ||
       error instanceof
-        SupermarketAccessError
+        SupermarketAccessError ||
+      error instanceof
+        SubscriptionEntitlementError
     ) {
       return NextResponse.json(
         {

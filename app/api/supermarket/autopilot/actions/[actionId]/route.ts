@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { requireSupermarketBusiness } from "@/lib/supermarket/supermarketAccessService";
+import {
+  SubscriptionEntitlementError,
+  requireSupermarketAutopilotEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
 import { supermarketAutopilotService } from "@/lib/supermarket/supermarketAutopilotService";
 import type { BusinessType } from "@/types";
 
@@ -29,6 +33,10 @@ export async function PATCH(
 
     requireSupermarketBusiness(
       businessContext.business.type as BusinessType,
+    );
+
+    await requireSupermarketAutopilotEntitlement(
+      businessContext.business.id,
     );
 
     const { actionId } =
@@ -113,6 +121,17 @@ export async function PATCH(
       action: result,
     });
   } catch (error) {
+    if (error instanceof SubscriptionEntitlementError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: error.statusCode,
+        },
+      );
+    }
+
     console.error(
       "Failed to update supermarket Autopilot action:",
       error,
