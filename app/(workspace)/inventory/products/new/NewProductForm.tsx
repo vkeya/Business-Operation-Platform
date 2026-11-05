@@ -178,6 +178,15 @@ const visibleAttributes =
         return categoryName === "Spirits";
       }
 
+	  if (attribute.id === "volume") {
+        return (
+          ["restaurant", "bar", "wines_spirits"].includes(
+            businessType,
+          ) &&
+          liquidInventoryCategories.includes(categoryName ?? "")
+        );
+      }
+
       // Boutique category-aware attributes.
       if (attribute.id === "clothingSize") {
         return categoryName === "Clothing";
@@ -423,7 +432,20 @@ useEffect(() => {
 
 		const operationId = crypto.randomUUID();
 
-      const product = await createProductAction({
+		const submittedAttributes = Object.fromEntries(
+          visibleAttributes
+            .filter(
+              (attribute) =>
+                attributes[attribute.id] !== undefined &&
+                attributes[attribute.id] !== "",
+            )
+            .map((attribute) => [
+              attribute.id,
+              attributes[attribute.id],
+            ]),
+        );
+
+        const product = await createProductAction({
         operationId,
         name,
 		categoryId: selectedProductCategory?.id || undefined,
@@ -444,26 +466,26 @@ useEffect(() => {
           reorderLevel === ""
             ? undefined
             : Number(reorderLevel),
-        attributes,
+        attributes: submittedAttributes,
 
-pharmacy: supportsPharmacyProducts
-  ? {
-      medicineType: pharmacyMedicineType,
-      prescriptionType: pharmacyPrescriptionType,
-      activeIngredient:
-        activeIngredient || undefined,
-      strength:
-        strength || undefined,
-      dosageForm:
-        dosageForm || undefined,
-      routeOfAdministration:
-        routeOfAdministration || undefined,
-      manufacturer:
-        manufacturer || undefined,
-      registrationNumber:
-        registrationNumber || undefined,
-      packSize:
-        packSize || undefined,
+        pharmacy: supportsPharmacyProducts
+            ? {
+        medicineType: pharmacyMedicineType,
+        prescriptionType: pharmacyPrescriptionType,
+        activeIngredient:
+          activeIngredient || undefined,
+        strength:
+          strength || undefined,
+        dosageForm:
+          dosageForm || undefined,
+        routeOfAdministration:
+          routeOfAdministration || undefined,
+        manufacturer:
+          manufacturer || undefined,
+        registrationNumber:
+          registrationNumber || undefined,
+        packSize:
+          packSize || undefined,
     }
   : undefined,
       });

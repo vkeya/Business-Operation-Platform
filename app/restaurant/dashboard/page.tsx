@@ -8,6 +8,7 @@ import {
   getCurrentBusiness,
   getCurrentBusinessWarehouses,
 } from "@/lib/business/currentBusiness";
+import { hasEntitlement } from "@/lib/subscription/subscriptionEntitlementService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { restaurantMenuService } from "@/lib/restaurant/restaurantMenuService";
@@ -48,6 +49,12 @@ export default async function RestaurantDashboardPage() {
     notFound();
   }
   
+  const restaurantIntelligenceEnabled =
+  await hasEntitlement(
+    business.id,
+    "RESTAURANT_INTELLIGENCE",
+  );
+
   const sales =
   await saleService.list(business.id);
 
@@ -187,7 +194,10 @@ const menuItems =
 
 const menuProfitability = [];
 
-if (costingWarehouse) {
+if (
+  restaurantIntelligenceEnabled &&
+  costingWarehouse
+) {
   for (const menuItem of menuItems) {
     try {
       const recipeCost =
@@ -231,7 +241,10 @@ menuProfitability.sort(
 
 let foodCostToday = 0;
 
-if (costingWarehouse) {
+if (
+  restaurantIntelligenceEnabled &&
+  costingWarehouse
+) {
   for (const sale of completedSalesToday) {
     for (const item of sale.items) {
       if (!item.menuItemId) {
@@ -326,32 +339,38 @@ const topSellingMenuItems =
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         {[
-          {
-  title: t.restaurantDashboard.salesToday,
-  value: `${business.baseCurrency} ${salesTodayTotal.toFixed(2)}`,
-  description: `${salesToday.length} ${
-    salesToday.length === 1
-      ? t.restaurantDashboard.sale
-      : t.restaurantDashboard.sales
-  } ${t.restaurantDashboard.recordedToday}`,
-},
-          {
-  title: t.restaurantDashboard.foodCost,
-  value: `${business.baseCurrency} ${foodCostToday.toFixed(2)}`,
-  description:
-    t.restaurantDashboard.ingredientCostToday,
-},
-          {
-  title: t.restaurantDashboard.grossProfit,
-  value: `${business.baseCurrency} ${grossProfitToday.toFixed(2)}`,
-  description: t.restaurantDashboard.salesLessFoodCostToday,
-},
-{
-  title: t.restaurantDashboard.grossMargin,
-  value: `${grossMarginToday.toFixed(1)}%`,
-  description: t.restaurantDashboard.grossProfitPercentage,
-},
-        ].map((card) => (
+  {
+    title: t.restaurantDashboard.salesToday,
+    value: `${business.baseCurrency} ${salesTodayTotal.toFixed(2)}`,
+    description: `${salesToday.length} ${
+      salesToday.length === 1
+        ? t.restaurantDashboard.sale
+        : t.restaurantDashboard.sales
+    } ${t.restaurantDashboard.recordedToday}`,
+  },
+  ...(restaurantIntelligenceEnabled
+    ? [
+        {
+          title: t.restaurantDashboard.foodCost,
+          value: `${business.baseCurrency} ${foodCostToday.toFixed(2)}`,
+          description:
+            t.restaurantDashboard.ingredientCostToday,
+        },
+        {
+          title: t.restaurantDashboard.grossProfit,
+          value: `${business.baseCurrency} ${grossProfitToday.toFixed(2)}`,
+          description:
+            t.restaurantDashboard.salesLessFoodCostToday,
+        },
+        {
+          title: t.restaurantDashboard.grossMargin,
+          value: `${grossMarginToday.toFixed(1)}%`,
+          description:
+            t.restaurantDashboard.grossProfitPercentage,
+        },
+      ]
+    : []),
+].map((card) => (
           <div
   key={card.title}
   className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
@@ -528,6 +547,8 @@ const topSellingMenuItems =
       </p>
     </div>
 
+	{restaurantIntelligenceEnabled && (
+    <>
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
         {t.restaurantDashboard.foodCost}
@@ -559,6 +580,8 @@ const topSellingMenuItems =
         {grossMarginToday.toFixed(1)}%
       </p>
     </div>
+	 </>
+)}
 
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition-colors hover:bg-slate-50">
       <p className="text-xs font-medium text-slate-500">
@@ -782,6 +805,7 @@ const topSellingMenuItems =
   )}
 </section>
 
+{restaurantIntelligenceEnabled && (
 <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
   <div className="mb-5">
     <h2 className="text-base font-semibold tracking-tight text-slate-950">
@@ -863,6 +887,7 @@ const topSellingMenuItems =
     </div>
   )}
 </section>
+)}
     </div>
   );
 }
