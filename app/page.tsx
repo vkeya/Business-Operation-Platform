@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import MarketingNav from "@/components/marketing/MarketingNav";
+import MarketingHero from "@/components/marketing/MarketingHero";
 import {
   ArrowRight,
   BarChart3,
@@ -12,6 +14,13 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
+import MarketingFooter, {
+  MarketingCTA,
+} from "@/components/marketing/MarketingFooter";
+import BusinessControl from "@/components/marketing/BusinessControl";
+import BusinessIntelligence from "@/components/marketing/BusinessIntelligence";
+import PlatformEcosystem from "@/components/marketing/PlatformEcosystem";
+import IndustrySolutions from "@/components/marketing/IndustrySolutions";
 import Image from "next/image";
 import { prisma } from "@/lib/database/prisma";
 import {
@@ -49,7 +58,7 @@ export default async function HomePage() {
       redirect("/setup");
     }
 
-    
+
   }
 
   return (
@@ -64,175 +73,17 @@ export default async function HomePage() {
         className="ambient-orb ambient-orb-warm -right-32 top-80 h-80 w-80"
       />
 
-      <header className="relative z-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
-          <Link
-            href="/"
-            className="flex items-center gap-3"
-          >
-            <span className="flex h-10 w-10 items-center justify-center">
-  <Image
-    src="/smatpic-icon.png"
-    alt="SmatPic"
-    width={40}
-    height={40}
-    className="h-10 w-10 object-contain"
-  />
-</span>
+      <MarketingNav />
 
-            <div>
-              <p className="text-lg font-extrabold tracking-tight text-slate-950">
-                SmatPic
-              </p>
+      <MarketingHero />
 
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                Business OS
-              </p>
-            </div>
-          </Link>
+	  <IndustrySolutions />
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link
-              href="/login"
-              className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-white hover:text-slate-950"
-            >
-              Sign in
-            </Link>
+	  <PlatformEcosystem />
 
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700"
-            >
-              Start free trial
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </header>
+	  <BusinessIntelligence />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-24 pt-16 lg:px-10 lg:pb-32 lg:pt-24">
-        <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-100 bg-white/80 px-4 py-2 shadow-sm">
-              <Sparkles
-                size={14}
-                className="text-violet-600"
-              />
-
-              <span className="eyebrow">
-                Business operations, simplified
-              </span>
-            </div>
-
-            <h1 className="mt-8 text-5xl font-extrabold tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl">
-              Everything your business needs to
-              <span className="text-violet-600">
-                {" "}
-                move forward.
-              </span>
-            </h1>
-
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-              SmatPic brings your business operations
-              into one connected workspace. Manage the
-              moving parts, understand what is happening,
-              and build a stronger foundation for growth.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
-              <Benefit label="14-day free trial" />
-
-              <Benefit label="One connected workspace" />
-              
-              <Benefit label="Ready to grow with you" />
-            </div>
-
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-7 py-4 text-sm font-extrabold text-white shadow-xl shadow-violet-600/20 transition hover:-translate-y-0.5 hover:bg-violet-700"
-              >
-                Start your 14-day free trial
-                <ArrowRight size={18} />
-              </Link>
-			  
-			  <p className="mt-3 text-xs font-medium text-slate-500">
-                Create your account, set up your business, and your 14-day trial starts automatically.
-              </p>
-
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 py-4 text-sm font-extrabold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Sign in to your workspace
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div
-              aria-hidden="true"
-              className="ambient-orb ambient-orb-primary left-10 top-10 h-72 w-72 opacity-25"
-            />
-
-            <div className="premium-surface relative overflow-hidden rounded-[2rem] p-6 sm:p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="eyebrow">
-                    Your business
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-                    One clear view.
-                  </h2>
-                </div>
-
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                  <BarChart3 size={22} />
-                </span>
-              </div>
-
-              <div className="mt-8 grid gap-3">
-                <PreviewRow
-                  icon={<ShoppingCart size={18} />}
-                  title="Sales"
-                  description="Understand what is moving"
-                />
-
-                <PreviewRow
-                  icon={<Package size={18} />}
-                  title="Inventory"
-                  description="Keep your stock visible"
-                />
-
-                <PreviewRow
-                  icon={<CircleDollarSign size={18} />}
-                  title="Finance"
-                  description="Track the numbers that matter"
-                />
-
-                <PreviewRow
-                  icon={<Users size={18} />}
-                  title="Your team"
-                  description="Give people the right access"
-                />
-              </div>
-
-              <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-300">
-                  SmatPic intelligence
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  A connected foundation designed to help
-                  you spend less time chasing information
-                  and more time moving your business forward.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+	  <BusinessControl />
 
       <section className="relative z-10 border-y border-slate-200/70 bg-white/70">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
@@ -259,7 +110,7 @@ export default async function HomePage() {
               title="Business Operations"
               description="Organize the essential activities that keep your business moving."
             />
-			
+
 			<FeatureCard
   icon={<ShoppingCart size={22} />}
   title="Point of Sale"
@@ -283,8 +134,8 @@ export default async function HomePage() {
   title="Sales & Payments"
   description="Track sales activity and the money moving through your business across your connected operations."
 />
-			
-			
+
+
 
             <FeatureCard
               icon={<Users size={22} />}
@@ -356,6 +207,24 @@ export default async function HomePage() {
               description="Explore pharmacy products, medicines, prescriptions, and batches."
             />
 
+			<ExploreLink
+              href="/register"
+              title="Hospital Management"
+              description="Connect hospital administration, patient services, billing, and operational workflows."
+            />
+
+            <ExploreLink
+              href="/register"
+              title="Restaurant Management"
+              description="Bring restaurant sales, menu operations, inventory, and purchasing together."
+            />
+
+            <ExploreLink
+              href="/register"
+              title="Wines & Spirits Management"
+              description="Manage product stock, sales, purchasing, and business operations in one workspace."
+            />
+
             <ExploreLink
               href="/solutions/supermarket"
               title="Supermarket Management"
@@ -410,51 +279,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-slate-950">
-        <div
-          aria-hidden="true"
-          className="ambient-orb ambient-orb-primary -right-24 -top-24 h-80 w-80 opacity-30"
-        />
-
-        <div className="relative mx-auto max-w-7xl px-6 py-24 lg:px-10">
-          <div className="max-w-3xl">
-            <p className="eyebrow text-violet-300">
-              Built to grow
-            </p>
-
-            <h2 className="mt-5 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-              Start with what your business needs today.
-              Grow into what it needs tomorrow.
-            </h2>
-
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              SmatPic gives you a strong operational
-              foundation today while creating room for your
-              business to evolve as it grows.
-            </p>
-
-            <Link
-              href="/register"
-              className="mt-9 inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-extrabold text-slate-950 transition hover:bg-violet-50"
-            >
-              Start your 14-day free trial
-              <ArrowRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="relative z-10 border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10">
-          <p className="font-semibold text-slate-700">
-            © {new Date().getFullYear()} SmatPic.
-          </p>
-
-          <p>
-            Business operations, tailored to your business.
-          </p>
-        </div>
-      </footer>
+      <MarketingCTA />
+      <MarketingFooter />
     </main>
   );
 }

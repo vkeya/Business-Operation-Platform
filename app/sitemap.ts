@@ -54,6 +54,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
+	{
+      path: "/contact",
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
+	    {
+      path: "/solutions/hospital",
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
+    {
+      path: "/solutions/restaurant",
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
+    {
+      path: "/solutions/wines-and-spirits",
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
   ];
 
   return pages.map((page) => ({

@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         "/forgot-password",
         "/reset-password",
         "/verify-email",
+		"/workspace/",
       ],
     },
     sitemap: "https://www.smatpic.com/sitemap.xml",
