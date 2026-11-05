@@ -10,6 +10,7 @@ const businessService = createBusinessService(
 export interface PosReceiptItem {
   productName: string;
   sku?: string | null;
+  sellingUnitName?: string | null;
   quantity: number;
   unitPrice: number;
   discountAmount: number;
@@ -20,7 +21,13 @@ export interface PosReceiptItem {
 export interface PosReceiptBusiness {
   id: string;
   name: string;
-  legalName?: string;
+  legalName?: string | null;
+  logoUrl?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  taxRegistrationNumber?: string | null;
+  receiptFooter?: string | null;
   country: string;
   baseCurrency: string;
 }
@@ -62,10 +69,7 @@ export interface PosReceipt {
   taxAmount: number;
   taxName: string | null;
   taxRate: number | null;
-  taxPricingMode:
-    | "EXCLUSIVE"
-    | "INCLUSIVE"
-    | null;
+  taxPricingMode:"EXCLUSIVE" | "INCLUSIVE" | null;
   totalAmount: number;
 
   payments: PosReceiptPayment[];
@@ -149,19 +153,24 @@ export const posReceiptService = {
 
     return {
       saleId: sale.id,
-      referenceNumber:
-        sale.referenceNumber,
+      referenceNumber: sale.referenceNumber,
       status: sale.status,
       createdAt: sale.createdAt,
       currency: sale.currency,
 
       business: {
-  id: business.id,
-  name: business.name,
-  legalName: business.legalName,
-  country: business.country,
-  baseCurrency: business.baseCurrency,
-},
+        id: business.id,
+        name: business.name,
+        legalName: business.legalName,
+        logoUrl: business.logoUrl,
+        phone: business.phone,
+        email: business.email,
+        address: business.address,
+        taxRegistrationNumber: business.taxRegistrationNumber,
+        receiptFooter: business.receiptFooter,
+        country: business.country,
+        baseCurrency: business.baseCurrency,
+      },
 
       customer: sale.customer
         ? {
@@ -185,6 +194,8 @@ export const posReceiptService = {
           productName:
             item.productName,
           sku: item.sku,
+		  sellingUnitName:
+            item.sellingUnit?.name ?? null,
           quantity:
             Number(item.quantity),
           unitPrice:
