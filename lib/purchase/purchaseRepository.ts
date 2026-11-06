@@ -148,8 +148,8 @@ async function receivePurchaseWithClient(
   }
 
   for (const item of purchase.items) {
-	  
-	  const purchaseSubtotal =
+
+         const purchaseSubtotal =
     purchase.subtotal.toNumber();
 
   const purchaseDiscount =
@@ -162,7 +162,7 @@ async function receivePurchaseWithClient(
           1,
         )
       : 0;
-	  
+
     const product = await tx.product.findFirst({
   where: {
     id: item.productId,
@@ -171,6 +171,7 @@ async function receivePurchaseWithClient(
   },
   select: {
     attributes: true,
+    inventoryMode: true,
   },
 });
 
@@ -194,6 +195,14 @@ if (!product) {
       typeof attributes.volume === "number"
         ? attributes.volume
         : Number(attributes.volume);
+    if (
+      product.inventoryMode === "LIQUID" &&
+      (!Number.isFinite(volume) || volume <= 0)
+    ) {
+      throw new Error(
+        `Liquid product "${item.productName}" must have a valid volume in millilitres.`,
+      );
+    }
 
     const purchaseQuantity =
       item.quantity.toNumber();
@@ -243,7 +252,8 @@ const inventoryUnitCost =
               inventoryUnitCost
           ) / newQuantity;
 
-    await tx.inventoryMovement.create({
+    const movement =
+      await tx.inventoryMovement.create({
       data: {
         businessId,
         productId: item.productId,
@@ -260,6 +270,44 @@ const inventoryUnitCost =
           `Received from purchase ${purchase.referenceNumber}`,
       },
     });
+    if (product.inventoryMode === "LIQUID") {
+      if (!Number.isInteger(purchaseQuantity)) {
+        throw new Error(
+          "Liquid purchase quantity must be a whole number of containers.",
+        );
+      }
+
+      for (
+        let index = 0;
+        index < purchaseQuantity;
+        index += 1
+      ) {
+        await tx.inventoryContainer.create({
+          data: {
+            businessId,
+            productId: item.productId,
+            warehouseId: purchase.warehouseId,
+
+            containerType: "BOTTLE",
+            status: "SEALED",
+
+            capacityQuantity: volume,
+            remainingQuantity: volume,
+            unit: "ml",
+
+            unitCost: discountedUnitCost,
+
+            referenceType: "PURCHASE",
+            referenceId: movement.id,
+
+            receivedAt: new Date(),
+
+            notes:
+              `Received from purchase ${purchase.referenceNumber}`,
+          },
+        });
+      }
+    }
 
     await tx.inventoryBalance.upsert({
       where: {

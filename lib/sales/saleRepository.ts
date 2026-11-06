@@ -53,7 +53,11 @@ function serializeSaleItem<
     id: string;
     productId: string;
 	menuItemId?: string | null;
-	sellingUnitId?: string | null;
+	sellingUnit?: {
+      id: string;
+      name: string;
+      unit: string;
+    } | null;
     productName: string;
     sku: string | null;
     quantity: { toNumber(): number };
@@ -87,19 +91,23 @@ function serializeSale<
     totalAmount: { toNumber(): number };
 	taxRate?: { toNumber(): number } | null;
     items: Array<{
-  id: string;
-  productId: string;
-  menuItemId?: string | null;
-  sellingUnitId?: string | null;
-  prescriptionId?: string | null;
-  prescriptionItemId?: string | null;
-  productName: string;
-  sku: string | null;
-      quantity: { toNumber(): number };
-      unitPrice: { toNumber(): number };
-      discountAmount: { toNumber(): number };
-      taxAmount: { toNumber(): number };
-      totalAmount: { toNumber(): number };
+    id: string;
+    productId: string;
+    menuItemId?: string | null;
+    sellingUnit?: {
+      id: string;
+      name: string;
+      unit: string;
+    } | null;
+    prescriptionId?: string | null;
+    prescriptionItemId?: string | null;
+    productName: string;
+    sku: string | null;
+    quantity: { toNumber(): number };
+    unitPrice: { toNumber(): number };
+    discountAmount: { toNumber(): number };
+    taxAmount: { toNumber(): number };
+    totalAmount: { toNumber(): number };
 
     }>;
   },
@@ -265,7 +273,11 @@ export const saleRepository = {
           customer: true,
           branch: true,
 		  warehouse: true,
-          items: true,
+          items: {
+            include: {
+              sellingUnit: true,
+            },
+          },
         },
       });
 

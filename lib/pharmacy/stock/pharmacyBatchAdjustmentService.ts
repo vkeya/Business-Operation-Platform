@@ -63,13 +63,21 @@ export const pharmacyBatchAdjustmentService = {
     const execute = async (
       tx: PrismaTransactionClient,
     ) => {
-		
+
 	  await requireBusinessPermission(
         input.createdBy,
         input.businessId,
         "pharmacy.batch_adjust",
         tx,
     );
+
+	const normalizedRequest = {
+      pharmacyBatchId: input.pharmacyBatchId,
+      quantity: input.quantity.toString(),
+      type: input.type,
+      reason: input.reason.trim(),
+      notes: input.notes?.trim() ?? null,
+    };
 
       const existingOperation =
         await tx.operationRequest.findUnique({
@@ -82,11 +90,64 @@ export const pharmacyBatchAdjustmentService = {
         });
 
       if (existingOperation) {
+
+		if (
+          existingOperation.operation !==
+          "PHARMACY_BATCH_ADJUSTMENT"
+        ) {
+          throw new Error(
+            "This operation ID is already associated with another operation.",
+          );
+        }
+
         if (
           existingOperation.status === "COMPLETED" &&
           existingOperation.response
         ) {
-          return existingOperation.response;
+          const storedResponse = existingOperation.response;
+
+          if (
+            typeof storedResponse !== "object" ||
+            storedResponse === null ||
+            Array.isArray(storedResponse) ||
+            !("request" in storedResponse)
+          ) {
+            throw new Error(
+              "This operation ID was already used, but its original request details are unavailable. Please start a new adjustment.",
+            );
+          }
+
+          const storedRequest = storedResponse.request;
+
+          if (
+            typeof storedRequest !== "object" ||
+            storedRequest === null ||
+            Array.isArray(storedRequest) ||
+            !("pharmacyBatchId" in storedRequest) ||
+            !("quantity" in storedRequest) ||
+            !("type" in storedRequest) ||
+            !("reason" in storedRequest) ||
+            !("notes" in storedRequest)
+          ) {
+            throw new Error(
+              "This operation ID has invalid stored request details. Please start a new adjustment.",
+            );
+          }
+
+          const requestMatches =
+            storedRequest.pharmacyBatchId === normalizedRequest.pharmacyBatchId &&
+            storedRequest.quantity === normalizedRequest.quantity &&
+            storedRequest.type === normalizedRequest.type &&
+            storedRequest.reason === normalizedRequest.reason &&
+            storedRequest.notes === normalizedRequest.notes;
+
+          if (!requestMatches) {
+            throw new Error(
+              "This operation ID has already been used for a different adjustment. Please start a new adjustment.",
+            );
+          }
+
+          return storedResponse;
         }
 
         if (
@@ -204,6 +265,17 @@ export const pharmacyBatchAdjustmentService = {
         );
       }
 
+	  const availableQuantity =
+        inventoryBalance.quantity.minus(
+          inventoryBalance.reservedQuantity,
+        );
+
+      if (availableQuantity.lessThan(input.quantity)) {
+        throw new Error(
+          `Insufficient unreserved stock. Available: ${availableQuantity.toString()}, requested: ${input.quantity.toString()}.`,
+        );
+      }
+
       const result =
         await tx.pharmacyBatch.updateMany({
           where: {
@@ -266,7 +338,6 @@ export const pharmacyBatchAdjustmentService = {
           },
         });
 
-      const updatedBalance =
         await tx.inventoryBalance.update({
           where: {
             productId_warehouseId: {
@@ -288,6 +359,7 @@ export const pharmacyBatchAdjustmentService = {
         batchNumber: batch.batchNumber,
         productId:
           batch.pharmacyProduct.productId,
+		request: normalizedRequest,
         warehouseId: batch.warehouseId,
         type: input.type,
         quantity: input.quantity.toString(),

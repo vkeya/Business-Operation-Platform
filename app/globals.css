@@ -182,20 +182,25 @@ body {
 
 /* =========================================================
    SMATPIC POS THERMAL RECEIPTS
+   58MM AND 80MM SUPPORT
    ========================================================= */
 
-@media print {
-  @page {
-    size: 80mm auto;
-    margin: 0;
-  }
+@page receipt58 {
+  size: 58mm auto;
+  margin: 0;
+}
 
+@page receipt80 {
+  size: 80mm auto;
+  margin: 0;
+}
+
+@media print {
   html,
   body {
-    width: 80mm;
-    margin: 0;
-    padding: 0;
-    background: white;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
 
   body {
@@ -203,18 +208,40 @@ body {
     print-color-adjust: exact;
   }
 
+  .receipt-print-area,
+  .receipt-print-area * {
+    visibility: visible !important;
+  }
+
   .receipt-print-area {
     display: block !important;
-    width: 80mm;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-print-area.receipt-width-58 {
+    page: receipt58;
+    width: 58mm !important;
+  }
+
+  .receipt-print-area.receipt-width-80 {
+    page: receipt80;
+    width: 80mm !important;
+  }
+
+  .receipt-width-58 .receipt-content {
+    width: 52mm !important;
+    max-width: 52mm !important;
+  }
+
+  .receipt-width-80 .receipt-content {
+    width: 72mm !important;
+    max-width: 72mm !important;
   }
 
   .receipt-content {
-    width: 72mm !important;
-    max-width: 72mm !important;
     margin: 0 auto !important;
-    padding: 4mm 0 6mm 0 !important;
+    padding: 4mm 0 6mm !important;
     box-sizing: border-box;
     background: white !important;
     color: black !important;
@@ -222,11 +249,6 @@ body {
 
   .receipt-content * {
     color: black !important;
-  }
-
-  .receipt-content,
-  .receipt-content * {
-    break-inside: avoid;
   }
 
   button,
