@@ -9,6 +9,9 @@ import {
 import {
   PaystackInitiationError,
 } from "@/lib/subscription/providers/paystack/billingPaystackProvider";
+import {
+  MpesaStkPushInitiationError,
+} from "@/lib/payment/providers/mpesa/mpesaStkPush";
 
 import type { BillingPaymentStatus } from "@/generated/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
@@ -185,18 +188,28 @@ try {
     error instanceof PaystackInitiationError &&
     error.outcome === "DEFINITIVE_FAILURE";
 
-  if (provider !== "PAYSTACK" || definitivePaystackFailure) {
+  const definitiveMpesaFailure =
+    provider === "MPESA" &&
+    (
+      !(error instanceof MpesaStkPushInitiationError) ||
+      error.outcome === "DEFINITIVE_FAILURE"
+    );
+
+  if (
+    definitivePaystackFailure ||
+    definitiveMpesaFailure
+  ) {
     await failBillingPayment(
       input.businessId,
       payment.id,
       error instanceof Error
         ? error.message
-        : "Billing payment provider initiation failed.",
+        : "Billing payment provider definitively rejected the request.",
     );
   }
 
-  // Ambiguous Paystack outcomes deliberately remain PROCESSING. Never retry
-  // them automatically; reconcile the existing provider reference instead.
+  // Ambiguous provider outcomes remain PROCESSING.
+  // Never automatically initiate another charge.
   throw error;
 }
 

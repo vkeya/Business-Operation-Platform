@@ -16,6 +16,9 @@ import type {
   SubscriptionPlan,
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/database/prisma";
+import {
+  MpesaStkPushInitiationError,
+} from "@/lib/payment/providers/mpesa/mpesaStkPush";
 
 const PURCHASE_PLANS: SubscriptionPlan[] = [
   "STARTER",
@@ -281,14 +284,43 @@ if (existingPurchase) {
         provider,
       });
 
-    const initiated =
-  await initiateBillingPayment({
+    let initiated;
+
+try {
+  initiated = await initiateBillingPayment({
     businessId: context.business.id,
     paymentId: payment.id,
     customerPhone: customerPhone || undefined,
     customerEmail: customerEmail || undefined,
     paymentMethod,
   });
+} catch (error) {
+  if (
+    error instanceof MpesaStkPushInitiationError &&
+    error.outcome === "AMBIGUOUS"
+  ) {
+    return NextResponse.json(
+      {
+        success: true,
+        pending: true,
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: "OPEN",
+        },
+        payment: {
+          id: payment.id,
+          status: "PROCESSING",
+        },
+        message:
+          "Your M-Pesa request may have reached your phone. We are checking its status. Do not retry the payment yet.",
+      },
+      { status: 202 },
+    );
+  }
+
+  throw error;
+}
 
     return NextResponse.json(
       {
@@ -305,19 +337,20 @@ if (existingPurchase) {
       { status: 201 },
     );
   } catch (error) {
-    console.error(
-      "Subscription purchase failed:",
-      error,
-    );
 
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to process subscription purchase.",
-      },
-      { status: 500 },
-    );
-  }
+ console.error(
+   "Subscription purchase failed:",
+    error,
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to process subscription purchase.",
+    },
+    { status: 500 },
+  );
+}
 }

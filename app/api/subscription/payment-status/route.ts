@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const payment = await prisma.billingPayment.findFirst({
       where: {
         businessId: context.business.id,
-        provider: "PAYSTACK",
+        provider: { in: ["PAYSTACK", "MPESA"] },
         providerReference: reference,
       },
       select: {
@@ -60,9 +60,10 @@ export async function GET(request: Request) {
     }
 
     if (
-      (payment.status === "PENDING" || payment.status === "PROCESSING") &&
-      payment.providerReference
-    ) {
+         payment.provider === "PAYSTACK" &&
+         (payment.status === "PENDING" || payment.status === "PROCESSING") &&
+         payment.providerReference
+       ) {
       const storedResponse =
         payment.providerResponse &&
         typeof payment.providerResponse === "object" &&
@@ -154,7 +155,7 @@ export async function GET(request: Request) {
       where: {
         id: payment.id,
         businessId: context.business.id,
-        provider: "PAYSTACK",
+        provider: { in: ["PAYSTACK", "MPESA"] },
       },
       select: {
         id: true,

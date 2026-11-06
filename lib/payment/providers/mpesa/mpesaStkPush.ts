@@ -16,7 +16,22 @@ import type {
   MpesaStkPushResponse,
 } from "./mpesaTypes";
 
+export type MpesaStkPushFailureOutcome =
+  | "DEFINITIVE_FAILURE"
+  | "AMBIGUOUS";
+
+export class MpesaStkPushInitiationError extends Error {
+  constructor(
+    message: string,
+    public readonly outcome: MpesaStkPushFailureOutcome,
+  ) {
+    super(message);
+    this.name = "MpesaStkPushInitiationError";
+  }
+}
+
 export interface InitiateMpesaStkPushInput {
+  flow: "POS" | "SUBSCRIPTION";
   credentials: MpesaServerCredentials;
   consumerSecret: string;
   passkey: string;
@@ -49,6 +64,26 @@ export async function initiateMpesaStkPush(
     throw new Error(
       "M-Pesa STK amount must be a whole number of KES.",
     );
+  }
+
+  if (input.flow === "SUBSCRIPTION") {
+    if (
+      !input.accountReference.trim() ||
+      input.accountReference.length > 12
+    ) {
+      throw new Error(
+        "M-Pesa subscription AccountReference must contain 1–12 characters.",
+      );
+    }
+
+    if (
+      !input.transactionDescription.trim() ||
+      input.transactionDescription.length > 13
+    ) {
+      throw new Error(
+        "M-Pesa subscription TransactionDesc must contain 1–13 characters.",
+      );
+    }
   }
 
   const phoneNumber =
@@ -109,6 +144,30 @@ export async function initiateMpesaStkPush(
     TransactionDesc:
       input.transactionDescription,
   };
+  
+  
+  console.info("M-Pesa STK request diagnostics", {
+    environment: input.credentials.environment,
+    merchantType: input.credentials.merchantType,
+    businessShortCode: input.credentials.shortcode,
+    transactionType,
+	flow: input.flow,
+    amount: input.amount,
+    normalizedPhoneLength: phoneNumber.length,
+    normalizedPhonePrefix: phoneNumber.slice(0, 3),
+    callbackUrlIsHttps: input.callbackUrl.startsWith("https://"),
+    callbackUrlHost: (() => {
+      try {
+        return new URL(input.callbackUrl).host;
+      } catch {
+        return "INVALID_URL";
+      }
+    })(),
+    accountReferenceLength: input.accountReference.length,
+    transactionDescriptionLength:
+      input.transactionDescription.length,
+  });
+
 
   const controller = new AbortController();
 
@@ -126,72 +185,85 @@ try {
     {
       method: "POST",
       headers: {
-        Authorization:
-          `Bearer ${accessToken}`,
-
-        "Content-Type":
-          "application/json",
-
-        Accept:
-          "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(payload),
       cache: "no-store",
       signal: controller.signal,
     },
   );
+} catch (error) {
+  throw new MpesaStkPushInitiationError(
+    error instanceof Error && error.name === "AbortError"
+      ? "M-Pesa STK Push request timed out; provider acceptance is unknown."
+      : "M-Pesa STK Push request failed before a response was received; provider acceptance is unknown.",
+    "AMBIGUOUS",
+  );
 } finally {
   clearTimeout(timeout);
 }
-    
-
-  const body =
-    (await response.json()) as
-      MpesaStkPushResponse;
 	  
-console.log("M-Pesa STK Push response:", {
-  httpStatus: response.status,
-  responseCode: body.ResponseCode,
-  responseDescription: body.ResponseDescription,
-  merchantRequestId: body.MerchantRequestID,
-  checkoutRequestId: body.CheckoutRequestID,
-  customerMessage: body.CustomerMessage,
-});
 
-  if (!response.ok) {
-  console.error("M-Pesa STK Push rejected:", {
-    status: response.status,
-    statusText: response.statusText,
-    errorCode: body.errorCode,
-    errorMessage: body.errorMessage,
-    responseCode: body.ResponseCode,
-    responseDescription: body.ResponseDescription,
+  let body: MpesaStkPushResponse;
+
+try {
+  body = (await response.json()) as MpesaStkPushResponse;
+  
+  
+  console.info("M-Pesa STK initiation response diagnostics", {
+    httpStatus: response.status,
+    responseCode: body.ResponseCode ?? null,
+    responseDescription: body.ResponseDescription ?? null,
+    customerMessage: body.CustomerMessage ?? null,
+    checkoutRequestIdPresent: Boolean(body.CheckoutRequestID),
+    merchantRequestIdPresent: Boolean(body.MerchantRequestID),
   });
 
-  throw new Error(
-    body.errorMessage ||
-      body.ResponseDescription ||
-      `M-Pesa STK Push failed with HTTP ${response.status}.`,
+  
+} catch {
+  throw new MpesaStkPushInitiationError(
+    "M-Pesa returned an unreadable response; provider acceptance is unknown.",
+    "AMBIGUOUS",
   );
 }
 
-  if (
-    body.ResponseCode &&
-    body.ResponseCode !== "0"
-  ) {
-    throw new Error(
+if (!response.ok) {
+  const definitiveHttpRejection =
+    response.status >= 400 &&
+    response.status < 500 &&
+    response.status !== 408 &&
+    response.status !== 429;
+
+  throw new MpesaStkPushInitiationError(
+    body.errorMessage ||
       body.ResponseDescription ||
-        body.CustomerMessage ||
-        "M-Pesa STK Push was rejected.",
-    );
-  }
+      `M-Pesa STK Push returned HTTP ${response.status}.`,
+    definitiveHttpRejection
+      ? "DEFINITIVE_FAILURE"
+      : "AMBIGUOUS",
+  );
+}
 
-  if (!body.CheckoutRequestID) {
-    throw new Error(
-      "M-Pesa did not return a CheckoutRequestID.",
-    );
-  }
+if (
+  body.ResponseCode !== undefined &&
+  body.ResponseCode !== "0"
+) {
+  throw new MpesaStkPushInitiationError(
+    body.ResponseDescription ||
+      body.CustomerMessage ||
+      "M-Pesa STK Push was rejected.",
+    "DEFINITIVE_FAILURE",
+  );
+}
 
+if (!body.CheckoutRequestID) {
+  throw new MpesaStkPushInitiationError(
+    "M-Pesa returned no CheckoutRequestID; provider acceptance is unknown.",
+    "AMBIGUOUS",
+  );
+}
   return {
     merchantRequestId:
       body.MerchantRequestID,

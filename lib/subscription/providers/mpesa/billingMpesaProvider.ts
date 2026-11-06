@@ -92,6 +92,7 @@ export const billingMpesaProvider:
 
     const result =
       await initiateMpesaStkPush({
+		flow: "SUBSCRIPTION",
         credentials,
         consumerSecret,
         passkey,
@@ -107,9 +108,7 @@ export const billingMpesaProvider:
         accountReference:
           request.reference,
 
-        transactionDescription:
-          request.description ||
-          `SmatPic subscription ${request.reference}`,
+        transactionDescription: "SMATPIC BILL",
       });
 
     return {
