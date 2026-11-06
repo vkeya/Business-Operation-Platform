@@ -27,14 +27,14 @@ interface NewProductFormProps {
   businessType: BusinessType;
 }
 
-
-
 interface SellingUnitInput {
   id: string;
   name: string;
   quantity: string;
   unit: string;
   sellingPrice: string;
+  conversionQuantity: string;
+  conversionUnit: string;
 }
 
 const sellingUnitPresets: Record<
@@ -119,7 +119,56 @@ const allowedSellingUnits =
     : configuration.sellingUnits;
 
 const categoryName =
-  selectedCategory?.name;
+  selectedProductCategory?.name;
+
+  const liquidInventoryCategories = [
+  "Beverages",
+  "Beer",
+  "Draught Beer",
+  "Wine",
+  "Spirits",
+  "Shots",
+  "Ciders & Coolers",
+  "Soft Drinks & Mixers",
+  "Cocktails",
+  "Mixers",
+];
+
+const isLiquidInventoryProduct =
+  type === "PRODUCT" &&
+  ["restaurant", "bar", "wines_spirits"].includes(
+    businessType,
+  ) &&
+  liquidInventoryCategories.includes(
+    categoryName ?? "",
+  );
+
+useEffect(() => {
+  if (!isLiquidInventoryProduct) {
+    return;
+  }
+
+  setUnit("ml");
+  setTrackInventory(true);
+
+  setSellingUnits((current) => {
+    if (current.length > 0) {
+      return current;
+    }
+
+    return [
+      {
+        id: crypto.randomUUID(),
+        name: "Bottle",
+        quantity: attributes.volume ?? "",
+        unit: "ml",
+        sellingPrice: "",
+        conversionQuantity: attributes.volume ?? "",
+        conversionUnit: "ml",
+      },
+    ];
+  });
+}, [isLiquidInventoryProduct]);
 
 const visibleAttributes =
   configuration.attributes.filter(
@@ -127,6 +176,15 @@ const visibleAttributes =
       // Existing wines & spirits behaviour.
       if (attribute.id === "alcoholType") {
         return categoryName === "Spirits";
+      }
+
+	  if (attribute.id === "volume") {
+        return (
+          ["restaurant", "bar", "wines_spirits"].includes(
+            businessType,
+          ) &&
+          liquidInventoryCategories.includes(categoryName ?? "")
+        );
       }
 
       // Boutique category-aware attributes.
@@ -195,7 +253,7 @@ const visibleAttributes =
   const [attributes, setAttributes] = useState<
   Record<string, string>
 >({});
-	
+
 	  const [pharmacyMedicineType, setPharmacyMedicineType] =
     useState<
       | "MEDICINE"
@@ -232,9 +290,11 @@ const visibleAttributes =
 
   const [packSize, setPackSize] =
     useState("");
-	
-  const isPharmacyBusiness =
-  businessType === "pharmacy";
+
+  const supportsPharmacyProducts =
+  businessType === "pharmacy" ||
+  businessType === "hospital";
+
 
 
 function updateAttribute(
@@ -245,7 +305,26 @@ function updateAttribute(
     ...current,
     [attributeId]: value,
   }));
+
+
+  if (attributeId === "volume") {
+    setSellingUnits((current) =>
+      current.map((item) =>
+        item.name === "Bottle"
+          ? {
+              ...item,
+              quantity: value,
+              unit: "ml",
+              conversionQuantity: value,
+              conversionUnit: "ml",
+            }
+          : item,
+      ),
+    );
+  }
 }
+
+
 
 function updateSellingUnit(
   sellingUnitId: string,
@@ -268,41 +347,38 @@ function updateSellingUnit(
       };
 
       if (field === "name") {
-  if (value === "Bottle") {
-    const volume = attributes.volume;
 
-    if (volume) {
-      updated.quantity = volume;
-      updated.unit = "ml";
-    }
-  }
+      if (value === "Bottle") {
+        updated.quantity = attributes.volume ?? "";
+        updated.unit = "ml";
+        updated.conversionQuantity = attributes.volume ?? "";
+        updated.conversionUnit = "ml";
+      }
 
-  if (value === "Shot") {
-    updated.quantity = "40";
-    updated.unit = "ml";
-  }
 
-  if (value === "Double Shot") {
-    updated.quantity = "80";
-    updated.unit = "ml";
-  }
+        if (value === "Shot") {
+          updated.quantity = "40";
+          updated.unit = "ml";
+        }
 
-  const preset =
-    sellingUnitPresets[value];
+        if (value === "Double Shot") {
+          updated.quantity = "80";
+          updated.unit = "ml";
+        }
 
-  if (preset) {
-    updated.quantity =
-      preset.quantity;
+        const preset = sellingUnitPresets[value];
 
-    updated.unit =
-      preset.unit;
-  }
-}
+        if (preset) {
+          updated.quantity = preset.quantity;
+          updated.unit = preset.unit;
+        }
+      }
 
       return updated;
     }),
   );
 }
+
 
 useEffect(() => {
   let active = true;
@@ -335,20 +411,49 @@ useEffect(() => {
     event.preventDefault();
 
     setError("");
+
+    if (isLiquidInventoryProduct) {
+      const containerVolume = Number(attributes.volume);
+
+      if (
+        !Number.isFinite(containerVolume) ||
+        containerVolume <= 0
+      ) {
+        setError(
+          "Enter a valid container volume in millilitres.",
+        );
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
 
 		const operationId = crypto.randomUUID();
 
-      const product = await createProductAction({
-  operationId,
-  name,
+		const submittedAttributes = Object.fromEntries(
+          visibleAttributes
+            .filter(
+              (attribute) =>
+                attributes[attribute.id] !== undefined &&
+                attributes[attribute.id] !== "",
+            )
+            .map((attribute) => [
+              attribute.id,
+              attributes[attribute.id],
+            ]),
+        );
+
+        const product = await createProductAction({
+        operationId,
+        name,
 		categoryId: selectedProductCategory?.id || undefined,
         barcode: barcode || undefined,
         type,
         description: description || undefined,
-        unit,
+        unit: isLiquidInventoryProduct ? "ml" : unit,
+        inventoryMode: isLiquidInventoryProduct ? "LIQUID" : "DISCRETE",
         costPrice: Number(costPrice),
         sellingPrice: Number(sellingPrice),
         currency,
@@ -361,48 +466,76 @@ useEffect(() => {
           reorderLevel === ""
             ? undefined
             : Number(reorderLevel),
-        attributes,
+        attributes: submittedAttributes,
 
-pharmacy: isPharmacyBusiness
-  ? {
-      medicineType: pharmacyMedicineType,
-      prescriptionType: pharmacyPrescriptionType,
-      activeIngredient:
-        activeIngredient || undefined,
-      strength:
-        strength || undefined,
-      dosageForm:
-        dosageForm || undefined,
-      routeOfAdministration:
-        routeOfAdministration || undefined,
-      manufacturer:
-        manufacturer || undefined,
-      registrationNumber:
-        registrationNumber || undefined,
-      packSize:
-        packSize || undefined,
+        pharmacy: supportsPharmacyProducts
+            ? {
+        medicineType: pharmacyMedicineType,
+        prescriptionType: pharmacyPrescriptionType,
+        activeIngredient:
+          activeIngredient || undefined,
+        strength:
+          strength || undefined,
+        dosageForm:
+          dosageForm || undefined,
+        routeOfAdministration:
+          routeOfAdministration || undefined,
+        manufacturer:
+          manufacturer || undefined,
+        registrationNumber:
+          registrationNumber || undefined,
+        packSize:
+          packSize || undefined,
     }
   : undefined,
       });
 
-	  if (!product) {
-  throw new Error("Unable to create the product.");
-}
+	  if (!product.ok) {
+        setError(product.message);
+        return;
+      }
+
+      const createdProduct = product.product;
 
       await Promise.all(
-        sellingUnits.map((sellingUnit) =>
-          createProductSellingUnitAction(
-            product.id,
-            {
-              name: sellingUnit.name.trim(),
-              quantity: Number(sellingUnit.quantity),
-              unit: sellingUnit.unit.trim(),
-              sellingPrice: Number(
-                sellingUnit.sellingPrice,
-              ),
-            },
-          ),
-        ),
+
+  sellingUnits.map((sellingUnit) => {
+    const isBottle =
+      isLiquidInventoryProduct &&
+      sellingUnit.name.trim() === "Bottle";
+
+    const quantity = isBottle
+      ? Number(attributes.volume)
+      : Number(sellingUnit.quantity);
+
+    const unit = isBottle
+      ? "ml"
+      : sellingUnit.unit.trim();
+
+    if (
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      !Number.isFinite(Number(sellingUnit.sellingPrice)) ||
+      Number(sellingUnit.sellingPrice) < 0
+    ) {
+      throw new Error(
+        `Invalid quantity or selling price for ${sellingUnit.name}.`,
+      );
+    }
+
+    return createProductSellingUnitAction(
+      createdProduct.id,
+      {
+        name: sellingUnit.name.trim(),
+        quantity,
+        unit,
+        conversionQuantity: quantity,
+        conversionUnit: unit,
+        sellingPrice: Number(sellingUnit.sellingPrice),
+      },
+    );
+  }),
+
       );
 
       router.push("/inventory/products");
@@ -610,48 +743,57 @@ pharmacy: isPharmacyBusiness
 
 
 
-            <div>
-              <label
-                htmlFor="unit"
-                className="block text-sm font-medium text-slate-900"
-              >
-                {t.inventory.unit}
-              </label>
 
-              {allowedSellingUnits.length > 0 ? (
-                <select
-                  id="unit"
-                  value={unit}
-                  onChange={(event) =>
-                    setUnit(event.target.value)
-                  }
-                  required
-                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                >
-                  {allowedSellingUnits.map(
-                    (sellingUnit) => (
-                      <option
-                        key={sellingUnit}
-                        value={sellingUnit}
-                      >
-                        {sellingUnit}
-                      </option>
-                    ),
-                  )}
-                </select>
-              ) : (
-                <input
-                  id="unit"
-                  value={unit}
-                  onChange={(event) =>
-                    setUnit(event.target.value)
-                  }
-                  placeholder="Unit"
-                  required
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-              )}
-            </div>
+<div>
+  <label
+    htmlFor="unit"
+    className="block text-sm font-medium text-slate-900"
+  >
+    {t.inventory.unit}
+  </label>
+
+  {isLiquidInventoryProduct ? (
+    <input
+      id="unit"
+      value="ml"
+      readOnly
+      className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm"
+    />
+  ) : allowedSellingUnits.length > 0 ? (
+    <select
+      id="unit"
+      value={unit}
+      onChange={(event) =>
+        setUnit(event.target.value)
+      }
+      required
+      className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+    >
+      {allowedSellingUnits.map(
+        (sellingUnit) => (
+          <option
+            key={sellingUnit}
+            value={sellingUnit}
+          >
+            {sellingUnit}
+          </option>
+        ),
+      )}
+    </select>
+  ) : (
+    <input
+      id="unit"
+      value={unit}
+      onChange={(event) =>
+        setUnit(event.target.value)
+      }
+      placeholder="Unit"
+      required
+      className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+    />
+  )}
+</div>
+
 
             <div className="sm:col-span-2">
               <label
@@ -744,7 +886,7 @@ pharmacy: isPharmacyBusiness
           </section>
         )}
 
-        {isPharmacyBusiness && type === "PRODUCT" && (
+        {supportsPharmacyProducts && type === "PRODUCT" && (
           <section className="border-t border-slate-200 pt-8">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -1101,12 +1243,14 @@ pharmacy: isPharmacyBusiness
                 setSellingUnits((current) => [
                   ...current,
                   {
-                    id: crypto.randomUUID(),
-                    name: allowedSellingUnits[0] ?? "",
-                    quantity: "",
-                    unit,
-                    sellingPrice: "",
-                  },
+  id: crypto.randomUUID(),
+  name: allowedSellingUnits[0] ?? "",
+  quantity: "",
+  unit,
+  sellingPrice: "",
+  conversionQuantity: "",
+  conversionUnit: "",
+},
                 ])
               }
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"

@@ -109,6 +109,22 @@ await validateProduct(
   input.productId,
 );
 
+const pharmacyProduct =
+  await prisma.pharmacyProduct.findUnique({
+    where: {
+      productId: input.productId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+if (pharmacyProduct) {
+  throw new Error(
+    "Pharmacy products must be adjusted through the pharmacy batch adjustment workflow.",
+  );
+}
+
 if (!input.warehouseId) {
     throw new Error("Warehouse is required.");
   }
@@ -118,9 +134,12 @@ if (!input.warehouseId) {
   input.warehouseId,
 );
 
-  if (input.quantity === 0) {
+  if (
+     !Number.isFinite(input.quantity) ||
+     input.quantity === 0
+   ) {
     throw new Error(
-      "Adjustment quantity cannot be zero.",
+      "Adjustment quantity must be a finite, non-zero number.",
     );
   }
 
@@ -351,6 +370,7 @@ async transferStock(input: {
   fromWarehouseId: string;
   toWarehouseId: string;
   quantity: number;
+  containerIds?: string[];
   currency: string;
   createdBy: string;
   notes?: string;
@@ -367,10 +387,20 @@ async transferStock(input: {
   throw new Error("Product is required.");
 }
 
-await validateProduct(
-  input.businessId,
-  input.productId,
-);
+const product = await prisma.product.findFirst({
+  where: {
+    id: input.productId,
+    businessId: input.businessId,
+  },
+  select: {
+    id: true,
+    inventoryMode: true,
+  },
+});
+
+if (!product) {
+  throw new Error("Product not found.");
+}
 
 if (!input.fromWarehouseId) {
     throw new Error(
@@ -403,11 +433,32 @@ await validateWarehouse(
     );
   }
 
-  if (input.quantity <= 0) {
+  if (product.inventoryMode === "LIQUID") {
+  if (
+    !Array.isArray(input.containerIds) ||
+    input.containerIds.length === 0
+  ) {
     throw new Error(
-      "Transfer quantity must be greater than zero.",
+      "Select at least one container to transfer.",
     );
   }
+
+  if (
+    new Set(input.containerIds).size !==
+    input.containerIds.length
+  ) {
+    throw new Error(
+      "A container cannot be selected more than once.",
+    );
+  }
+} else if (
+  !Number.isFinite(input.quantity) ||
+  input.quantity <= 0
+) {
+  throw new Error(
+    "Transfer quantity must be greater than zero.",
+  );
+}
 
   if (!input.currency) {
     throw new Error("Currency is required.");
@@ -651,6 +702,39 @@ await validateWarehouse(
       warehouseId,
     );
   },
+
+
+  async listProductContainers(
+    businessId: string,
+    productId: string,
+  ) {
+    if (!businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    if (!productId) {
+      throw new Error("Product is required.");
+    }
+
+    return inventoryRepository.listProductContainers(
+      businessId,
+      productId,
+    );
+  },
+
+
+async countAvailableContainersByProduct(
+  businessId: string,
+) {
+  if (!businessId) {
+    throw new Error("Business context is required.");
+  }
+
+  return inventoryRepository.countAvailableContainersByProduct(
+    businessId,
+  );
+},
+
 
   async listBalances(
     businessId: string,

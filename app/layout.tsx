@@ -26,11 +26,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.smatpic.com"),
   title: {
-    default: "SmatPic | Business Operations Platform",
+    default: "SmatPic | Business Management Software for Growing Businesses",
     template: "%s | SmatPic",
   },
   description:
-    "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+    "Manage sales, POS, inventory, purchasing, suppliers, payments, and business performance from one connected business management platform.",
   applicationName: "SmatPic",
   alternates: {
     canonical: "/",
@@ -39,16 +39,25 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://www.smatpic.com/",
     siteName: "SmatPic",
-    title: "SmatPic | Business Operations Platform",
+    title: "SmatPic | Business Management Software",
     description:
-      "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+      "Run your business with connected POS, inventory, purchasing, payments, and business intelligence.",
     locale: "en",
+	images: [
+      {
+        url: "/og-smatpic.png",
+        width: 1200,
+        height: 630,
+        alt: "SmatPic Business Management Software",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SmatPic | Business Operations Platform",
+    title: "SmatPic | Business Management Software",
     description:
-      "SmatPic brings sales, inventory, purchasing, payments, and business operations into one connected workspace.",
+      "Run your business with connected POS, inventory, purchasing, payments, and business intelligence.",
+	images: ["/og-smatpic.png"],
   },
   icons: {
     icon: "/smatpic-icon.png",

@@ -69,25 +69,114 @@ const productConfigurations: Record<
   BusinessType,
   ProductConfiguration
 > = {
-  restaurant: {
+    restaurant: {
     sellingUnits: [
       "Piece",
       "Portion",
       "Pack",
       "Bottle",
       "Can",
+      "Shot",
+      "Double Shot",
+      "Glass",
+      "Case",
       "Kilogram",
       "Gram",
       "Litre",
       "Millilitre",
     ],
+
     productCategories: [
       "Ingredients",
       "Beverages",
       "Packaging",
       "Supplies",
+      "Beer",
+      "Draught Beer",
+      "Wine",
+      "Spirits",
+      "Shots",
+      "Ciders & Coolers",
+      "Soft Drinks & Mixers",
+      "Other Products",
     ],
-    attributes: [],
+
+    categorySellingUnits: {
+      Spirits: {
+        sellingUnits: [
+          "Bottle",
+          "Shot",
+          "Double Shot",
+        ],
+      },
+
+      Beer: {
+        sellingUnits: [
+          "Bottle",
+          "Can",
+        ],
+      },
+
+      "Draught Beer": {
+        sellingUnits: [
+          "Glass",
+          "Litre",
+        ],
+      },
+
+      Wine: {
+        sellingUnits: [
+          "Bottle",
+          "Glass",
+        ],
+      },
+
+      Shots: {
+        sellingUnits: [
+          "Shot",
+          "Double Shot",
+        ],
+      },
+
+      "Ciders & Coolers": {
+        sellingUnits: [
+          "Bottle",
+          "Can",
+        ],
+      },
+
+      "Soft Drinks & Mixers": {
+        sellingUnits: [
+          "Bottle",
+          "Can",
+          "Glass",
+        ],
+      },
+
+      "Other Products": {
+        sellingUnits: [
+          "Piece",
+          "Bottle",
+          "Can",
+          "Pack",
+        ],
+      },
+    },
+
+    attributes: [
+      {
+        id: "volume",
+        label: "Volume",
+        type: "number",
+      },
+      {
+        id: "alcoholType",
+        label: "Alcohol Type",
+        type: "select",
+        options: alcoholTypes,
+      },
+    ],
+
     supportsInventory: true,
     supportsServices: false,
   },
@@ -176,10 +265,10 @@ const productConfigurations: Record<
 
     attributes: [
   {
-    id: "volume",
-    label: "Volume",
-    type: "text",
-  },
+  id: "volume",
+  label: "Volume",
+  type: "number",
+},
   {
     id: "alcoholType",
     label: "Alcohol Type",
@@ -336,7 +425,7 @@ const productConfigurations: Record<
   {
     id: "volume",
     label: "Volume",
-    type: "text",
+    type: "number",
   },
   {
     id: "alcoholType",

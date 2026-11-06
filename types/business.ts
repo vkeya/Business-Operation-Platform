@@ -16,6 +16,12 @@ export interface Business {
   id: string;
   name: string;
   legalName?: string;
+  logoUrl?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  taxRegistrationNumber?: string;
+  receiptFooter?: string;
   type: BusinessType;
   country: string;
   baseCurrency: string;

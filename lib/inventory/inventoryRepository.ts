@@ -51,6 +51,13 @@ async function consumeLiquidContainersWithTx(
 ) {
   let remainingToConsume = input.quantity;
 
+  const allocations: Array<{
+    containerId: string;
+    quantity: number;
+    previousStatus: "SEALED" | "OPEN";
+    previousRemainingQuantity: number;
+  }> = [];
+
   const openContainers =
     await tx.inventoryContainer.findMany({
       where: {
@@ -99,6 +106,21 @@ async function consumeLiquidContainersWithTx(
 
     const nextRemaining = available - consumed;
 
+    allocations.push({
+      containerId: container.id,
+      quantity: consumed,
+      previousStatus:
+  container.status === "SEALED" ||
+  container.status === "OPEN"
+    ? container.status
+    : (() => {
+        throw new Error(
+          `Invalid liquid container status for consumption: ${container.status}.`,
+        );
+      })(),
+      previousRemainingQuantity: available,
+    });
+
     const updated =
       await tx.inventoryContainer.updateMany({
         where: {
@@ -128,6 +150,194 @@ async function consumeLiquidContainersWithTx(
     throw new Error(
       `Insufficient liquid stock for product "${input.productId}".`,
     );
+  }
+
+  return allocations;
+}
+
+async function restoreLiquidContainersWithTx(
+  tx: Prisma.TransactionClient,
+  input: {
+    businessId: string;
+    productId: string;
+    warehouseId: string;
+    saleId: string;
+    expectedQuantity: number;
+  },
+) {
+  const saleMovements =
+    await tx.inventoryMovement.findMany({
+      where: {
+        businessId: input.businessId,
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+        type: "SALE",
+        referenceType: "SALE",
+        referenceId: input.saleId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+        quantity: true,
+        containerAllocations: true,
+      },
+    });
+
+  if (saleMovements.length === 0) {
+    throw new Error(
+      `Liquid sale inventory history was not found for product "${input.productId}".`,
+    );
+  }
+
+  const allocations: Array<{
+    containerId: string;
+    quantity: number;
+    previousStatus: "SEALED" | "OPEN";
+    previousRemainingQuantity: number;
+  }> = [];
+
+  for (const movement of saleMovements) {
+    const movementAllocations =
+      movement.containerAllocations;
+
+    if (
+      !Array.isArray(movementAllocations) ||
+      movementAllocations.length === 0
+    ) {
+      throw new Error(
+        `Liquid container allocation history is missing for product "${input.productId}".`,
+      );
+    }
+
+    for (const allocation of movementAllocations) {
+      if (
+        typeof allocation !== "object" ||
+        allocation === null ||
+        Array.isArray(allocation)
+      ) {
+        throw new Error(
+          `Invalid liquid container allocation history for product "${input.productId}".`,
+        );
+      }
+
+      const value = allocation as Record<string, unknown>;
+
+      if (
+        typeof value.containerId !== "string" ||
+        typeof value.quantity !== "number" ||
+        (value.previousStatus !== "SEALED" &&
+          value.previousStatus !== "OPEN") ||
+        typeof value.previousRemainingQuantity !==
+          "number"
+      ) {
+        throw new Error(
+          `Invalid liquid container allocation history for product "${input.productId}".`,
+        );
+      }
+
+      allocations.push({
+        containerId: value.containerId,
+        quantity: value.quantity,
+        previousStatus: value.previousStatus,
+        previousRemainingQuantity:
+          value.previousRemainingQuantity,
+      });
+    }
+  }
+
+  const allocationQuantity = allocations.reduce(
+    (total, allocation) =>
+      total + allocation.quantity,
+    0,
+  );
+
+  const movementQuantity = saleMovements.reduce(
+    (total, movement) =>
+      total + movement.quantity.toNumber(),
+    0,
+  );
+
+  if (
+    Math.abs(allocationQuantity - movementQuantity) >
+    0.0001 ||
+    Math.abs(movementQuantity - input.expectedQuantity) >
+    0.0001
+  ) {
+    throw new Error(
+      `Liquid container reversal quantity mismatch for product "${input.productId}".`,
+    );
+  }
+
+  for (const allocation of allocations) {
+    const container =
+      await tx.inventoryContainer.findFirst({
+        where: {
+          id: allocation.containerId,
+          businessId: input.businessId,
+          productId: input.productId,
+          warehouseId: input.warehouseId,
+        },
+        select: {
+          id: true,
+          capacityQuantity: true,
+          remainingQuantity: true,
+        },
+      });
+
+    if (!container) {
+      throw new Error(
+        `Liquid inventory container ${allocation.containerId} was not found.`,
+      );
+    }
+
+    const currentRemaining =
+      container.remainingQuantity.toNumber();
+    const restoredRemaining =
+      currentRemaining + allocation.quantity;
+    const capacity =
+      container.capacityQuantity.toNumber();
+
+    if (restoredRemaining > capacity) {
+      throw new Error(
+        `Liquid container ${allocation.containerId} would exceed its capacity during sale reversal.`,
+      );
+    }
+
+    const noSubsequentConsumption =
+      Math.abs(
+        currentRemaining -
+          (allocation.previousRemainingQuantity -
+            allocation.quantity),
+      ) <= 0.0001;
+
+    const status =
+      noSubsequentConsumption &&
+      allocation.previousStatus === "SEALED"
+        ? "SEALED"
+        : restoredRemaining === 0
+          ? "EMPTY"
+          : "OPEN";
+
+    const updated =
+      await tx.inventoryContainer.updateMany({
+        where: {
+          id: container.id,
+          remainingQuantity:
+            container.remainingQuantity,
+        },
+        data: {
+          remainingQuantity: restoredRemaining,
+          status,
+        },
+      });
+
+    if (updated.count !== 1) {
+      throw new Error(
+        "Liquid container changed while stock was being restored. Please retry the sale reversal.",
+      );
+    }
   }
 }
 
@@ -318,6 +528,8 @@ export const inventoryRepository = {
                 currency: input.currency,
               },
             });
+
+
 
 		  await tx.operationRequest.update({
             where: {
@@ -605,6 +817,8 @@ export const inventoryRepository = {
     },
   });
 
+
+
             const balance =
               await tx.inventoryBalance.upsert({
                 where: {
@@ -630,6 +844,59 @@ export const inventoryRepository = {
                   currency: input.currency,
                 },
               });
+
+			              if (product.inventoryMode === "LIQUID") {
+              const containerType =
+                input.containerType;
+
+              const containerCapacityQuantity =
+                input.containerCapacityQuantity;
+
+              const containerUnit =
+                input.containerUnit;
+
+              if (
+                !containerType ||
+                !containerCapacityQuantity ||
+                containerCapacityQuantity <= 0 ||
+                !containerUnit
+              ) {
+                throw new Error(
+                  "Liquid inventory container details are required.",
+                );
+              }
+
+              for (
+                let index = 0;
+                index < input.quantity;
+                index++
+              ) {
+                await tx.inventoryContainer.create({
+                  data: {
+                    businessId:
+                      input.businessId,
+                    productId:
+                      input.productId,
+                    warehouseId:
+                      input.warehouseId,
+                    containerType,
+                    status: "SEALED",
+                    capacityQuantity:
+                      containerCapacityQuantity,
+                    remainingQuantity:
+                      containerCapacityQuantity,
+                    unit: containerUnit,
+                    unitCost: input.unitCost,
+
+                    referenceType: "INVENTORY_RECEIPT",
+                    referenceId: movement.id,
+                    notes: input.notes,
+                    receivedAt: new Date(),
+
+                  },
+                });
+              }
+            }
 
 
 			// Pharmacy batch tracking
@@ -869,12 +1136,12 @@ if (pharmacyProduct) {
     currency: string;
     createdBy: string;
     notes?: string;
+	containerIds?: string[];
   }) {
-    if (input.quantity <= 0) {
-      throw new Error(
-        "Transfer quantity must be greater than zero.",
-      );
-    }
+
+if (!input.operationId.trim()) {
+  throw new Error("Operation ID is required.");
+}
 
     if (
       input.fromWarehouseId === input.toWarehouseId
@@ -894,6 +1161,22 @@ if (pharmacyProduct) {
       try {
         return await prisma.$transaction(
           async (tx) => {
+
+			const product = await tx.product.findFirst({
+              where: {
+                id: input.productId,
+                businessId: input.businessId,
+              },
+              select: {
+                id: true,
+                inventoryMode: true,
+              },
+            });
+
+            if (!product) {
+              throw new Error("Product not found.");
+            }
+
             const existingOperation =
               await tx.operationRequest.findUnique({
                 where: {
@@ -913,6 +1196,8 @@ if (pharmacyProduct) {
                   existingOperation.response as {
                     transferOutId?: string;
                     transferInId?: string;
+                    quantity?: number;
+                    containerIds?: string[];
                   } | null;
 
                 if (
@@ -943,6 +1228,47 @@ if (pharmacyProduct) {
                 if (!transferOut || !transferIn) {
                   throw new Error(
                     "Completed inventory transfer operation references missing movements.",
+                  );
+                }
+
+                const expectedQuantity =
+                  product.inventoryMode === "LIQUID"
+                    ? response.quantity
+                    : input.quantity;
+
+                const requestedContainerIds =
+                  [...(input.containerIds ?? [])].sort();
+
+                const storedContainerIds =
+                  [...(response.containerIds ?? [])].sort();
+
+                const validLiquidReplay =
+                  product.inventoryMode !== "LIQUID" ||
+                  (
+                    typeof response.quantity === "number" &&
+                    Array.isArray(response.containerIds) &&
+                    JSON.stringify(requestedContainerIds) ===
+                      JSON.stringify(storedContainerIds)
+                  );
+
+                const validReplay =
+                  existingOperation.operation === "INVENTORY_TRANSFER" &&
+                  transferOut.businessId === input.businessId &&
+                  transferIn.businessId === input.businessId &&
+                  transferOut.productId === input.productId &&
+                  transferIn.productId === input.productId &&
+                  transferOut.warehouseId === input.fromWarehouseId &&
+                  transferIn.warehouseId === input.toWarehouseId &&
+                  transferOut.type === "TRANSFER_OUT" &&
+                  transferIn.type === "TRANSFER_IN" &&
+                  expectedQuantity !== undefined &&
+                  transferOut.quantity.toNumber() === expectedQuantity &&
+                  transferIn.quantity.toNumber() === expectedQuantity &&
+                  validLiquidReplay;
+
+                if (!validReplay) {
+                  throw new Error(
+                    "Operation ID has already been used for a different inventory transfer.",
                   );
                 }
 
@@ -1009,6 +1335,119 @@ if (pharmacyProduct) {
                 },
               });
 
+            let transferQuantity = input.quantity;
+            let selectedContainerIds: string[] = [];
+
+            if (product.inventoryMode === "LIQUID") {
+              if (
+                !Array.isArray(input.containerIds) ||
+                input.containerIds.length === 0
+              ) {
+                throw new Error(
+                  "Select at least one container to transfer.",
+                );
+              }
+
+              selectedContainerIds = [...input.containerIds].sort();
+
+              if (
+                new Set(selectedContainerIds).size !==
+                selectedContainerIds.length
+              ) {
+                throw new Error(
+                  "Duplicate container IDs are not allowed.",
+                );
+              }
+
+              const containers =
+                await tx.inventoryContainer.findMany({
+                  where: {
+                    id: {
+                      in: selectedContainerIds,
+                    },
+                    businessId: input.businessId,
+                    productId: input.productId,
+                    warehouseId: input.fromWarehouseId,
+                    status: {
+                      in: ["SEALED", "OPEN"],
+                    },
+                    remainingQuantity: {
+                      gt: 0,
+                    },
+                  },
+                  select: {
+                    id: true,
+                    remainingQuantity: true,
+                  },
+                });
+
+              if (containers.length !== selectedContainerIds.length) {
+                throw new Error(
+                  "One or more selected containers are no longer available in the source warehouse.",
+                );
+              }
+
+              transferQuantity = containers.reduce(
+                (total, container) =>
+                  total + container.remainingQuantity.toNumber(),
+                0,
+              );
+
+              if (
+                !Number.isFinite(transferQuantity) ||
+                transferQuantity <= 0 ||
+                Math.round(transferQuantity * 10_000) !==
+                  transferQuantity * 10_000
+              ) {
+                throw new Error(
+                  "The selected containers have an invalid transfer quantity.",
+                );
+              }
+            } else {
+              if (
+                !Number.isFinite(input.quantity) ||
+                input.quantity <= 0 ||
+                Math.round(input.quantity * 10_000) !==
+                  input.quantity * 10_000
+              ) {
+                throw new Error(
+                  "Transfer quantity must be positive and have no more than four decimal places.",
+                );
+              }
+            }
+
+			if (product.inventoryMode === "LIQUID") {
+              const movedContainers =
+                await tx.inventoryContainer.updateMany({
+                  where: {
+                    id: {
+                      in: selectedContainerIds,
+                    },
+                    businessId: input.businessId,
+                    productId: input.productId,
+                    warehouseId: input.fromWarehouseId,
+                    status: {
+                      in: ["SEALED", "OPEN"],
+                    },
+                    remainingQuantity: {
+                      gt: 0,
+                    },
+                  },
+                  data: {
+                    warehouseId: input.toWarehouseId,
+                  },
+                });
+
+              if (
+                movedContainers.count !==
+                selectedContainerIds.length
+              ) {
+                throw new Error(
+                  "The selected containers changed during the transfer. Please retry.",
+                );
+              }
+            }
+
             const sourceBalance =
               await tx.inventoryBalance.findUnique({
                 where: {
@@ -1024,7 +1463,7 @@ if (pharmacyProduct) {
               sourceBalance?.quantity.toNumber() ?? 0;
 
             if (
-              sourceQuantity < input.quantity
+              sourceQuantity < transferQuantity
             ) {
               throw new Error(
                 "Transfer would result in negative stock.",
@@ -1055,13 +1494,13 @@ if (pharmacyProduct) {
               sourceAverageCost;
 
             const newSourceQuantity =
-              sourceQuantity - input.quantity;
+              sourceQuantity - transferQuantity;
 
             const newDestinationQuantity =
-              destinationQuantity + input.quantity;
+              destinationQuantity + transferQuantity;
 
             const transferCost =
-              input.quantity * sourceAverageCost;
+              transferQuantity * sourceAverageCost;
 
             const transferOut =
               await tx.inventoryMovement.create({
@@ -1071,7 +1510,7 @@ if (pharmacyProduct) {
                   warehouseId:
                     input.fromWarehouseId,
                   type: "TRANSFER_OUT",
-                  quantity: input.quantity,
+                  quantity: transferQuantity,
                   unitCost: sourceAverageCost,
                   totalCost: transferCost,
                   createdBy: input.createdBy,
@@ -1087,7 +1526,7 @@ if (pharmacyProduct) {
                   warehouseId:
                     input.toWarehouseId,
                   type: "TRANSFER_IN",
-                  quantity: input.quantity,
+                  quantity: transferQuantity,
                   unitCost: sourceAverageCost,
                   totalCost: transferCost,
                   createdBy: input.createdBy,
@@ -1146,7 +1585,7 @@ if (pharmacyProduct) {
                       : (
                           destinationQuantity *
                             destinationAverageCost +
-                          input.quantity *
+                          transferQuantity *
                             sourceAverageCost
                         ) /
                         newDestinationQuantity,
@@ -1178,6 +1617,11 @@ if (pharmacyProduct) {
                 response: {
                   transferOutId: transferOut.id,
                   transferInId: transferIn.id,
+                  quantity: transferQuantity,
+                  containerIds:
+                    product.inventoryMode === "LIQUID"
+                      ? selectedContainerIds
+                      : [],
                 },
               },
             });
@@ -1295,6 +1739,94 @@ if (pharmacyProduct) {
       "Inventory transfer failed after maximum retry attempts.",
     );
   },
+
+
+  async listProductContainers(
+    businessId: string,
+    productId: string,
+  ) {
+    const containers =
+      await prisma.inventoryContainer.findMany({
+        where: {
+          businessId,
+          productId,
+        },
+        include: {
+          warehouse: {
+            select: {
+              name: true,
+              code: true,
+            },
+          },
+        },
+        orderBy: [
+          { receivedAt: "asc" },
+          { createdAt: "asc" },
+        ],
+      });
+
+    return containers.map((container) => ({
+      id: container.id,
+      containerType: container.containerType,
+      status: container.status,
+      capacityQuantity:
+        container.capacityQuantity.toNumber(),
+      remainingQuantity:
+        container.remainingQuantity.toNumber(),
+      unit: container.unit,
+      warehouseId: container.warehouseId,
+      warehouseName: container.warehouse.name,
+      warehouseCode: container.warehouse.code,
+      receivedAt: container.receivedAt,
+      openedAt: container.openedAt,
+      closedAt: container.closedAt,
+    }));
+  },
+
+
+async countAvailableContainersByProduct(
+  businessId: string,
+) {
+  const containers =
+    await prisma.inventoryContainer.findMany({
+      where: {
+        businessId,
+        status: {
+          in: ["SEALED", "OPEN"],
+        },
+        remainingQuantity: {
+          gt: 0,
+        },
+      },
+      select: {
+        productId: true,
+        containerType: true,
+      },
+    });
+
+  const counts: Record<
+    string,
+    { total: number; byType: Record<string, number> }
+  > = {};
+
+  for (const container of containers) {
+    const productCounts =
+      counts[container.productId] ?? {
+        total: 0,
+        byType: {},
+      };
+
+    productCounts.total += 1;
+    productCounts.byType[container.containerType] =
+      (productCounts.byType[container.containerType] ?? 0) + 1;
+
+    counts[container.productId] = productCounts;
+  }
+
+  return counts;
+},
+
+
 
 
   async getBalance(
@@ -1424,6 +1956,22 @@ return movements.map(serializeMovement);
     try {
       return await prisma.$transaction(
         async (tx) => {
+
+		  const consumptionProduct = await tx.product.findFirst({
+            where: {
+              id: input.productId,
+              businessId: input.businessId,
+            },
+            select: {
+              id: true,
+              inventoryMode: true,
+            },
+          });
+
+          if (!consumptionProduct) {
+            throw new Error("Product not found.");
+          }
+
           const existingOperation =
             await tx.operationRequest.findUnique({
               where: {
@@ -1559,23 +2107,31 @@ return movements.map(serializeMovement);
             );
           }
 
+          let containerAllocations: Array<{
+            containerId: string;
+            quantity: number;
+            previousStatus: "SEALED" | "OPEN";
+            previousRemainingQuantity: number;
+          }> = [];
+
           if (
             product.inventoryMode ===
             "LIQUID"
           ) {
-            await consumeLiquidContainersWithTx(
-              tx,
-              {
-                businessId:
-                  input.businessId,
-                productId:
-                  input.productId,
-                warehouseId:
-                  input.warehouseId,
-                quantity:
-                  input.quantity,
-              },
-            );
+            containerAllocations =
+              await consumeLiquidContainersWithTx(
+                tx,
+                {
+                  businessId:
+                    input.businessId,
+                  productId:
+                    input.productId,
+                  warehouseId:
+                    input.warehouseId,
+                  quantity:
+                    input.quantity,
+                },
+              );
           }
 
           const movement =
@@ -1600,6 +2156,9 @@ return movements.map(serializeMovement);
                 createdBy:
                   input.createdBy,
                 notes: input.notes,
+                ...(containerAllocations.length > 0
+                  ? { containerAllocations }
+                  : {}),
               },
             });
 
@@ -1886,13 +2445,21 @@ const operation =
       );
     }
 
+    let containerAllocations: Array<{
+      containerId: string;
+      quantity: number;
+      previousStatus: "SEALED" | "OPEN";
+      previousRemainingQuantity: number;
+    }> = [];
+
     if (product.inventoryMode === "LIQUID") {
-      await consumeLiquidContainersWithTx(tx, {
-        businessId: input.businessId,
-        productId: item.productId,
-        warehouseId: input.warehouseId,
-        quantity: item.quantity,
-      });
+      containerAllocations =
+        await consumeLiquidContainersWithTx(tx, {
+          businessId: input.businessId,
+          productId: item.productId,
+          warehouseId: input.warehouseId,
+          quantity: item.quantity,
+        });
     }
 
     const newQuantity =
@@ -1917,6 +2484,9 @@ const operation =
             input.referenceId,
           createdBy: input.createdBy,
           notes: input.notes,
+          ...(containerAllocations.length > 0
+            ? { containerAllocations }
+            : {}),
         },
       });
 
@@ -2023,6 +2593,22 @@ return results;
 
 
       const results = [];
+      const liquidSaleReturnQuantities =
+        new Map<string, number>();
+
+      if (input.referenceType === "SALE_REVERSAL") {
+        for (const item of input.items) {
+          liquidSaleReturnQuantities.set(
+            item.productId,
+            (liquidSaleReturnQuantities.get(
+              item.productId,
+            ) ?? 0) + item.quantity,
+          );
+        }
+      }
+
+      const restoredLiquidSaleProducts =
+        new Set<string>();
 
       for (const item of input.items) {
         const existingBalance =
@@ -2046,6 +2632,50 @@ return results;
 
         const totalCost =
           item.quantity * averageCost;
+
+        const product =
+          await client.product.findFirst({
+            where: {
+              id: item.productId,
+              businessId: input.businessId,
+            },
+            select: {
+              inventoryMode: true,
+            },
+          });
+
+        if (!product) {
+          throw new Error(
+            `Product "${item.productId}" not found.`,
+          );
+        }
+
+        if (
+          input.referenceType === "SALE_REVERSAL" &&
+          input.referenceId &&
+          product.inventoryMode === "LIQUID" &&
+          !restoredLiquidSaleProducts.has(
+            item.productId,
+          )
+        ) {
+          await restoreLiquidContainersWithTx(
+            client,
+            {
+              businessId: input.businessId,
+              productId: item.productId,
+              warehouseId: input.warehouseId,
+              saleId: input.referenceId,
+              expectedQuantity:
+                liquidSaleReturnQuantities.get(
+                  item.productId,
+                ) ?? item.quantity,
+            },
+          );
+
+          restoredLiquidSaleProducts.add(
+            item.productId,
+          );
+        }
 
         const movement =
           await client.inventoryMovement.create({

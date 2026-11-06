@@ -473,4 +473,93 @@ export const reportRepository = {
     });
   },
   
+
+  async getHospitalFinancialSummary(
+    businessId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    if (!businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    if (
+      Number.isNaN(startDate.getTime()) ||
+      Number.isNaN(endDate.getTime()) ||
+      startDate > endDate
+    ) {
+      throw new Error("A valid report date range is required.");
+    }
+
+    const [invoiceStatuses, paymentCollections, collectibleInvoices] =
+      await Promise.all([
+        prisma.hospitalInvoice.groupBy({
+          by: ["currency", "status"],
+          where: {
+            businessId,
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          _count: { _all: true },
+          _sum: {
+            subtotal: true,
+            discountTotal: true,
+            taxTotal: true,
+            totalAmount: true,
+            amountPaid: true,
+          },
+        }),
+
+        prisma.hospitalInvoicePayment.groupBy({
+          by: ["currency"],
+          where: {
+            businessId,
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          _count: { _all: true },
+          _sum: { amount: true },
+        }),
+
+        prisma.hospitalInvoice.findMany({
+          where: {
+            businessId,
+            status: {
+              in: ["ISSUED", "PARTIALLY_PAID"],
+            },
+          },
+          select: {
+            id: true,
+            invoiceNumber: true,
+            currency: true,
+            status: true,
+            totalAmount: true,
+            amountPaid: true,
+            dueAt: true,
+            issuedAt: true,
+            patient: {
+              select: {
+                patientNumber: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+          orderBy: {
+            dueAt: "asc",
+          },
+        }),
+      ]);
+
+    return {
+      invoiceStatuses,
+      paymentCollections,
+      collectibleInvoices,
+    };
+  },
+
 };

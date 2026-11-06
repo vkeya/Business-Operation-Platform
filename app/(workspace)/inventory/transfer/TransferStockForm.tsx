@@ -2,10 +2,15 @@
 
 import {
   FormEvent,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import Link from "next/link";
-import { transferStockAction } from "../action";
+import {
+  getTransferableContainersAction,
+  transferStockAction,
+} from "../action";
 import type { TranslationSet } from "@/lib/i18n";
 
 interface Product {
@@ -15,6 +20,15 @@ interface Product {
   type: string;
   trackInventory: boolean;
   currency: string;
+  inventoryMode: "DISCRETE" | "LIQUID";
+}
+
+interface TransferableContainer {
+  id: string;
+  containerType: string;
+  status: "SEALED" | "OPEN";
+  remainingQuantity: number;
+  unit: string;
 }
 
 interface Warehouse {
@@ -49,6 +63,15 @@ export default function TransferStockForm({
   const [notes, setNotes] =
     useState("");
 
+  const [containers, setContainers] =
+    useState<TransferableContainer[]>([]);
+
+  const [selectedContainerIds, setSelectedContainerIds] =
+    useState<string[]>([]);
+
+  const [loadingContainers, setLoadingContainers] =
+    useState(false);
+
   const [submitting, setSubmitting] =
     useState(false);
 
@@ -62,6 +85,79 @@ export default function TransferStockForm({
     products.find(
       (product) => product.id === productId,
     );
+
+	useEffect(() => {
+      let cancelled = false;
+
+      setContainers([]);
+      setSelectedContainerIds([]);
+
+      if (
+        selectedProduct?.inventoryMode !== "LIQUID" ||
+        !productId ||
+        !fromWarehouseId
+      ) {
+        setLoadingContainers(false);
+        return;
+      }
+
+      async function loadContainers() {
+        setLoadingContainers(true);
+        setError("");
+
+        try {
+          const result =
+            await getTransferableContainersAction(
+              productId,
+              fromWarehouseId,
+            );
+
+          if (!cancelled) {
+            setContainers(result);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setContainers([]);
+            setError(
+              err instanceof Error
+                ? err.message
+                : "Failed to load available containers.",
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setLoadingContainers(false);
+          }
+        }
+      }
+
+      void loadContainers();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [
+      productId,
+      fromWarehouseId,
+      selectedProduct?.inventoryMode,
+    ]);
+
+	const selectedContainers = containers.filter(
+      (container) =>
+        selectedContainerIds.includes(container.id),
+    );
+
+    const selectedContainerQuantity =
+      selectedContainers.reduce(
+        (total, container) =>
+          total + container.remainingQuantity,
+        0,
+      );
+
+  const pendingTransferRef = useRef<{
+    operationId: string;
+    requestKey: string;
+  } | null>(null);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -106,6 +202,15 @@ export default function TransferStockForm({
       Number(quantity);
 
     if (
+      selectedProduct?.inventoryMode === "LIQUID"
+    ) {
+      if (selectedContainerIds.length === 0) {
+        setError(
+          "Select at least one container to transfer.",
+        );
+        return;
+      }
+    } else if (
       !Number.isFinite(parsedQuantity) ||
       parsedQuantity <= 0
     ) {
@@ -126,26 +231,62 @@ export default function TransferStockForm({
 
     try {
 
-		const operationId = crypto.randomUUID();
+	const transferQuantity =
+      selectedProduct.inventoryMode === "LIQUID"
+        ? selectedContainerQuantity
+        : parsedQuantity;
 
-      await transferStockAction({
-		  operationId,
-        productId,
-        fromWarehouseId,
-        toWarehouseId,
-        quantity: parsedQuantity,
-        currency:
-          selectedProduct.currency,
-        notes:
-          notes.trim() || undefined,
-      });
+    const sortedContainerIds =
+      selectedProduct.inventoryMode === "LIQUID"
+        ? [...selectedContainerIds].sort()
+        : [];
 
-      setSuccess(
-        `${t.inventory.stockTransferredSuccessfully} ${parsedQuantity} ${selectedProduct.name}.`,
-      );
+    const requestKey = JSON.stringify({
+      productId,
+      fromWarehouseId,
+      toWarehouseId,
+      quantity: transferQuantity,
+      containerIds: sortedContainerIds,
+      currency: selectedProduct.currency,
+      notes: notes.trim() || undefined,
+    });
 
-      setQuantity("");
-      setNotes("");
+    if (
+      !pendingTransferRef.current ||
+      pendingTransferRef.current.requestKey !== requestKey
+    ) {
+      pendingTransferRef.current = {
+        operationId: crypto.randomUUID(),
+        requestKey,
+      };
+    }
+
+    const operationId =
+      pendingTransferRef.current.operationId;
+
+    await transferStockAction({
+      operationId,
+      productId,
+      fromWarehouseId,
+      toWarehouseId,
+      quantity: transferQuantity,
+      containerIds:
+        selectedProduct.inventoryMode === "LIQUID"
+          ? sortedContainerIds
+          : undefined,
+      currency: selectedProduct.currency,
+      notes: notes.trim() || undefined,
+    });
+
+    pendingTransferRef.current = null;
+
+    setSuccess(
+      `${t.inventory.stockTransferredSuccessfully} ${transferQuantity} ${selectedProduct.name}.`,
+    );
+
+    setQuantity("");
+    setNotes("");
+    setSelectedContainerIds([]);
     } catch (err) {
       setError(
         err instanceof Error
@@ -290,32 +431,134 @@ export default function TransferStockForm({
         </select>
       </div>
 
-      <div>
-        <label
-          htmlFor="quantity"
-          className="block text-sm font-medium text-slate-700"
-        >
-          {t.inventory.quantity}
-        </label>
+      {selectedProduct?.inventoryMode === "LIQUID" ? (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-slate-700">
+              Select containers to transfer
+            </h3>
 
-        <input
-          id="quantity"
-          type="number"
-          step="0.0001"
-          min="0.0001"
-          value={quantity}
-          onChange={(event) =>
-            setQuantity(
-              event.target.value,
-            )
-          }
-          required
-          placeholder={
-            t.inventory.enterQuantity
-          }
-          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
-        />
-      </div>
+            <p className="mt-1 text-sm text-slate-500">
+              Entire containers will be moved. The remaining
+              volume in each selected container will be included
+              in the transfer.
+            </p>
+          </div>
+
+          {loadingContainers && (
+            <p className="text-sm text-slate-500">
+              Loading available containers...
+            </p>
+          )}
+
+          {!loadingContainers &&
+            containers.length === 0 && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                No eligible containers with remaining volume
+                were found in this source warehouse.
+              </p>
+            )}
+
+          {!loadingContainers &&
+            containers.length > 0 && (
+              <div className="space-y-3">
+                {containers.map((container) => {
+                  const checked =
+                    selectedContainerIds.includes(
+                      container.id,
+                    );
+
+                  return (
+                    <label
+                      key={container.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={submitting || loadingContainers}
+                        onChange={(event) => {
+                          setSelectedContainerIds(
+                            (current) =>
+                              event.target.checked
+                                ? [
+                                    ...current,
+                                    container.id,
+                                  ]
+                                : current.filter(
+                                    (id) =>
+                                      id !== container.id,
+                                  ),
+                          );
+                        }}
+                        className="mt-1"
+                      />
+
+                      <span className="flex-1">
+                        <span className="block text-sm font-medium text-slate-900">
+                          {container.containerType} —{" "}
+                          {container.status}
+                        </span>
+
+                        <span className="mt-1 block text-sm text-slate-600">
+                          Remaining volume:{" "}
+                          {container.remainingQuantity}{" "}
+                          {container.unit}
+                        </span>
+
+                        <span className="mt-1 block break-all text-xs text-slate-500">
+                          Container ID: {container.id}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+          <div className="rounded-xl bg-slate-50 p-4">
+            <p className="text-sm text-slate-600">
+              Selected containers:{" "}
+              <span className="font-medium text-slate-900">
+                {selectedContainers.length}
+              </span>
+            </p>
+
+            <p className="mt-1 text-sm text-slate-600">
+              Total transfer volume:{" "}
+              <span className="font-semibold text-slate-900">
+                {selectedContainerQuantity}
+                {selectedContainers.length > 0
+                  ? ` ${selectedContainers[0].unit}`
+                  : ""}
+              </span>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <label
+            htmlFor="quantity"
+            className="block text-sm font-medium text-slate-700"
+          >
+            {t.inventory.quantity}
+          </label>
+
+          <input
+            id="quantity"
+            type="number"
+            step="0.0001"
+            min="0.0001"
+            value={quantity}
+            onChange={(event) =>
+              setQuantity(event.target.value)
+            }
+            required
+            placeholder={t.inventory.enterQuantity}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+          />
+        </div>
+      )}
 
       {selectedProduct && (
         <p className="text-sm text-slate-500">

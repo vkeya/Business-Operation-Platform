@@ -61,6 +61,46 @@ await requireBusinessPermission(
   );
 }
 
+
+export async function getProductContainersAction(
+  productId: string,
+) {
+  if (!productId?.trim()) {
+    throw new Error("Product is required.");
+  }
+
+  const business = await getCurrentBusiness();
+  const userId = await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+    userId,
+    business.id,
+    "inventory.read",
+  );
+
+  return inventoryService.listProductContainers(
+    business.id,
+    productId,
+  );
+}
+
+
+export async function getAvailableContainerCountsAction() {
+  const business = await getCurrentBusiness();
+  const userId = await getAuthenticatedUserId();
+
+  await requireBusinessPermission(
+    userId,
+    business.id,
+    "inventory.read",
+  );
+
+  return inventoryService.countAvailableContainersByProduct(
+    business.id,
+  );
+}
+
+
 export async function getProductStockAction(
   productId: string,
 ) {
