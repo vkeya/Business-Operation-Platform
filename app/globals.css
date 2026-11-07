@@ -196,6 +196,16 @@ body {
 }
 
 @media print {
+  @page receipt58 {
+    size: 58mm auto;
+    margin: 0;
+  }
+
+  @page receipt80 {
+    size: 80mm auto;
+    margin: 0;
+  }
+
   html,
   body {
     margin: 0 !important;
@@ -208,15 +218,33 @@ body {
     print-color-adjust: exact;
   }
 
-  .receipt-print-area,
-  .receipt-print-area * {
-    visibility: visible !important;
+  /*
+   * Keep only the receipt branch in the print document.
+   * Hide unrelated siblings and flatten its ancestor wrappers.
+   */
+  body:has(.receipt-print-area)
+    *:not(:has(.receipt-print-area))
+    :not(.receipt-print-area)
+    :not(.receipt-print-area *) {
+    display: none !important;
+  }
+
+  body:has(.receipt-print-area)
+    *:has(.receipt-print-area):not(.receipt-print-area) {
+    display: contents !important;
   }
 
   .receipt-print-area {
     display: block !important;
+    position: static !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: white !important;
+    visibility: visible !important;
+  }
+
+  .receipt-print-area * {
+    visibility: visible !important;
   }
 
   .receipt-print-area.receipt-width-58 {
@@ -242,17 +270,12 @@ body {
   .receipt-content {
     margin: 0 auto !important;
     padding: 4mm 0 6mm !important;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
     background: white !important;
     color: black !important;
   }
 
   .receipt-content * {
     color: black !important;
-  }
-
-  button,
-  .print\:hidden {
-    display: none !important;
   }
 }
