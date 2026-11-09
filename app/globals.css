@@ -222,10 +222,8 @@ body {
    * Keep only the receipt branch in the print document.
    * Hide unrelated siblings and flatten its ancestor wrappers.
    */
-  body:has(.receipt-print-area)
-    *:not(:has(.receipt-print-area))
-    :not(.receipt-print-area)
-    :not(.receipt-print-area *) {
+    body:has(.receipt-print-area)
+    *:not(:has(.receipt-print-area)):not(.receipt-print-area):not(.receipt-print-area *) {
     display: none !important;
   }
 
