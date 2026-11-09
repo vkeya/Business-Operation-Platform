@@ -41,13 +41,14 @@ export const mpesaCallbackService = {
     const callback =
       parseMpesaCallback(payload);
 
-    const attempt =
-      await prisma.paymentAttempt.findFirst({
+    const [attempt, secondAttempt] =
+      await prisma.paymentAttempt.findMany({
         where: {
           provider: "MPESA",
           providerReference:
             callback.checkoutRequestId,
         },
+        take: 2,
       });
 
     if (!attempt) {
@@ -55,6 +56,13 @@ export const mpesaCallbackService = {
         `No payment attempt found for CheckoutRequestID ${callback.checkoutRequestId}.`,
       );
     }
+
+    if (secondAttempt) {
+      throw new Error(
+        `Ambiguous M-Pesa payment attempt for CheckoutRequestID ${callback.checkoutRequestId}.`,
+      );
+    }
+
 
 	/*
  * Safaricom may retry callbacks.

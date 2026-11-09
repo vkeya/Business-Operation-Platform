@@ -11,6 +11,10 @@ import {
 } from "@/lib/supermarket/supermarketAccessService";
 import { supermarketStockService } from "@/lib/supermarket/supermarketStockService";
 import type { BusinessType } from "@/types";
+import {
+  SubscriptionEntitlementError,
+  requireEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
 
 function parsePositiveInteger(
   value: string | null,
@@ -49,6 +53,11 @@ export async function GET(
       context.business.type as BusinessType,
     );
 
+    await requireEntitlement(
+      context.business.id,
+      "SUPERMARKET_STOCK_INTELLIGENCE",
+    );
+
     const { searchParams } =
       new URL(request.url);
 
@@ -82,7 +91,8 @@ export async function GET(
   } catch (error) {
     if (
       error instanceof BusinessPermissionError ||
-      error instanceof SupermarketAccessError
+      error instanceof SupermarketAccessError ||
+      error instanceof SubscriptionEntitlementError
     ) {
       return NextResponse.json(
         {

@@ -12,6 +12,11 @@ import {
 } from "@/lib/supermarket/supermarketAccessService";
 
 import {
+  SubscriptionEntitlementError,
+  requireSupermarketAutopilotEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
+
+import {
   supermarketAutopilotService,
 } from "@/lib/supermarket/supermarketAutopilotService";
 
@@ -30,6 +35,10 @@ export async function GET(
 
     requireSupermarketBusiness(
       context.business.type as import("@/types").BusinessType,
+    );
+
+    await requireSupermarketAutopilotEntitlement(
+      context.business.id,
     );
 
     const url = new URL(
@@ -120,7 +129,9 @@ export async function GET(
       error instanceof
         BusinessPermissionError ||
       error instanceof
-        SupermarketAccessError
+        SupermarketAccessError ||
+      error instanceof
+        SubscriptionEntitlementError
     ) {
       return NextResponse.json(
         {

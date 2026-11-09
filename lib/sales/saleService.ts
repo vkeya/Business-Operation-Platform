@@ -18,6 +18,9 @@ import { saleCompletionService } from "./saleCompletionService";
 import { prisma } from "@/lib/database/prisma";
 import { recordAuditEvent } from "@/lib/audit/auditService";
 import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import {
+  getInventoryQuantityForSale,
+} from "@/lib/inventory/sellingUnitConversion";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -821,6 +824,32 @@ const pharmacyItems: Array<{
   prescriptionItemId?: string | null;
 }> = [];
 
+const productIds = sale.items
+  .filter((item) => !item.menuItemId)
+  .map((item) => item.productId);
+
+const products = await tx.product.findMany({
+  where: {
+    businessId,
+    id: {
+      in: productIds,
+    },
+  },
+  select: {
+    id: true,
+    unit: true,
+    inventoryMode: true,
+    attributes: true,
+  },
+});
+
+const productMap = new Map(
+  products.map((product) => [
+    product.id,
+    product,
+  ]),
+);
+
             for (const item of sale.items) {
   if (item.menuItemId) {
     continue;
@@ -844,9 +873,32 @@ const pharmacyItems: Array<{
       );
     }
 
-    inventoryQuantity =
-      Number(item.quantity) *
-      sellingUnit.quantity;
+    const product = productMap.get(item.productId);
+
+if (!product) {
+  throw new Error(
+    `Product "${item.productName}" not found.`,
+  );
+}
+
+inventoryQuantity =
+  getInventoryQuantityForSale(
+    {
+      unit: product.unit,
+      inventoryMode: product.inventoryMode,
+      attributes:
+        product.attributes &&
+        typeof product.attributes === "object" &&
+        !Array.isArray(product.attributes)
+          ? (product.attributes as Record<
+              string,
+              string | number
+            >)
+          : null,
+    },
+    sellingUnit,
+    Number(item.quantity),
+  );
   }
 
   const pharmacyProduct =

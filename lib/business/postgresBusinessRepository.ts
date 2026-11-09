@@ -16,6 +16,12 @@ function mapBusiness(record: {
   id: string;
   name: string;
   legalName: string | null;
+  logoUrl: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  taxRegistrationNumber: string | null;
+  receiptFooter: string | null;
   type: string;
   country: string;
   baseCurrency: string;
@@ -29,6 +35,13 @@ function mapBusiness(record: {
     id: record.id,
     name: record.name,
     legalName: record.legalName ?? undefined,
+	logoUrl: record.logoUrl ?? undefined,
+    phone: record.phone ?? undefined,
+    email: record.email ?? undefined,
+    address: record.address ?? undefined,
+    taxRegistrationNumber:
+      record.taxRegistrationNumber ?? undefined,
+    receiptFooter: record.receiptFooter ?? undefined,
     type: record.type as BusinessType,
     country: record.country,
     baseCurrency: record.baseCurrency,
@@ -248,22 +261,22 @@ export const postgresBusinessRepository: BusinessRepository = {
   return businesses.map((business) => ({
     id: business.id,
     name: business.name,
-    legalName:
-      business.legalName ?? undefined,
-    type:
-      business.type as Business["type"],
+    legalName:business.legalName ?? undefined,
+	logoUrl: business.logoUrl ?? undefined,
+    phone: business.phone ?? undefined,
+    email: business.email ?? undefined,
+    address: business.address ?? undefined,
+    taxRegistrationNumber:business.taxRegistrationNumber ?? undefined,
+    receiptFooter: business.receiptFooter ?? undefined,
+    type:business.type as Business["type"],
     country: business.country,
-    baseCurrency:
-      business.baseCurrency,
+    baseCurrency:business.baseCurrency,
     language: business.language,
     timezone: business.timezone,
-    status:
-      business.status.toLowerCase() as
+    status:business.status.toLowerCase() as
         Business["status"],
-    createdAt:
-      business.createdAt.toISOString(),
-    updatedAt:
-      business.updatedAt.toISOString(),
+    createdAt:business.createdAt.toISOString(),
+    updatedAt:business.updatedAt.toISOString(),
   }));
 },
 

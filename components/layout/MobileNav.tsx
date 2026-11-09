@@ -7,6 +7,7 @@ import {
   Menu,
   X,
   LogOut,
+  CircleHelp,
 } from "lucide-react";
 import {
   getBusinessNavigation,
@@ -130,6 +131,15 @@ export default function MobileNav({
             </div>
 
             <div className="mt-5 border-t border-slate-100 pt-4">
+              <Link
+                href="/support"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
+              >
+                <CircleHelp className="h-5 w-5 text-violet-600" />
+                Help &amp; Support
+              </Link>
+
               <LogoutButton
                 className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
               />

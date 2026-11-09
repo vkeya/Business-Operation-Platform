@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/database/prisma";
 import { recordAuditEvent } from "@/lib/audit/auditService";
 import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
 
 interface AcceptInvitationInput {
   token: string;
@@ -262,6 +265,30 @@ export const businessInvitationService = {
         throw new Error(
           "Your authenticated account does not match this invitation.",
         );
+      }
+
+      const existingMembership =
+        await transaction.businessMembership.findUnique({
+          where: {
+            businessId_userId: {
+              businessId: invitation.businessId,
+              userId: existingUser.id,
+            },
+          },
+          select: {
+            id: true,
+            isActive: true,
+          },
+        });
+
+            // Only a new or reactivated membership consumes user capacity.
+      // Use the current transaction for a consistent capacity check.
+      if (!existingMembership?.isActive) {
+        await requireWithinSubscriptionLimit({
+          businessId: invitation.businessId,
+          limit: "users",
+          client: transaction,
+        });
       }
 
       const membership =

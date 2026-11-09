@@ -1,5 +1,6 @@
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { requirePharmacyBusiness } from "@/lib/pharmacy/pharmacyAccessService";
+import { requireEntitlement } from "@/lib/subscription/subscriptionEntitlementService";
 import { pharmacyDashboardService } from "@/lib/pharmacy/dashboard/pharmacyDashboardService";
 import { pharmacyExpiryRiskService } from "@/lib/pharmacy/dashboard/pharmacyExpiryRiskService";
 import { pharmacyStockRiskService } from "@/lib/pharmacy/dashboard/pharmacyStockRiskService";
@@ -10,6 +11,7 @@ export default async function PharmacyDashboardPage() {
   const business = await getCurrentBusiness();
   
   requirePharmacyBusiness(business.type as BusinessType);
+  await requireEntitlement(business.id, "PHARMACY_INTELLIGENCE");
 
   const summary =
     await pharmacyDashboardService.getSummary({

@@ -16,6 +16,7 @@ import {
 import {
   assignBusinessOwnerRole,
 } from "./businessRoleService";
+import { getProductConfiguration } from "./productConfiguration";
 
 export function createBusinessService(
   repository: BusinessRepository,
@@ -65,7 +66,14 @@ export function createBusinessService(
     ? boutiqueCategoryDefaults
     : setup.business.type === "wines_spirits"
       ? winesSpiritsCategoryDefaults
-      : [];
+      : setup.business.type === "restaurant"
+        ? getProductConfiguration("restaurant").productCategories.map(
+            (name) => ({
+              name,
+              description: `${name} products for restaurant operations.`,
+            }),
+          )
+        : [];
 
 for (const category of defaultCategories) {
   await repository.createProductCategory({

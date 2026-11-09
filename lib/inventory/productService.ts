@@ -16,6 +16,9 @@ import {
 import {
   getProductSkuPrefix,
 } from "./productSku";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -23,6 +26,37 @@ type PrismaTransactionClient =
   ) => unknown
     ? T
     : never;
+
+function validateInventoryConfiguration(input: {
+  inventoryMode?: "DISCRETE" | "LIQUID";
+  unit: string;
+  trackInventory: boolean;
+  attributes?: Record<string, string | number>;
+}) {
+  if (input.inventoryMode !== "LIQUID") {
+    return;
+  }
+
+  if (!input.trackInventory) {
+    throw new Error(
+      "Liquid inventory products must have inventory tracking enabled.",
+    );
+  }
+
+  if (input.unit.trim().toLowerCase() !== "ml") {
+    throw new Error(
+      "Liquid inventory products must use ml as their base inventory unit.",
+    );
+  }
+
+  const volume = Number(input.attributes?.volume);
+
+  if (!Number.isFinite(volume) || volume <= 0) {
+    throw new Error(
+      "Liquid inventory products must have a positive numeric container volume in ml.",
+    );
+  }
+}
 
 export const productService = {
   async createProduct(
@@ -43,6 +77,8 @@ export const productService = {
   if (!input.unit.trim()) {
     throw new Error("Product unit is required.");
   }
+
+  validateInventoryConfiguration(input);
 
   const maxAttempts = 3;
 
@@ -83,6 +119,11 @@ export const productService = {
 
             return existingProduct;
           }
+
+          await requireWithinSubscriptionLimit({
+            businessId: input.businessId,
+            limit: "products",
+          });
 
           const categoryName = input.categoryId
             ? (
@@ -166,6 +207,8 @@ export const productService = {
         },
         {
           isolationLevel: "Serializable",
+          maxWait: 10000,
+          timeout: 15000,
         },
       );
     } catch (error: unknown) {
@@ -442,7 +485,152 @@ if (existingSellingUnit) {
 }
   },
 
-    async findSellingUnitById(
+    async reconcileSellingUnits(
+    businessId: string,
+    productId: string,
+    inputs: Array<{
+      id?: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      conversionQuantity?: number;
+      conversionUnit?: string;
+      sellingPrice: number;
+    }>,
+  ) {
+    if (!businessId || !productId) {
+      throw new Error("Business and product context are required.");
+    }
+
+    const normalized = inputs.map((item) => {
+      const name = item.name.trim();
+      const unit = item.unit.trim();
+      const conversionUnit = item.conversionUnit?.trim().toLowerCase() || undefined;
+      const hasConversionQuantity =
+        item.conversionQuantity !== undefined &&
+        item.conversionQuantity !== null;
+
+      if (!name) throw new Error("Selling unit name is required.");
+      if (!unit) throw new Error("Selling unit is required.");
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        throw new Error("Selling unit quantity must be greater than zero.");
+      }
+      if (!Number.isFinite(item.sellingPrice) || item.sellingPrice < 0) {
+        throw new Error("Selling unit price must be zero or greater.");
+      }
+      if (
+        hasConversionQuantity !== Boolean(conversionUnit) ||
+        (hasConversionQuantity &&
+          (!Number.isFinite(item.conversionQuantity) ||
+            Number(item.conversionQuantity) <= 0))
+      ) {
+        throw new Error(
+          "Provide a positive conversion quantity and conversion unit together.",
+        );
+      }
+
+      return {
+        ...item,
+        name,
+        unit,
+        conversionQuantity: hasConversionQuantity
+          ? Number(item.conversionQuantity)
+          : undefined,
+        conversionUnit,
+      };
+    });
+
+    const keys = new Set<string>();
+    for (const item of normalized) {
+      const key = `${item.name.toLocaleLowerCase()}|${item.quantity}|${item.unit.toLocaleLowerCase()}`;
+      if (keys.has(key)) {
+        throw new Error("Duplicate selling units are not allowed.");
+      }
+      keys.add(key);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const product = await tx.product.findFirst({
+        where: { id: productId, businessId, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (!product) {
+        throw new Error("Product does not belong to the current business or is inactive.");
+      }
+
+      const existing = await tx.productSellingUnit.findMany({
+        where: { productId, isActive: true },
+        select: { id: true },
+      });
+      const existingIds = new Set(existing.map((unit) => unit.id));
+      const submittedIds = new Set(
+        normalized.map((item) => item.id).filter((id): id is string => Boolean(id)),
+      );
+
+      for (const id of submittedIds) {
+        if (!existingIds.has(id)) {
+          throw new Error("A selling unit does not belong to this product or is inactive.");
+        }
+      }
+
+      for (const item of normalized) {
+        const data = {
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          conversionQuantity: item.conversionQuantity ?? null,
+          conversionUnit: item.conversionUnit ?? null,
+          sellingPrice: item.sellingPrice,
+        };
+
+        if (item.id) {
+          await tx.productSellingUnit.update({
+            where: { id: item.id },
+            data,
+          });
+        } else {
+          // The schema has a unique constraint that includes inactive rows.
+          // Reuse a matching inactive row instead of violating that constraint.
+          const inactiveMatch = await tx.productSellingUnit.findFirst({
+            where: {
+              productId,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              isActive: false,
+            },
+            select: { id: true },
+          });
+
+          if (inactiveMatch) {
+            await tx.productSellingUnit.update({
+              where: { id: inactiveMatch.id },
+              data: { ...data, isActive: true },
+            });
+          } else {
+            await tx.productSellingUnit.create({
+              data: { productId, ...data },
+            });
+          }
+        }
+      }
+
+      const removedIds = [...existingIds].filter((id) => !submittedIds.has(id));
+      if (removedIds.length) {
+        await tx.productSellingUnit.updateMany({
+          where: { productId, id: { in: removedIds }, isActive: true },
+          data: { isActive: false },
+        });
+      }
+
+      return tx.productSellingUnit.findMany({
+        where: { productId, isActive: true },
+        orderBy: { createdAt: "asc" },
+      });
+    });
+  },
+
+  async findSellingUnitById(
   businessId: string,
   productId: string,
   sellingUnitId: string,
@@ -569,6 +757,8 @@ if (!product) {
     if (!input.unit.trim()) {
       throw new Error("Product unit is required.");
     }
+
+	validateInventoryConfiguration(input);
 
     if (input.costPrice < 0) {
       throw new Error("Cost price cannot be negative.");

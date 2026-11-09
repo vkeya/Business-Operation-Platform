@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useState,
 } from "react";
 import Link from "next/link";
@@ -24,6 +25,10 @@ interface Product {
   } | null;
 
   inventoryMode: "DISCRETE" | "LIQUID";
+  attributes?: {
+    volume?: string | number;
+  } | null;
+
 }
 
 interface Warehouse {
@@ -82,11 +87,25 @@ export default function ReceiveStockForm({
       (product) => product.id === productId,
     );
 
-	const isPharmacyProduct =
-  Boolean(
-    selectedProduct?.pharmacyProduct &&
-    selectedProduct.pharmacyProduct.status === "ACTIVE",
-  );
+    useEffect(() => {
+    if (selectedProduct?.inventoryMode === "LIQUID") {
+      const volume = selectedProduct.attributes?.volume;
+
+      setContainerCapacity(
+        volume !== undefined && volume !== null && volume !== ""
+          ? String(volume)
+          : "",
+      );
+    } else {
+      setContainerCapacity("");
+    }
+    }, [selectedProduct]);
+
+  const isPharmacyProduct =
+    Boolean(
+      selectedProduct?.pharmacyProduct &&
+      selectedProduct.pharmacyProduct.status === "ACTIVE",
+    );
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -112,6 +131,21 @@ export default function ReceiveStockForm({
     const parsedUnitCost =
       Number(unitCost);
 
+	if (selectedProduct?.inventoryMode === "LIQUID") {
+      const parsedContainerCapacity =
+        Number(containerCapacity);
+
+    if (
+        !Number.isFinite(parsedContainerCapacity) ||
+        parsedContainerCapacity <= 0
+      ) {
+        setError(
+          "Container capacity must be greater than zero for liquid products.",
+        );
+        return;
+      }
+    }
+
     if (
       !Number.isFinite(parsedQuantity) ||
       parsedQuantity <= 0
@@ -133,56 +167,56 @@ export default function ReceiveStockForm({
     }
 
 	if (isPharmacyProduct) {
-  if (!batchNumber.trim()) {
-    setError(
-      "Batch number is required for pharmacy products.",
-    );
-    return;
-  }
-
-  if (!expiryDate) {
-    setError(
-      "Expiry date is required for pharmacy products.",
-    );
-    return;
-  }
-
-  const expiry = new Date(expiryDate);
-
-  if (!Number.isFinite(expiry.getTime())) {
-    setError("Please enter a valid expiry date.");
-    return;
-  }
-
-  if (expiry <= new Date()) {
-    setError(
-      "Expiry date must be in the future.",
-    );
-    return;
-  }
-
-  if (manufacturingDate) {
-    const manufacturing =
-      new Date(manufacturingDate);
-
-    if (
-      !Number.isFinite(
-        manufacturing.getTime(),
-      )
-    ) {
+    if (!batchNumber.trim()) {
       setError(
-        "Please enter a valid manufacturing date.",
+        "Batch number is required for pharmacy products.",
       );
       return;
     }
 
-    if (manufacturing >= expiry) {
+    if (!expiryDate) {
       setError(
-        "Manufacturing date must be earlier than expiry date.",
+        "Expiry date is required for pharmacy products.",
       );
       return;
     }
-  }
+
+    const expiry = new Date(expiryDate);
+
+    if (!Number.isFinite(expiry.getTime())) {
+      setError("Please enter a valid expiry date.");
+      return;
+    }
+
+    if (expiry <= new Date()) {
+      setError(
+        "Expiry date must be in the future.",
+      );
+      return;
+    }
+
+    if (manufacturingDate) {
+      const manufacturing =
+        new Date(manufacturingDate);
+
+      if (
+        !Number.isFinite(
+          manufacturing.getTime(),
+        )
+      ) {
+        setError(
+          "Please enter a valid manufacturing date.",
+        );
+        return;
+      }
+
+      if (manufacturing >= expiry) {
+        setError(
+          "Manufacturing date must be earlier than expiry date.",
+        );
+        return;
+      }
+    }
 }
 
     if (!selectedProduct) {
@@ -204,6 +238,21 @@ await receiveStockAction({
   unitCost: parsedUnitCost,
   currency: selectedProduct.currency,
   notes: notes.trim() || undefined,
+
+  containerType:
+    selectedProduct?.inventoryMode === "LIQUID"
+      ? containerType
+      : undefined,
+
+  containerCapacityQuantity:
+    selectedProduct?.inventoryMode === "LIQUID"
+      ? Number(containerCapacity)
+      : undefined,
+
+  containerUnit:
+    selectedProduct?.inventoryMode === "LIQUID"
+      ? "ml"
+      : undefined,
 
   batchNumber:
     isPharmacyProduct
@@ -231,6 +280,8 @@ await receiveStockAction({
 	  setBatchNumber("");
       setManufacturingDate("");
       setExpiryDate("");
+	  setContainerType("BOTTLE");
+      setContainerCapacity("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -382,6 +433,75 @@ await receiveStockAction({
             {selectedProduct.currency}
           </span>
         </p>
+      )}
+
+	  {selectedProduct?.inventoryMode === "LIQUID" && (
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Liquid container
+            </h3>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Enter the container size. Inventory is stored internally in millilitres.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="containerType"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Container type
+              </label>
+
+              <select
+                id="containerType"
+                value={containerType}
+                onChange={(event) =>
+                  setContainerType(
+                    event.target.value as
+                      | "BOTTLE"
+                      | "KEG"
+                      | "CAN"
+                      | "JAR"
+                      | "OTHER",
+                  )
+                }
+                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+              >
+                <option value="BOTTLE">Bottle</option>
+                <option value="KEG">Keg</option>
+                <option value="CAN">Can</option>
+                <option value="JAR">Jar</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="containerCapacity"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Container capacity (ml)
+              </label>
+
+              <input
+                id="containerCapacity"
+                type="number"
+                min="0.0001"
+                step="0.0001"
+                value={containerCapacity}
+                onChange={(event) =>
+                  setContainerCapacity(event.target.value)
+                }
+                placeholder="e.g. 750"
+                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
 	  {isPharmacyProduct && (
