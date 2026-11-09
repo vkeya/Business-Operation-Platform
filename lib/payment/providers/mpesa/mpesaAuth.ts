@@ -40,21 +40,34 @@ export async function getMpesaAccessToken(input: {
   }
 
   if (!response.ok) {
-    const providerMessage =
-      isRecord(body) &&
-      typeof body.errorMessage === "string"
-        ? body.errorMessage
-        : isRecord(body) &&
-            typeof body.error_description === "string"
-          ? body.error_description
-          : undefined;
+    const providerMessage = isRecord(body)
+      ? [
+          body.errorMessage,
+          body.error_description,
+          body.message,
+        ].find(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+      : undefined;
+
+    const providerCode = isRecord(body)
+      ? [
+          body.errorCode,
+          body.error,
+        ].find(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+      : undefined;
 
     const detail = providerMessage?.trim().slice(0, 200);
+    const code = providerCode?.trim().slice(0, 100);
 
     throw new Error(
       `M-Pesa OAuth failed (HTTP ${response.status})${
-        detail ? `: ${detail}` : "."
-      }`,
+        code ? ` [${code}]` : ""
+      }${detail ? `: ${detail}` : "."}`,
     );
   }
 
