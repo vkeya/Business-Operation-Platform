@@ -19,12 +19,12 @@ export function getSetupDefaults(
 
   const warehouseName =
     businessType === "restaurant" ||
-	businessType === "bar" ||
-	businessType === "wines_spirits" ||
-	businessType === "boutique"
+    businessType === "bar" ||
+    businessType === "wines_spirits" ||
+    businessType === "boutique" ||
+    businessType === "pharmacy"
       ? "Main Store"
       : "Main Warehouse";
-	businessType === "pharmacy"
 
   return {
     branchName,
