@@ -19,6 +19,10 @@ import {
 } from "@/lib/supermarket/supermarketDemandService";
 
 import type { BusinessType } from "@/types";
+import {
+  SubscriptionEntitlementError,
+  requireEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
 
 export async function GET(request: Request) {
   try {
@@ -33,6 +37,11 @@ export async function GET(request: Request) {
 
     requireSupermarketBusiness(
       context.business.type as BusinessType,
+    );
+
+    await requireEntitlement(
+      context.business.id,
+      "SUPERMARKET_DEMAND_INTELLIGENCE",
     );
 
     const { searchParams } =
@@ -73,7 +82,8 @@ export async function GET(request: Request) {
   } catch (error) {
     if (
       error instanceof BusinessPermissionError ||
-      error instanceof SupermarketAccessError
+      error instanceof SupermarketAccessError ||
+      error instanceof SubscriptionEntitlementError
     ) {
       return NextResponse.json(
         { error: error.message },

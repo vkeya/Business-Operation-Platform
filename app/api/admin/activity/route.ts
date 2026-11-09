@@ -4,6 +4,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import {
+  SubscriptionEntitlementError,
+  requireEntitlement,
+} from "@/lib/subscription/subscriptionEntitlementService";
 import { queryAuditEvents } from "@/lib/audit/auditQueryService";
 import { getAdminActivityDashboard } from "@/lib/admin/adminActivityService";
 
@@ -31,6 +35,11 @@ export async function GET(request: NextRequest) {
       session.user.id,
       context.business.id,
       "audit.read",
+    );
+
+    await requireEntitlement(
+      context.business.id,
+      "ADVANCED_AUDIT",
     );
 
     const { searchParams } =
@@ -152,6 +161,17 @@ export async function GET(request: NextRequest) {
       pagination: activityLog.pagination,
     });
   } catch (error) {
+    if (error instanceof SubscriptionEntitlementError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: error.statusCode,
+        },
+      );
+    }
+
     if (
       error instanceof Error &&
       "statusCode" in error &&

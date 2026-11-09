@@ -1,19 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import ProductSearch from "./ProductSearch";
-import {
-  getAllInventoryBalancesAction,
-} from "./listActions";
 import {
   deleteProductsAction,
 } from "./actions";
 import { getTranslations } from "@/lib/i18n";
+import {
+  getAllInventoryBalancesAction,
+  getAvailableContainerCountsAction,
+  getProductContainersAction,
+} from "./listActions";
 import type { ProductConfiguration } from "@/lib/business/productConfiguration";
 
 interface Product {
@@ -26,8 +24,30 @@ interface Product {
   sellingPrice: number;
   currency: string;
   trackInventory: boolean;
+  inventoryMode?: "DISCRETE" | "LIQUID";
   status: string;
   attributes: unknown;
+}
+
+interface ProductContainer {
+  id: string;
+  containerType: string;
+  status: string;
+  capacityQuantity: number;
+  remainingQuantity: number;
+  unit: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  receivedAt: Date | string;
+  openedAt: Date | string | null;
+  closedAt: Date | string | null;
+}
+
+interface ProductContainerDetails {
+  containers: ProductContainer[];
+  loading: boolean;
+  error: string;
 }
 
 interface ProductListProps {
@@ -71,6 +91,23 @@ export default function ProductList({
   const [stockTotals, setStockTotals] =
     useState<Record<string, number>>({});
 
+  const [containerCounts, setContainerCounts] =
+  useState<
+    Record<
+      string,
+      {
+        total: number;
+        byType: Record<string, number>;
+      }
+    >
+  >({});
+
+  const [expandedProductId, setExpandedProductId] =
+  useState<string | null>(null);
+
+  const [containerDetails, setContainerDetails] =
+    useState<Record<string, ProductContainerDetails>>({});
+
   const [selectedIds, setSelectedIds] =
     useState<string[]>([]);
 
@@ -92,8 +129,11 @@ export default function ProductList({
     let active = true;
 
     async function loadStock() {
-      const balances =
-        await getAllInventoryBalancesAction();
+      const [balances, counts] = await Promise.all([
+       getAllInventoryBalancesAction(),
+       getAvailableContainerCountsAction(),
+     ]);
+
 
       const totals: Record<string, number> = {};
 
@@ -105,6 +145,7 @@ export default function ProductList({
 
       if (active) {
         setStockTotals(totals);
+		setContainerCounts(counts);
       }
     }
 
@@ -175,6 +216,51 @@ export default function ProductList({
       setDeleting(false);
     }
   }
+
+async function toggleProductStock(productId: string) {
+  if (expandedProductId === productId) {
+    setExpandedProductId(null);
+    return;
+  }
+
+  setExpandedProductId(productId);
+
+  if (containerDetails[productId]) {
+    return;
+  }
+
+  setContainerDetails((current) => ({
+    ...current,
+    [productId]: {
+      containers: [],
+      loading: true,
+      error: "",
+    },
+  }));
+
+  try {
+    const containers =
+      await getProductContainersAction(productId);
+
+    setContainerDetails((current) => ({
+      ...current,
+      [productId]: {
+        containers,
+        loading: false,
+        error: "",
+      },
+    }));
+  } catch {
+    setContainerDetails((current) => ({
+      ...current,
+      [productId]: {
+        containers: [],
+        loading: false,
+        error: "Unable to load container details.",
+      },
+    }));
+  }
+}
 
   return (
     <>
@@ -306,8 +392,15 @@ export default function ProductList({
 
             <tbody>
               {products.map((product) => {
-                const stock =
-                  stockTotals[product.id] ?? 0;
+                const isLiquid =
+                  product.inventoryMode === "LIQUID";
+
+                const availableContainers =
+                  containerCounts[product.id];
+
+                const stock = isLiquid
+                  ? availableContainers?.total ?? 0
+                  : stockTotals[product.id] ?? 0;
 
                 const isActive =
                   product.status === "ACTIVE";
@@ -333,8 +426,9 @@ export default function ProductList({
                   selectedIds.includes(product.id);
 
                 return (
-                  <tr
-                    key={product.id}
+				<Fragment key={product.id}>
+                    <tr
+                      key={product.id}
                     className={`group border-b border-slate-100 last:border-0 transition ${
                       isSelected
                         ? "bg-violet-50/50"
@@ -441,18 +535,21 @@ export default function ProductList({
                           />
 
                           <div>
-                            <p
-                              className={`text-sm font-semibold ${
-                                stockIsLow
-                                  ? "text-amber-700"
-                                  : "text-slate-800"
-                              }`}
-                            >
+                            <p className={`text-sm font-semibold ${
+                              stockIsLow
+                                ? "text-amber-700"
+                                : "text-slate-800"
+                            }`}>
                               {stock}
+                              {isLiquid
+                                ? ` ${stock === 1 ? "container" : "containers"}`
+                                : ""}
                             </p>
 
                             <p className="text-[11px] text-slate-400">
-                              {t.inventory.tracked}
+                              {isLiquid
+                                ? "Physical stock"
+                                : t.inventory.tracked}
                             </p>
                           </div>
                         </div>
@@ -487,30 +584,187 @@ export default function ProductList({
                     {/* Action */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-  <Link
-    href={`/inventory/products/${product.id}`}
-    className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-80 shadow-sm transition hover:border-slate-300 hover:bg-slate-950 hover:text-white hover:opacity-100"
-  >
-    {t.inventory.edit}
-  </Link>
+                        <button
+                          type="button"
+                          onClick={() => toggleProductStock(product.id)}
+                          className="inline-flex items-center rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50"
+                        >
+                          {expandedProductId === product.id
+                            ? "Hide stock"
+                            : "View stock"}
+                        </button>
 
-  {product.barcode && (
-    <Link
-      href={`/inventory/barcode-labels?productId=${product.id}`}
-      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-    >
-      Print Labels
-    </Link>
-  )}
-</div>
-                    </td>
-                  </tr>
+						<Link
+                          href={`/inventory/products/${product.id}`}
+                          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-80 shadow-sm transition hover:border-slate-300 hover:bg-slate-950 hover:text-white hover:opacity-100"
+                        >
+                          {t.inventory.edit}
+                        </Link>
+
+                        {product.barcode && (
+                          <Link
+                            href={`/inventory/barcode-labels?productId=${product.id}`}
+                            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                          >
+                            Print Labels
+                          </Link>
+                        )}
+                      </div>
+                                          </td>
+                                        </tr>
+
+						{expandedProductId === product.id && (
+  <tr className="border-b border-slate-200 bg-slate-50">
+    <td colSpan={9} className="px-6 py-5">
+      {containerDetails[product.id]?.loading ? (
+        <p className="text-sm text-slate-500">
+          Loading container details…
+        </p>
+      ) : containerDetails[product.id]?.error ? (
+        <p className="text-sm text-red-600">
+          {containerDetails[product.id].error}
+        </p>
+      ) : (
+        (() => {
+          const details =
+            containerDetails[product.id]?.containers ?? [];
+
+          const sealed = details.filter(
+            (container) => container.status === "SEALED",
+          );
+
+          const open = details.filter(
+            (container) => container.status === "OPEN",
+          );
+
+          const empty = details.filter(
+            (container) => container.status === "EMPTY",
+          );
+
+          const totalRemainingMl = details.reduce(
+            (total, container) =>
+              total +
+              (container.unit.toLowerCase() === "l"
+                ? container.remainingQuantity * 1000
+                : container.remainingQuantity),
+            0,
+          );
+
+          return (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">
+                    Sealed containers
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {sealed.length}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">
+                    Open containers
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {open.length}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">
+                    Empty containers
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {empty.length}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">
+                    Remaining liquid
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-emerald-700">
+                    {totalRemainingMl.toLocaleString(
+                      undefined,
+                      { maximumFractionDigits: 2 },
+                    )}{" "}
+                    ml
+                  </p>
+                </div>
+              </div>
+
+              {details.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No container records exist for this product yet.
+                  Receive stock to create container records.
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-slate-100 text-xs uppercase text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Container</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Capacity</th>
+                        <th className="px-4 py-3">Remaining</th>
+                        <th className="px-4 py-3">Warehouse</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {details.map((container) => (
+                        <tr
+                          key={container.id}
+                          className="border-t border-slate-100"
+                        >
+                          <td className="px-4 py-3 font-medium text-slate-800">
+                            {container.containerType.replace(
+                              /_/g,
+                              " ",
+                            )}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {container.status}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {container.capacityQuantity.toLocaleString()}{" "}
+                            {container.unit}
+                          </td>
+
+                          <td className="px-4 py-3 font-medium">
+                            {container.remainingQuantity.toLocaleString()}{" "}
+                            {container.unit}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {container.warehouseName}
+                            {container.warehouseCode
+                              ? ` (${container.warehouseCode})`
+                              : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()
+      )}
+       </td>
+  </tr>
+)}
+                 </Fragment>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
-  );
-}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </>
+                        );
+                      }

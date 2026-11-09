@@ -11,6 +11,11 @@ import {
 } from "./businessPermissionService";
 import { recordAuditEvent } from "@/lib/audit/auditService";
 import { AUDIT_ACTIONS } from "@/lib/audit/auditActions";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
+import { sendTransactionalEmail } from "@/lib/email/emailService";
+import { businessInvitationEmailTemplate } from "@/lib/email/businessInvitationEmailTemplate";
 
 interface CreateBusinessUserInvitationInput {
   name?: string;
@@ -31,6 +36,82 @@ async function requireUserManagementAccess(
   );
 
   return context;
+}
+
+function getInvitationBaseUrl(): string {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL;
+
+  if (!configuredUrl) {
+    throw new Error(
+      "Application URL is not configured. Set NEXT_PUBLIC_APP_URL or APP_URL.",
+    );
+  }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(configuredUrl);
+  } catch {
+    throw new Error(
+      "The configured application URL is invalid.",
+    );
+  }
+
+  if (
+    parsedUrl.protocol !== "https:" &&
+    !(
+      process.env.NODE_ENV !== "production" &&
+      parsedUrl.protocol === "http:"
+    )
+  ) {
+    throw new Error(
+      "The application URL must use HTTPS in production and HTTP or HTTPS in development.",
+    );
+  }
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    ["localhost", "127.0.0.1", "::1"].includes(
+      parsedUrl.hostname,
+    )
+  ) {
+    throw new Error(
+      "The production application URL cannot point to localhost.",
+    );
+  }
+
+  return parsedUrl.origin;
+}
+
+async function sendBusinessInvitationEmail(input: {
+  token: string;
+  email: string;
+  inviteeName?: string | null;
+  businessName: string;
+  inviterName?: string | null;
+  roleName: string;
+  expiresAt: Date;
+}) {
+  const invitationUrl =
+    `${getInvitationBaseUrl()}/invitations/${encodeURIComponent(input.token)}`;
+
+  const template = businessInvitationEmailTemplate({
+    inviteeName: input.inviteeName ?? undefined,
+    businessName: input.businessName,
+    inviterName: input.inviterName ?? undefined,
+    roleName: input.roleName,
+    invitationUrl,
+    expiresAt: input.expiresAt,
+  });
+
+  return sendTransactionalEmail({
+    to: input.email,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+  });
 }
 
 export const businessUserService = {
@@ -234,102 +315,148 @@ role: {
     };
   },
 
-    async resendInvitation(
-  invitationId: string,
-) {
+
+async resendInvitation(invitationId: string) {
   const context =
-    await requireUserManagementAccess(
-      "users.update",
-    );
+    await requireUserManagementAccess("users.update");
 
-    const invitation =
-      await prisma.businessUserInvitation.findFirst({
-        where: {
-          id: invitationId,
-          businessId:
-            context.business.id,
+  const invitation =
+    await prisma.businessUserInvitation.findFirst({
+      where: {
+        id: invitationId,
+        businessId: context.business.id,
+      },
+      select: {
+        id: true,
+        acceptedAt: true,
+        email: true,
+        name: true,
+        roleId: true,
+        expiresAt: true,
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
-        select: {
-  id: true,
-  acceptedAt: true,
-  email: true,
-  name: true,
-  roleId: true,
-  role: {
-    select: {
-      id: true,
-      name: true,
+      },
+    });
+
+  if (!invitation) {
+    throw new Error(
+      "This invitation does not belong to the current business.",
+    );
+  }
+
+  if (invitation.acceptedAt) {
+    throw new Error(
+      "An accepted invitation cannot be resent.",
+    );
+  }
+
+  const token = randomBytes(32).toString("hex");
+
+  const expiresAt = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  );
+
+  const stagedInvitation =
+    await prisma.businessUserInvitation.create({
+      data: {
+        businessId: context.business.id,
+        email: invitation.email,
+        name: invitation.name,
+        roleId: invitation.roleId,
+        token,
+        expiresAt,
+      },
+    });
+
+  let emailResult: { id: string };
+
+  try {
+    emailResult = await sendBusinessInvitationEmail({
+      token,
+      email: invitation.email,
+      inviteeName: invitation.name,
+      businessName: context.business.name,
+      inviterName: context.user.name,
+      roleName: invitation.role.name,
+      expiresAt,
+    });
+  } catch {
+    await prisma.businessUserInvitation.deleteMany({
+      where: {
+        id: stagedInvitation.id,
+        acceptedAt: null,
+      },
+    });
+
+    await recordAuditEvent({
+      businessId: context.business.id,
+      actorId: context.user.id,
+      action: AUDIT_ACTIONS.BUSINESS_INVITATION_RESENT,
+      category: "USER",
+      severity: "WARNING",
+      outcome: "FAILED",
+      entityType: "BusinessUserInvitation",
+      entityId: invitation.id,
+      metadata: {
+        operation: "resend_invitation",
+        emailSent: false,
+        previousInvitationPreserved: true,
+      },
+    });
+
+    throw new Error(
+      "The invitation email could not be sent. The existing invitation link remains valid. Please check the email configuration and try again.",
+    );
+  }
+
+  // Retire the previous invitation only after the new email
+  // has been accepted by the email provider.
+  await prisma.businessUserInvitation.deleteMany({
+    where: {
+      id: invitation.id,
+      acceptedAt: null,
     },
-  },
-},
-      });
+  });
 
-    if (!invitation) {
-      throw new Error(
-        "This invitation does not belong to the current business.",
-      );
-    }
+  await recordAuditEvent({
+    businessId: context.business.id,
+    actorId: context.user.id,
+    action: AUDIT_ACTIONS.BUSINESS_INVITATION_RESENT,
+    category: "USER",
+    severity: "INFO",
+    outcome: "SUCCESS",
+    entityType: "BusinessUserInvitation",
+    entityId: stagedInvitation.id,
+    afterData: {
+      invitationId: stagedInvitation.id,
+      email: invitation.email,
+      name: invitation.name,
+      roleId: invitation.role.id,
+      roleName: invitation.role.name,
+      expiresAt,
+    },
+    metadata: {
+      operation: "resend_invitation",
+      emailSent: true,
+      emailProviderMessageId: emailResult.id,
+      previousInvitationRetired: true,
+    },
+  });
 
-    if (invitation.acceptedAt) {
-      throw new Error(
-        "An accepted invitation cannot be resent.",
-      );
-    }
-
-    const token =
-      randomBytes(32).toString("hex");
-
-    const expiresAt =
-      new Date(
-        Date.now() +
-          7 * 24 * 60 * 60 * 1000,
-      );
-
-    await prisma.businessUserInvitation.update({
-  where: {
-    id: invitation.id,
-  },
-  data: {
-    token,
-    expiresAt,
-  },
-});
-
-await recordAuditEvent({
-  businessId: context.business.id,
-  actorId: context.user.id,
-
-  action: AUDIT_ACTIONS.BUSINESS_INVITATION_RESENT,
-  category: "USER",
-  severity: "INFO",
-  outcome: "SUCCESS",
-
-  entityType: "BusinessUserInvitation",
-  entityId: invitation.id,
-
-  afterData: {
-    invitationId: invitation.id,
+  return {
     email: invitation.email,
-    name: invitation.name,
-    roleId: invitation.role.id,
-    roleName: invitation.role.name,
     expiresAt,
-  },
+    role: {
+      id: invitation.role.id,
+      name: invitation.role.name,
+    },
+  };
+},
 
-  metadata: {
-    operation: "resend_invitation",
-  },
-});
-
-return {
-  email: invitation.email,
-  expiresAt,
-  role: {
-    id: invitation.role.id,
-    name: invitation.role.name,
-  },
-};
-  },
 
   async createInvitation(
   input: CreateBusinessUserInvitationInput,
@@ -385,41 +512,31 @@ return {
   );
 }
 
-  const token =
-    randomBytes(32).toString("hex");
-
-  const expiresAt =
-    new Date(
-      Date.now() +
-        7 * 24 * 60 * 60 * 1000,
-    );
-
   const existingInvitation =
     await prisma.businessUserInvitation.findFirst({
       where: {
-        businessId:
-          context.business.id,
+        businessId: context.business.id,
         email,
         acceptedAt: null,
         expiresAt: {
           gt: new Date(),
         },
       },
-    });
-
-  if (existingInvitation) {
-    await prisma.businessUserInvitation.delete({
-      where: {
-        id: existingInvitation.id,
+      orderBy: {
+        createdAt: "desc",
       },
     });
-  }
+
+  const token = randomBytes(32).toString("hex");
+
+  const expiresAt = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  );
 
   const invitation =
     await prisma.businessUserInvitation.create({
       data: {
-        businessId:
-          context.business.id,
+        businessId: context.business.id,
         email,
         name,
         roleId: role.id,
@@ -441,38 +558,93 @@ return {
       },
     });
 
-	await recordAuditEvent({
-  businessId: context.business.id,
-  actorId: context.user.id,
+  let emailResult: { id: string };
 
-  action: AUDIT_ACTIONS.BUSINESS_INVITATION_CREATED,
-  category: "USER",
-  severity: "INFO",
-  outcome: "SUCCESS",
+  try {
+    emailResult = await sendBusinessInvitationEmail({
+      token: invitation.token,
+      email: invitation.email,
+      inviteeName: invitation.name,
+      businessName: context.business.name,
+      inviterName: context.user.name,
+      roleName: invitation.role.name,
+      expiresAt: invitation.expiresAt,
+    });
+  } catch {
+    await prisma.businessUserInvitation.deleteMany({
+      where: {
+        id: invitation.id,
+        acceptedAt: null,
+      },
+    });
 
-  entityType: "BusinessUserInvitation",
-  entityId: invitation.id,
+    await recordAuditEvent({
+      businessId: context.business.id,
+      actorId: context.user.id,
+      action: AUDIT_ACTIONS.BUSINESS_INVITATION_CREATED,
+      category: "USER",
+      severity: "ERROR",
+      outcome: "FAILED",
+      entityType: "BusinessUserInvitation",
+      entityId: invitation.id,
+      metadata: {
+        operation: "create_invitation",
+        emailSent: false,
+        previousInvitationPreserved: Boolean(existingInvitation),
+      },
+    });
 
-  afterData: {
-    invitationId: invitation.id,
-    email: invitation.email,
-    name: invitation.name,
-    roleId: invitation.role.id,
-    roleName: invitation.role.name,
-    expiresAt: invitation.expiresAt,
-  },
+    throw new Error(
+      "The invitation email could not be sent. Any existing invitation remains valid. Please check the email configuration and try again.",
+    );
+  }
 
-  metadata: {
-    operation: "create_invitation",
-  },
-});
+  // Retire the previous invitation only after successful email submission.
+  if (existingInvitation) {
+    await prisma.businessUserInvitation.deleteMany({
+      where: {
+        id: existingInvitation.id,
+        acceptedAt: null,
+      },
+    });
+  }
+
+  await recordAuditEvent({
+    businessId: context.business.id,
+    actorId: context.user.id,
+    action: AUDIT_ACTIONS.BUSINESS_INVITATION_CREATED,
+    category: "USER",
+    severity: "INFO",
+    outcome: "SUCCESS",
+    entityType: "BusinessUserInvitation",
+    entityId: invitation.id,
+    afterData: {
+      invitationId: invitation.id,
+      email: invitation.email,
+      name: invitation.name,
+      roleId: invitation.role.id,
+      roleName: invitation.role.name,
+      expiresAt: invitation.expiresAt,
+    },
+    metadata: {
+      operation: "create_invitation",
+      emailSent: true,
+      emailProviderMessageId: emailResult.id,
+      previousInvitationRetired: Boolean(existingInvitation),
+    },
+  });
 
   return {
-    ...invitation,
-    businessId:
-      context.business.id,
+    id: invitation.id,
+    email: invitation.email,
+    name: invitation.name,
+    expiresAt: invitation.expiresAt,
+    role: invitation.role,
+    businessId: context.business.id,
   };
+
 },
+
 
   async setUserActive(
     userId: string,
@@ -483,94 +655,102 @@ return {
         "users.update",
       );
 
-    const membership =
-      await prisma.businessMembership.findFirst({
-        where: {
-          businessId:
-            context.business.id,
-          userId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+    return prisma.$transaction(async (transaction) => {
+      const membership =
+        await transaction.businessMembership.findFirst({
+          where: {
+            businessId: context.business.id,
+            userId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
-      });
+        });
 
-    if (!membership) {
-      throw new Error(
-        "This user does not belong to the current business.",
-      );
-    }
+      if (!membership) {
+        throw new Error(
+          "This user does not belong to the current business.",
+        );
+      }
 
-    if (membership.isOwner) {
-      throw new Error(
-        "The Business Owner membership cannot be deactivated here.",
-      );
-    }
+      if (membership.isOwner) {
+        throw new Error(
+          "The Business Owner membership cannot be deactivated here.",
+        );
+      }
 
-    if (membership.isActive === isActive) {
-      return membership;
-    }
+      if (membership.isActive === isActive) {
+        return membership;
+      }
 
-    const updatedMembership =
-      await prisma.businessMembership.update({
-        where: {
-          id: membership.id,
-        },
-        data: {
-          isActive,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      // Reactivating an inactive membership consumes user capacity.
+      if (!membership.isActive && isActive) {
+        await requireWithinSubscriptionLimit({
+          businessId: context.business.id,
+          limit: "users",
+          client: transaction,
+        });
+      }
+
+      const updatedMembership =
+        await transaction.businessMembership.update({
+          where: {
+            id: membership.id,
+          },
+          data: {
+            isActive,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
+        });
+
+      await recordAuditEvent(
+        {
+          businessId: context.business.id,
+          actorId: context.user.id,
+          action: isActive
+            ? AUDIT_ACTIONS.USER_UPDATED
+            : AUDIT_ACTIONS.USER_DEACTIVATED,
+          category: "USER",
+          severity: isActive ? "INFO" : "WARNING",
+          outcome: "SUCCESS",
+          entityType: "BusinessMembership",
+          entityId: membership.id,
+          beforeData: {
+            userId: membership.user.id,
+            email: membership.user.email,
+            isActive: membership.isActive,
+          },
+          afterData: {
+            userId: updatedMembership.user.id,
+            email: updatedMembership.user.email,
+            isActive: updatedMembership.isActive,
+          },
+          metadata: {
+            operation: isActive
+              ? "activate_user"
+              : "deactivate_user",
+          },
         },
-      });
+        transaction,
+      );
 
-    await recordAuditEvent({
-      businessId: context.business.id,
-      actorId: context.user.id,
-
-      action: isActive
-        ? AUDIT_ACTIONS.USER_UPDATED
-        : AUDIT_ACTIONS.USER_DEACTIVATED,
-
-      category: "USER",
-      severity: isActive ? "INFO" : "WARNING",
-      outcome: "SUCCESS",
-
-      entityType: "BusinessMembership",
-      entityId: membership.id,
-
-      beforeData: {
-        userId: membership.user.id,
-        email: membership.user.email,
-        isActive: membership.isActive,
-      },
-
-      afterData: {
-        userId: updatedMembership.user.id,
-        email: updatedMembership.user.email,
-        isActive: updatedMembership.isActive,
-      },
-
-      metadata: {
-        operation: isActive
-          ? "activate_user"
-          : "deactivate_user",
-      },
+      return updatedMembership;
     });
-
-    return updatedMembership;
   },
+
 
 };

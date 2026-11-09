@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   createProductAction,
   createProductSellingUnitAction,
+  saveProductSellingUnitsAction,
   updateProductAction,
 } from "./actions";
 import { currencies } from "@/lib/currency/currencies";
@@ -19,6 +20,8 @@ interface SellingUnitInput {
   quantity: string;
   unit: string;
   sellingPrice: string;
+  conversionQuantity: string;
+  conversionUnit: string;
 }
 
 type Product = {
@@ -36,6 +39,17 @@ type Product = {
   minimumStock: number | null;
   reorderLevel: number | null;
   attributes: Record<string, string>;
+
+  inventoryMode?: "DISCRETE" | "LIQUID";
+  sellingUnits?: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    sellingPrice: number;
+    conversionQuantity?: number | null;
+    conversionUnit?: string | null;
+  }>;
 };
 
 interface ProductFormProps {
@@ -53,6 +67,9 @@ export default function ProductForm({
   const t = getTranslations();
 
   const isEdit = mode === "edit";
+
+  const effectiveInventoryMode =
+    product?.inventoryMode ?? "DISCRETE";
 
   const [name, setName] = useState(product?.name ?? "");
   const [sku, setSku] = useState(product?.sku ?? "");
@@ -85,9 +102,21 @@ export default function ProductForm({
   const [reorderLevel, setReorderLevel] = useState(
     product?.reorderLevel?.toString() ?? "",
   );
-  const [sellingUnits, setSellingUnits] = useState<
-    SellingUnitInput[]
-  >([]);
+  const [sellingUnits, setSellingUnits] = useState<SellingUnitInput[]>(
+  () =>
+    (product?.sellingUnits ?? []).map((sellingUnit) => ({
+      id: sellingUnit.id,
+      name: sellingUnit.name,
+      quantity: String(sellingUnit.quantity),
+      unit: sellingUnit.unit,
+      sellingPrice: String(sellingUnit.sellingPrice),
+      conversionQuantity:
+        sellingUnit.conversionQuantity == null
+          ? ""
+          : String(sellingUnit.conversionQuantity),
+      conversionUnit: sellingUnit.conversionUnit ?? "",
+    })),
+);
 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -124,50 +153,65 @@ export default function ProductForm({
           reorderLevel === ""
             ? undefined
             : Number(reorderLevel),
+        inventoryMode: effectiveInventoryMode,
         attributes,
       };
 
-      const savedProduct = isEdit
-  ? await (async () => {
-      if (!product?.id) {
+      let savedProduct;
+
+      if (isEdit) {
+        if (!product?.id) {
+          throw new Error(t.inventory.productIdRequired);
+        }
+
+        savedProduct = await updateProductAction(product.id, input);
+      } else {
+        const result = await createProductAction({
+          ...input,
+          operationId: crypto.randomUUID(),
+        });
+
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+
+        savedProduct = result.product;
+      }
+
+      if (!savedProduct) {
         throw new Error(
-          t.inventory.productIdRequired,
+          isEdit
+            ? "Unable to update the product."
+            : "Unable to create the product.",
         );
       }
 
-      return updateProductAction(
-        product.id,
-        input,
-      );
-    })()
-  : await createProductAction({
-      ...input,
-      operationId: crypto.randomUUID(),
-    });
+      const normalizedSellingUnits = sellingUnits.map((sellingUnit) => ({
+        ...(sellingUnit.id ? { id: sellingUnit.id } : {}),
+        name: sellingUnit.name.trim(),
+        quantity: Number(sellingUnit.quantity),
+        unit: sellingUnit.unit.trim(),
+        conversionQuantity:
+          sellingUnit.conversionQuantity.trim() === ""
+            ? undefined
+            : Number(sellingUnit.conversionQuantity),
+        conversionUnit: sellingUnit.conversionUnit.trim() || undefined,
+        sellingPrice: Number(sellingUnit.sellingPrice),
+      }));
 
-	if (!savedProduct) {
-  throw new Error(
-    isEdit
-      ? "Unable to update the product."
-      : "Unable to create the product.",
-  );
-}
-
-      await Promise.all(
-        sellingUnits.map((sellingUnit) =>
-          createProductSellingUnitAction(
-            savedProduct.id,
-            {
-              name: sellingUnit.name.trim(),
-              quantity: Number(sellingUnit.quantity),
-              unit: sellingUnit.unit.trim(),
-              sellingPrice: Number(
-                sellingUnit.sellingPrice,
-              ),
-            },
+      if (isEdit) {
+        await saveProductSellingUnitsAction(
+          savedProduct.id,
+          normalizedSellingUnits,
+        );
+      } else {
+        await Promise.all(
+          normalizedSellingUnits.map(({ id: _id, ...sellingUnit }) =>
+            createProductSellingUnitAction(savedProduct.id, sellingUnit),
           ),
-        ),
-      );
+        );
+      }
 
       router.push("/inventory/products");
       router.refresh();
@@ -556,12 +600,14 @@ export default function ProductForm({
                 setSellingUnits((current) => [
                   ...current,
                   {
-                    id: crypto.randomUUID(),
-                    name: configuration.sellingUnits[0] ?? "",
-                    quantity: "",
-                    unit,
-                    sellingPrice: "",
-                  },
+  id: crypto.randomUUID(),
+  name: configuration.sellingUnits[0] ?? "",
+  quantity: "",
+  unit,
+  sellingPrice: "",
+  conversionQuantity: "",
+  conversionUnit: "",
+},
                 ])
               }
               className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"

@@ -14,16 +14,6 @@ permissions: string[];
 isSystemRole: boolean;
 }
 
-interface InvitationResult {
-token: string;
-email: string;
-expiresAt: Date;
-role: {
-id: string;
-name: string;
-};
-}
-
 interface InviteUserFormProps {
 roles: BusinessRole[];
 }
@@ -37,9 +27,6 @@ const [isSubmitting, setIsSubmitting] =
 useState(false);
 
 const [error, setError] =
-useState<string | null>(null);
-
-const [invitationUrl, setInvitationUrl] =
 useState<string | null>(null);
 
 async function handleSubmit(
@@ -64,20 +51,16 @@ const roleId =
   String(formData.get("roleId") ?? "");
 
 try {
-  const invitation:
-    InvitationResult =
+
     await createBusinessUserInvitationAction({
       name,
       email,
       roleId,
     });
 
-  const url =
-    `${window.location.origin}/invitations/${encodeURIComponent(
-      invitation.token,
-    )}`;
+    router.push("/settings/users");
+    router.refresh();
 
-  setInvitationUrl(url);
 } catch (error) {
   setError(
     error instanceof Error
@@ -87,76 +70,6 @@ try {
 } finally {
   setIsSubmitting(false);
 }
-
-
-}
-
-async function copyInvitationUrl() {
-if (!invitationUrl) {
-return;
-}
-
-
-try {
-  await navigator.clipboard.writeText(
-    invitationUrl,
-  );
-} catch {
-  setError(
-    "Unable to copy the invitation link.",
-  );
-}
-
-
-}
-
-if (invitationUrl) {
-return ( <div className="space-y-6"> <div> <h2 className="text-lg font-semibold text-slate-900">
-Invitation created </h2>
-
-
-      <p className="mt-2 text-sm text-slate-600">
-        Share this secure invitation link with
-        the user.
-      </p>
-    </div>
-
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-      <p className="text-sm font-medium text-emerald-900">
-        Invitation link
-      </p>
-
-      <div className="mt-3 rounded-lg border border-emerald-200 bg-white px-3 py-3">
-        <p className="break-all text-sm text-slate-700">
-          {invitationUrl}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={copyInvitationUrl}
-        className="mt-4 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-      >
-        Copy invitation link
-      </button>
-    </div>
-
-    <div className="flex justify-end border-t border-slate-100 pt-5">
-      <button
-        type="button"
-        onClick={() => {
-          router.push("/settings/users");
-          router.refresh();
-        }}
-        className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-      >
-        Back to Users
-      </button>
-    </div>
-  </div>
-);
-
-
 }
 
 return ( <form
@@ -264,8 +177,8 @@ Full name </label>
       className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isSubmitting
-        ? "Creating..."
-        : "Create Invitation"}
+        ? "Sending invitation..."
+        : "Send Invitation"}
     </button>
   </div>
 </form>

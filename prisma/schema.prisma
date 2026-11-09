@@ -20,6 +20,11 @@ model Business {
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
   logoUrl             String?
+  phone                  String?
+  email                  String?
+  address                String?
+  taxRegistrationNumber  String?
+  receiptFooter          String?
   accounts            Account[]
   taxConfiguration    TaxConfiguration?
   paymentAttempts     PaymentAttempt[]

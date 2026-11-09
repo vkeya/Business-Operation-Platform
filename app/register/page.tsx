@@ -31,6 +31,15 @@ useState("");
 const [error, setError] =
 useState("");
 
+const [registrationComplete, setRegistrationComplete] =
+  useState(false);
+
+const [registeredEmail, setRegisteredEmail] =
+  useState("");
+
+const [verificationEmailSent, setVerificationEmailSent] =
+  useState(true);
+
 const [submitting, setSubmitting] =
 useState(false);
 
@@ -77,41 +86,17 @@ try {
     return;
   }
 
-  const result = await signIn(
-    "credentials",
-    {
-      email,
-      password,
-      redirect: false,
-    },
+  setRegisteredEmail(
+    data?.user?.email ?? email.trim().toLowerCase(),
   );
 
-  if (!result?.ok) {
-    setError(
-      "Account created, but automatic sign in failed. Please sign in.",
-    );
+  setVerificationEmailSent(
+    data?.verificationEmailSent === true,
+  );
 
-    const loginUrl =
-      invitation
-        ? `/login?invitation=${encodeURIComponent(
-            invitation,
-          )}`
-        : "/login";
+setRegistrationComplete(true);
 
-    router.push(loginUrl);
-
-    return;
-  }
-
-  const destination =
-invitation
-? `/auth/continue?invitation=${encodeURIComponent(
-        invitation,
-      )}`
-: "/auth/continue";
-
-router.push(destination);
-router.refresh();
+  return;
 
 } catch {
   setError(
@@ -149,12 +134,48 @@ Create your account </h1>
       </p>
     </div>
 
-    {error && (
+	{registrationComplete && (
+      <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">✓</span>
+          <h2 className="font-semibold text-emerald-900">
+            Account created successfully
+          </h2>
+        </div>
+
+        <p className="mt-3 text-sm leading-6 text-emerald-800">
+          {verificationEmailSent
+            ? "A verification email has been accepted by our email provider for:"
+            : "Your account has been created, but we could not send the verification email to:"}
+        </p>
+
+        <p className="mt-1 break-all font-semibold text-emerald-950">
+          {registeredEmail}
+        </p>
+
+        <p className="mt-3 text-sm leading-6 text-emerald-800">
+          {verificationEmailSent
+            ? "Open the email and click the verification link before signing in. Check your spam or junk folder if you cannot find it."
+            : "Please continue to sign in and use the resend verification option. You must verify your email before accessing your account."}
+        </p>
+
+        <button
+          type="button"
+          onClick={handleSignIn}
+          className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          Continue to sign in
+        </button>
+      </div>
+    )}
+
+    {!registrationComplete && error && (
       <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {error}
       </div>
     )}
 
+    {!registrationComplete && (
     <form
       onSubmit={handleSubmit}
       className="mt-6 space-y-5"
@@ -226,7 +247,7 @@ Create your account </h1>
           Must be at least 8 characters.
         </p>
       </div>
-	  
+
 	  <div className="space-y-4">
   <label className="flex items-start gap-3 text-sm">
     <input
@@ -311,7 +332,9 @@ Create your account </h1>
           : "Create account"}
       </button>
     </form>
+)}
 
+    {!registrationComplete && (
     <p className="mt-6 text-center text-sm text-slate-500">
       Already have an account?{" "}
       <button
@@ -322,6 +345,7 @@ Create your account </h1>
         Sign in
       </button>
     </p>
+	)}
   </div>
 </main>
 

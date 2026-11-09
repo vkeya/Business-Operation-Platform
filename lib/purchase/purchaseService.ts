@@ -15,6 +15,9 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   recordAuditEvent,
 } from "@/lib/audit/auditService";
+import {
+  requireWithinSubscriptionLimit,
+} from "@/lib/subscription/subscriptionLimitService";
 
 import {
   AUDIT_ACTIONS,
@@ -84,6 +87,15 @@ export const purchaseService = {
       );
     }
   }
+
+  // A purchase is counted against the monthly transaction allowance
+  // only when it is RECEIVED. This preflight prevents creating a purchase
+  // when the allowance is already exhausted; receivePurchase() performs
+  // the authoritative completion check.
+  await requireWithinSubscriptionLimit({
+    businessId: input.businessId,
+    limit: "monthly_purchase_transactions",
+  });
 
   const maxAttempts = 3;
 
@@ -527,6 +539,11 @@ for (
               "Only ordered purchases can be received.",
             );
           }
+
+          await requireWithinSubscriptionLimit({
+            businessId,
+            limit: "monthly_purchase_transactions",
+          });
 
           await tx.operationRequest.create({
             data: {

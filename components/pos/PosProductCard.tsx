@@ -27,6 +27,13 @@ export default function PosProductCard({
   const hasSellingUnits =
     product.sellingUnits.length > 0;
 
+	console.log("POS selling-unit check:", {
+  product: product.name,
+  inventoryMode: product.inventoryMode,
+  sellingUnits: product.sellingUnits,
+  hasSellingUnits,
+});
+
   function handleAdd() {
     if (outOfStock) {
       return;
@@ -100,18 +107,52 @@ export default function PosProductCard({
             }`}
           >
             {product.trackInventory
-              ? outOfStock
-                ? "Out of stock"
-                : `${product.availableQuantity} in stock`
-              : "Not tracked"}
+  ? outOfStock
+    ? "Out of stock"
+    : product.inventoryMode === "LIQUID" &&
+        product.containerSummary &&
+        product.containerSummary.length > 0
+      ? "Beverage stock"
+      : `${product.availableQuantity} in stock`
+  : "Not tracked"}
           </span>
         </div>
       </div>
 
+	  {product.inventoryMode === "LIQUID" &&
+  product.containerSummary &&
+  product.containerSummary.length > 0 && (
+    <div className="mt-2 space-y-1 text-[10px] text-slate-500">
+      {product.containerSummary.map(
+        (container) => (
+          <div
+            key={`${container.containerType}-${container.status}-${container.unit}`}
+            className="flex items-center justify-between gap-2"
+          >
+            <span>
+              {container.status === "SEALED"
+                ? "Sealed"
+                : "Open"}{" "}
+              {container.containerType.toLowerCase()}
+            </span>
+
+            <span className="font-semibold text-slate-600">
+              {container.status === "SEALED"
+                ? `${container.count}`
+                : `${container.remainingQuantity} ${container.unit}`}
+            </span>
+          </div>
+        ),
+      )}
+    </div>
+  )}
+
       {hasSellingUnits && (
         <div className="mt-4 border-t border-slate-100 pt-3">
           <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-            Selling unit
+            {product.inventoryMode === "LIQUID"
+              ? "Choose serving"
+              : "Selling unit"}
           </p>
 
           {product.sellingUnits.length === 1 ? (
@@ -143,27 +184,27 @@ export default function PosProductCard({
                 className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 pr-9 text-xs font-semibold text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white disabled:cursor-not-allowed"
               >
                 <option value="">
-                  Select unit
+                  {product.inventoryMode === "LIQUID"
+                    ? "Choose bottle, shot or glass"
+                    : "Select unit"}
                 </option>
 
-                {product.sellingUnits.map(
-                  (unit) => (
-                    <option
-                      key={unit.id}
-                      value={unit.id}
-                    >
-                      {unit.name} —{" "}
-                      {product.currency}{" "}
-                      {unit.sellingPrice.toLocaleString(
-                        undefined,
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        },
-                      )}
-                    </option>
-                  ),
-                )}
+
+                {product.sellingUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                    {product.inventoryMode === "LIQUID" && (
+                      <> · {unit.quantity} {unit.unit}</>
+                    )}
+                    {" — "}
+                    {product.currency}{" "}
+                    {unit.sellingPrice.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </option>
+                ))}
+
               </select>
 
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

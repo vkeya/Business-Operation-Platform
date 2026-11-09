@@ -1,5 +1,9 @@
 "use server";
 
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
+import { requireHospitalBusiness } from "@/lib/hospital/hospitalAccessService";
+import type { BusinessType } from "@/types";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import {
   reportService,
@@ -60,5 +64,26 @@ export async function getPharmacyRecallReportAction() {
 
   return reportService.getPharmacyRecallReport(
     business.id,
+  );
+}
+
+export async function getHospitalFinancialSummaryAction(
+  startDate: Date,
+  endDate: Date,
+) {
+  const context = await getCurrentBusinessContext();
+
+  await requireBusinessOperationAccess(
+    context.user.id,
+    context.business.id,
+    "hospital.invoices.read",
+  );
+
+  requireHospitalBusiness(context.business.type as BusinessType);
+
+  return reportService.getHospitalFinancialSummary(
+    context.business.id,
+    startDate,
+    endDate,
   );
 }

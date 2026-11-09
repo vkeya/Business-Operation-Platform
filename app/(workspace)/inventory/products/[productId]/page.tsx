@@ -16,7 +16,7 @@ export default async function EditProductPage({
 
   const business = await getCurrentBusiness();
 
-  const product = await productRepository.findById(
+  const product = await productRepository.findByIdWithSellingUnits(
     business.id,
     productId,
   );
@@ -30,28 +30,51 @@ export default async function EditProductPage({
       business.type as BusinessType,
     );
 
+
   return (
-  <ProductForm
-    mode="edit"
-    product={{
-      ...product,
-      attributes:
-        product.attributes &&
-        typeof product.attributes === "object" &&
-        !Array.isArray(product.attributes)
-          ? Object.fromEntries(
-              Object.entries(product.attributes).map(
-                ([key, value]) => [
-                  key,
-                  typeof value === "string"
-                    ? value
-                    : String(value ?? ""),
-                ],
-              ),
-            )
-          : {},
-    }}
-    configuration={configuration}
-  />
-);
+    <ProductForm
+      mode="edit"
+      product={{
+        ...product,
+        costPrice: Number(product.costPrice),
+        sellingPrice: Number(product.sellingPrice),
+        minimumStock:
+          product.minimumStock == null
+            ? null
+            : Number(product.minimumStock),
+        reorderLevel:
+          product.reorderLevel == null
+            ? null
+            : Number(product.reorderLevel),
+        attributes:
+          product.attributes &&
+          typeof product.attributes === "object" &&
+          !Array.isArray(product.attributes)
+            ? Object.fromEntries(
+                Object.entries(product.attributes).map(
+                  ([key, value]) => [
+                    key,
+                    typeof value === "string"
+                      ? value
+                      : String(value ?? ""),
+                  ],
+                ),
+              )
+            : {},
+        sellingUnits: product.sellingUnits.map((sellingUnit) => ({
+          id: sellingUnit.id,
+          name: sellingUnit.name,
+          quantity: Number(sellingUnit.quantity),
+          unit: sellingUnit.unit,
+          sellingPrice: Number(sellingUnit.sellingPrice),
+          conversionQuantity:
+            sellingUnit.conversionQuantity == null
+              ? null
+              : Number(sellingUnit.conversionQuantity),
+          conversionUnit: sellingUnit.conversionUnit,
+        })),
+      }}
+      configuration={configuration}
+    />
+  );
 }

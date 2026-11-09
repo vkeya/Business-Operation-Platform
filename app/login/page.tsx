@@ -41,6 +41,15 @@ useState("");
 const [submitting, setSubmitting] =
 useState(false);
 
+const [resendingVerification, setResendingVerification] =
+  useState(false);
+
+const [resendMessage, setResendMessage] =
+  useState("");
+
+const [resendError, setResendError] =
+  useState("");
+
 function getDestination() {
 return invitation
 ? `/invitations/${encodeURIComponent(
@@ -94,6 +103,52 @@ try {
 }
 
 
+}
+
+async function handleResendVerification() {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedEmail) {
+    setResendError("Enter your email address first.");
+    setResendMessage("");
+    return;
+  }
+
+  setResendingVerification(true);
+  setResendMessage("");
+  setResendError("");
+
+  try {
+    const response = await fetch(
+      "/api/auth/resend-verification",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error("Unable to process your request.");
+    }
+
+    setResendMessage(
+      data?.message ??
+        "If your account requires verification, a verification email has been sent.",
+    );
+  } catch {
+    setResendError(
+      "Unable to resend the verification email. Please try again.",
+    );
+  } finally {
+    setResendingVerification(false);
+  }
 }
 
 async function handleGoogleSignIn() {
@@ -257,11 +312,36 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
           </p>
         </div>
 
-        {error && (
+		{error && (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
+
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={resendingVerification || submitting}
+            className="text-sm font-semibold text-violet-700 transition hover:text-violet-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {resendingVerification
+              ? "Sending verification email..."
+              : "Didn't receive your verification email? Resend"}
+          </button>
+
+          {resendMessage && (
+            <p className="mt-2 text-sm text-emerald-700">
+              {resendMessage}
+            </p>
+          )}
+
+          {resendError && (
+            <p className="mt-2 text-sm text-red-600">
+              {resendError}
+            </p>
+          )}
+        </div>
 
         <form
           onSubmit={handleSubmit}
@@ -324,7 +404,7 @@ return ( <main className="min-h-screen bg-slate-50"> <div className="grid min-h-
               />
             </div>
           </div>
-		  
+
 		  <div className="mt-2 flex justify-end">
   <Link
     href="/forgot-password"

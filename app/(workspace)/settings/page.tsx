@@ -9,6 +9,8 @@ import {
   Settings,
   ShieldCheck,
   Users,
+  UserRound,
+  Building2,
   Wallet,
 } from "lucide-react";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
@@ -36,6 +38,9 @@ export default async function SettingsPage() {
   const isSupermarket =
   context.business.type === "supermarket";
 
+  const isHospital =
+    context.business.type === "hospital";
+
   const settingsCards = [
 
     ...(isSupermarket
@@ -52,6 +57,67 @@ export default async function SettingsPage() {
     ]
   : []),
 
+    ...(isHospital
+  ? [
+      {
+        title: "Hospital",
+        description:
+          "Manage facility details, registration, licensing, and contact information.",
+        href: "/settings/hospital",
+        action: "Manage hospital",
+        icon: ShieldCheck,
+        iconLabel: "02",
+      },
+    ]
+  : []),
+
+    ...(isHospital
+  ? [
+      {
+        title: "Patients",
+        description:
+          "Register patients, search demographic records, and manage patient information.",
+        href: "/settings/hospital/patients",
+        action: "Manage patients",
+        icon: UserRound,
+        iconLabel: "03",
+      },
+    ]
+  : []),
+
+    ...(isHospital
+      ? [
+          {
+            title: "Admissions",
+            description:
+              "Manage hospital admissions, monitor patient admission status, and coordinate bed assignments.",
+            href: "/settings/hospital/admissions",
+            action: "Manage admissions",
+            icon: ClipboardList,
+            iconLabel: "13",
+          },
+          {
+            title: "Wards & Beds",
+            description:
+              "Manage hospital wards, register beds, review availability, and allocate or release beds.",
+            href: "/settings/hospital/wards",
+            action: "Manage wards & beds",
+            icon: Settings,
+            iconLabel: "14",
+          },
+        ]
+      : []),
+
+	{
+      title: "Business Identity & Receipt",
+      description:
+        "Manage your business name, contact details, logo, tax registration, and receipt branding.",
+      href: "/settings/business-profile",
+      action: "Manage business identity",
+      icon: Building2,
+      iconLabel: "04",
+    },
+
     {
       title: "Currency",
       description:
@@ -59,7 +125,7 @@ export default async function SettingsPage() {
       href: "/settings/currency",
       action: "Manage currency",
       icon: Wallet,
-      iconLabel: "02",
+      iconLabel: "04",
     },
 	{
       title: "Tax Configuration",
@@ -68,7 +134,7 @@ export default async function SettingsPage() {
       href: "/settings/tax",
       action: "Manage tax",
       icon: ShieldCheck,
-      iconLabel: "03",
+      iconLabel: "05",
     },
 
 	{
@@ -78,7 +144,7 @@ export default async function SettingsPage() {
   href: "/settings/payments",
   action: "Manage payments",
   icon: CreditCard,
-  iconLabel: "04",
+  iconLabel: "06",
 },
 
 {
@@ -88,7 +154,7 @@ export default async function SettingsPage() {
   href: "/settings/subscription",
   action: "Manage subscription",
   icon: CreditCard,
-  iconLabel: "05",
+  iconLabel: "07",
 },
 
     {
@@ -98,7 +164,7 @@ export default async function SettingsPage() {
       href: "/settings/users",
       action: "Manage access",
       icon: Users,
-      iconLabel: "06",
+      iconLabel: "08",
     },
 
 	...(canReadAudit
@@ -110,7 +176,7 @@ export default async function SettingsPage() {
             href: "/settings/security/activity",
             action: "View activity",
             icon: ClipboardList,
-            iconLabel: "07",
+            iconLabel: "09",
           },
         ]
       : []),
@@ -122,7 +188,7 @@ export default async function SettingsPage() {
       href: "/settings/import",
       action: "Manage data",
       icon: Database,
-      iconLabel: "08",
+      iconLabel: "10",
     },
 
 	{
@@ -132,7 +198,7 @@ export default async function SettingsPage() {
   href: "/privacy",
   action: "Manage privacy",
   icon: ShieldCheck,
-  iconLabel: "09",
+  iconLabel: "11",
 },
 {
   title: "Legal & Compliance",
@@ -141,7 +207,7 @@ export default async function SettingsPage() {
   href: "/legal",
   action: "View legal documents",
   icon: FileText,
-  iconLabel: "10",
+  iconLabel: "12",
 },
   ];
 
