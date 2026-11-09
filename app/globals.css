@@ -185,24 +185,8 @@ body {
    58MM AND 80MM SUPPORT
    ========================================================= */
 
-@page receipt58 {
-  size: 58mm auto;
-  margin: 0;
-}
-
-@page receipt80 {
-  size: 80mm auto;
-  margin: 0;
-}
-
 @media print {
-  @page receipt58 {
-    size: 58mm auto;
-    margin: 0;
-  }
-
-  @page receipt80 {
-    size: 80mm auto;
+  @page {
     margin: 0;
   }
 
@@ -246,15 +230,12 @@ body {
   }
 
   .receipt-print-area.receipt-width-58 {
-    page: receipt58;
-    width: 58mm !important;
-  }
+  width: 58mm !important;
+}
 
-  .receipt-print-area.receipt-width-80 {
-    page: receipt80;
-    width: 80mm !important;
-  }
-
+.receipt-print-area.receipt-width-80 {
+  width: 80mm !important;
+}
   .receipt-width-58 .receipt-content {
     width: 52mm !important;
     max-width: 52mm !important;
