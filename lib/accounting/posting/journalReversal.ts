@@ -1,6 +1,8 @@
 import { journalRepository } from "@/lib/accounting/journalRepository";
 import { journalService } from "@/lib/accounting/journalService";
 import { prisma } from "@/lib/database/prisma";
+import { Prisma } from "@/generated/prisma/client";
+import { getCurrencyDecimalPlaces } from "@/lib/localization/options";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -103,12 +105,19 @@ const requestedReversalAmount =
 const remainingAmount =
   originalAmount - alreadyReversedAmount;
 
+const decimalPlaces = getCurrencyDecimalPlaces(
+  input.currency,
+);
+
+const monetaryTolerance =
+  0.5 * 10 ** -decimalPlaces;
+
 if (
   requestedReversalAmount >
-  remainingAmount + 0.01
+  remainingAmount + monetaryTolerance
 ) {
   throw new Error(
-    `Reversal exceeds the remaining reversible amount. Remaining amount: ${remainingAmount.toFixed(2)}.`,
+    `Reversal exceeds the remaining reversible amount. Remaining amount: ${remainingAmount.toFixed(decimalPlaces)}.`,
   );
 }
 
@@ -118,12 +127,13 @@ if (
     );
   }
 
-  const roundCurrency = (
-    value: number,
-  ) =>
-    Math.round(
-      (value + Number.EPSILON) * 100,
-    ) / 100;
+  const roundCurrency = (value: number) =>
+    new Prisma.Decimal(value)
+      .toDecimalPlaces(
+        decimalPlaces,
+        Prisma.Decimal.ROUND_HALF_UP,
+      )
+      .toNumber();
 
   return journalService.create(
     {

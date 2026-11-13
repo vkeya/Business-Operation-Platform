@@ -83,7 +83,7 @@ export default function PosPaymentDetails({
                     ? "Record the card authorization reference."
                     : method === "BANK"
                       ? "Record the bank transaction reference."
-                      : "Record the amount applied to the customer's credit."}
+                      : "The full sale amount will be added to this customer's outstanding balance. No payment is collected now."}
             </p>
           </div>
         </div>
@@ -181,12 +181,13 @@ export default function PosPaymentDetails({
       {method === "CREDIT" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-xs font-semibold text-amber-800">
-            Customer credit
+            Customer credit sale
           </p>
 
           <p className="mt-1 text-[11px] leading-5 text-amber-700">
-            Credit sales should be linked to a customer
-            before completing the sale.
+            The selected customer will owe the full sale amount.
+            No cash, bank or M-Pesa payment will be recorded.
+            The outstanding balance can be settled later.
           </p>
         </div>
       )}

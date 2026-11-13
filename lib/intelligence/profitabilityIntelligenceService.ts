@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { requireProfitabilityIntelligence } from "./intelligenceAccessService";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 
 const LOOKBACK_DAYS = 30;
 
@@ -59,10 +60,16 @@ function emptyBucket(currency: string): CurrencyBucket {
 }
 
 export const profitabilityIntelligenceService = {
-  async getSummary(businessId: string) {
-    if (!businessId) {
-      throw new Error("Business context is required.");
+  async getSummary(userId: string, businessId: string) {
+    if (!userId || !businessId) {
+      throw new Error("User and business context are required.");
     }
+
+    await requireBusinessPermission(
+      userId,
+      businessId,
+      "reports.advanced.read",
+    );
 
     await requireProfitabilityIntelligence(businessId);
 

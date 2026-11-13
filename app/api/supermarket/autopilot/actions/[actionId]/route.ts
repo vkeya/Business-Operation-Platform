@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-
+import {
+  BusinessPermissionError,
+  requireBusinessPermission,
+} from "@/lib/business/businessPermissionService";
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { requireSupermarketBusiness } from "@/lib/supermarket/supermarketAccessService";
 import {
@@ -30,7 +33,11 @@ export async function PATCH(
   try {
     const businessContext =
       await getCurrentBusinessContext();
-
+      await requireBusinessPermission(
+       businessContext.user.id,
+       businessContext.business.id,
+       "sales.read",
+     );
     requireSupermarketBusiness(
       businessContext.business.type as BusinessType,
     );
@@ -120,7 +127,18 @@ export async function PATCH(
     return NextResponse.json({
       action: result,
     });
-  } catch (error) {
+    } catch (error) {
+    if (error instanceof BusinessPermissionError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
     if (error instanceof SubscriptionEntitlementError) {
       return NextResponse.json(
         {

@@ -89,6 +89,11 @@ const paymentMethods: Array<{
     label: "Bank",
     icon: WalletCards,
   },
+  {
+    value: "CREDIT",
+    label: "Customer Credit",
+    icon: CreditCard,
+  },
 ];
 
 function formatAmount(amount: number, currency: string) {
@@ -1586,7 +1591,10 @@ export default function PosPage() {
                       onClick={() => {
                         setPaymentMethod(method.value);
 
-                        if (method.value === "MPESA") {
+                        if (
+                          method.value === "MPESA" ||
+                          method.value === "CREDIT"
+                        ) {
                           setPaymentAmount(checkoutCart.totalAmount.toString());
                         }
                       }}

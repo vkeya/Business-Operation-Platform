@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -9,82 +10,85 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
-import { getBusinessReportAction } from "@/lib/reports/actions";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
+import { getCoreBusinessReportAction } from "@/lib/reports/actions";
 import { requireAdvancedReporting } from "@/lib/intelligence/intelligenceAccessService";
 
 export const dynamic = "force-dynamic";
 
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
+interface AdvancedReportsPageProps {
+  searchParams: Promise<{
+    period?: string;
+    startDate?: string;
+    endDate?: string;
+  }>;
+}
+
+function formatAmount(currency: string, value: number) {
+  return `${currency} ${value.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  })}`;
 }
 
-function formatPercentage(value: number) {
-  return `${value.toLocaleString(undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
+export default async function AdvancedReportsPage({
+  searchParams,
+}: AdvancedReportsPageProps) {
+  const context = await getCurrentBusinessContext();
+  const business = context.business;
 
-function percentage(
-  numerator: number,
-  denominator: number,
-) {
-  if (denominator <= 0) {
-    return 0;
-  }
-
-  return (numerator / denominator) * 100;
-}
-
-export default async function AdvancedReportsPage() {
-  const business = await getCurrentBusiness();
-
-  await requireAdvancedReporting(
+  await requireBusinessPermission(
+    context.user.id,
     business.id,
+    "reports.advanced.read",
   );
 
-  const report =
-    await getBusinessReportAction();
+  await requireAdvancedReporting(business.id);
 
-  const revenue = report.sales.amount;
-  const purchases = report.purchases.amount;
-  const expenses = report.expenses.amount;
-  const profit = report.profit;
+  const params = await searchParams;
 
-  const purchaseRatio =
-    percentage(
-      purchases,
-      revenue,
-    );
+  const allowedPresets = [
+    "today",
+    "yesterday",
+    "this_week",
+    "last_week",
+    "this_month",
+    "last_month",
+    "this_year",
+    "custom",
+  ] as const;
 
-  const expenseRatio =
-    percentage(
-      expenses,
-      revenue,
-    );
+  const selectedPreset = allowedPresets.includes(
+    params.period as (typeof allowedPresets)[number],
+  )
+    ? (params.period as (typeof allowedPresets)[number])
+    : "this_month";
 
-  const profitMargin =
-    percentage(
-      profit,
-      revenue,
-    );
+  const customPeriodIncomplete =
+    selectedPreset === "custom" &&
+    (!params.startDate || !params.endDate);
 
-  const inventoryToRevenueRatio =
-    percentage(
-      report.inventory.value,
-      revenue,
-    );
+  const report = await getCoreBusinessReportAction(
+    customPeriodIncomplete
+      ? { preset: "this_month" }
+      : {
+          preset: selectedPreset,
+          ...(selectedPreset === "custom"
+            ? {
+                startDate: params.startDate,
+                endDate: params.endDate,
+              }
+            : {}),
+        },
+  );
 
   return (
     <div className="space-y-6">
+      {/* Advanced reporting hero */}
       <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-slate-950 to-cyan-950 px-6 py-7 text-white shadow-xl shadow-slate-950/10 sm:px-8 sm:py-8">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-
           <div className="absolute bottom-0 left-1/3 h-40 w-80 rounded-full bg-violet-500/10 blur-3xl" />
         </div>
 
@@ -114,9 +118,9 @@ export default async function AdvancedReportsPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                Deeper analysis of revenue, purchasing,
-                expenses, profitability and inventory
-                exposure using your business reporting data.
+                Detailed analysis of sales, returns, purchasing,
+                expenses and current inventory, with financial
+                figures separated by transaction currency.
               </p>
             </div>
 
@@ -127,6 +131,94 @@ export default async function AdvancedReportsPage() {
         </div>
       </section>
 
+      {/* Reporting period */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <form
+          method="GET"
+          className="flex flex-col gap-4 lg:flex-row lg:items-end"
+        >
+          <div className="w-full lg:max-w-xs">
+            <label
+              htmlFor="period"
+              className="block text-xs font-medium text-slate-500"
+            >
+              Reporting period
+            </label>
+
+            <select
+              id="period"
+              name="period"
+              defaultValue={selectedPreset}
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700"
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="this_week">This week</option>
+              <option value="last_week">Last week</option>
+              <option value="this_month">This month</option>
+              <option value="last_month">Last month</option>
+              <option value="this_year">This year</option>
+              <option value="custom">Custom date range</option>
+            </select>
+          </div>
+
+          {selectedPreset === "custom" && (
+            <>
+              <div>
+                <label
+                  htmlFor="startDate"
+                  className="block text-xs font-medium text-slate-500"
+                >
+                  Start date
+                </label>
+
+                <input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  required
+                  defaultValue={params.startDate || ""}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-700"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="endDate"
+                  className="block text-xs font-medium text-slate-500"
+                >
+                  End date
+                </label>
+
+                <input
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  required
+                  defaultValue={params.endDate || ""}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-700"
+                />
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Apply filter
+          </button>
+        </form>
+
+        {customPeriodIncomplete && (
+          <p className="mt-4 text-sm text-amber-700">
+            Select both dates to apply the custom period.
+            The figures below temporarily show this month.
+          </p>
+        )}
+      </section>
+
+      {/* Currency-separated performance */}
       <section>
         <div className="mb-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -138,183 +230,168 @@ export default async function AdvancedReportsPage() {
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Derived indicators from completed sales,
-            received purchases, recorded expenses and
-            current inventory position.
+            Financial figures are presented separately for each
+            transaction currency. Different currencies are never
+            added together.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            title="Revenue"
-            value={formatNumber(revenue)}
-            description={`${report.sales.count} completed sales`}
-            icon={
-              <CreditCard className="h-5 w-5" />
-            }
-          />
+        {report.currencies.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+            <p className="font-medium text-slate-700">
+              No report data for this period
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Try another reporting period or check whether
+              transactions have been recorded.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {report.currencies.map((item) => {
+              const returnedExcludingTax =
+                item.returns.totalAmount - item.returns.taxAmount;
 
-          <MetricCard
-            title="Profit estimate"
-            value={formatNumber(profit)}
-            description={`Estimated margin ${formatPercentage(profitMargin)}`}
-            icon={
-              <TrendingUp className="h-5 w-5" />
-            }
-          />
+              const netRevenueExcludingTax =
+                item.sales.revenueExcludingTax -
+                returnedExcludingTax;
 
-          <MetricCard
-            title="Purchase intensity"
-            value={formatPercentage(purchaseRatio)}
-            description={`${formatNumber(purchases)} received purchases`}
-            icon={
-              <ReceiptText className="h-5 w-5" />
-            }
-          />
+              return (
+                <section
+                  key={item.currency}
+                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <div className="flex flex-col gap-2 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Transaction currency
+                      </p>
+                      <h3 className="mt-1 text-xl font-semibold text-slate-900">
+                        {item.currency}
+                      </h3>
+                    </div>
 
-          <MetricCard
-            title="Expense intensity"
-            value={formatPercentage(expenseRatio)}
-            description={`${formatNumber(expenses)} recorded expenses`}
-            icon={
-              <TrendingDown className="h-5 w-5" />
-            }
-          />
-        </div>
+                    <p className="text-sm text-slate-500">
+                      {item.sales.count} completed sales ·{" "}
+                      {item.returns.count} returns
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
+                    <MetricCard
+                      title="Sales revenue"
+                      value={formatAmount(
+                        item.currency,
+                        item.sales.revenueExcludingTax,
+                      )}
+                      description="Completed sales, excluding tax and before returns"
+                      icon={<CreditCard className="h-5 w-5" />}
+                    />
+
+                    <MetricCard
+                      title="Returns"
+                      value={formatAmount(
+                        item.currency,
+                        item.returns.totalAmount,
+                      )}
+                      description={`${item.returns.count} recorded returns, including tax`}
+                      icon={<TrendingDown className="h-5 w-5" />}
+                    />
+
+                    <MetricCard
+                      title="Received purchases"
+                      value={formatAmount(
+                        item.currency,
+                        item.purchases.receivedAmount,
+                      )}
+                      description={`${item.purchases.receivedCount} received purchase records`}
+                      icon={<ReceiptText className="h-5 w-5" />}
+                    />
+
+                    <MetricCard
+                      title="Expenses incurred"
+                      value={formatAmount(
+                        item.currency,
+                        item.expenses.incurredAmount,
+                      )}
+                      description={`${item.expenses.count} recorded expense records`}
+                      icon={<TrendingDown className="h-5 w-5" />}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Net sales revenue excluding tax
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900">
+                        {formatAmount(
+                          item.currency,
+                          netRevenueExcludingTax,
+                        )}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Sales revenue less returned value excluding tax
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Current inventory value
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900">
+                        {formatAmount(
+                          item.currency,
+                          item.inventory.value,
+                        )}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.inventory.units.toLocaleString()} units currently in stock
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-
-            <div>
-              <h2 className="font-semibold text-slate-900">
-                Revenue and cost structure
-              </h2>
-
-              <p className="text-sm text-slate-500">
-                Current reporting position
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <ReportRow
-              label="Revenue"
-              value={formatNumber(revenue)}
-            />
-
-            <ReportRow
-              label="Received purchases"
-              value={formatNumber(purchases)}
-            />
-
-            <ReportRow
-              label="Recorded expenses"
-              value={formatNumber(expenses)}
-            />
-
-            <div className="border-t border-slate-100 pt-4">
-              <ReportRow
-                label="Profit estimate"
-                value={formatNumber(profit)}
-                emphasis
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
-              <Boxes className="h-5 w-5" />
-            </div>
-
-            <div>
-              <h2 className="font-semibold text-slate-900">
-                Inventory exposure
-              </h2>
-
-              <p className="text-sm text-slate-500">
-                Current inventory position
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">
-                Stock value
-              </p>
-
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {formatNumber(
-                  report.inventory.value,
-                )}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">
-                Units
-              </p>
-
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {report.inventory.units.toLocaleString()}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-slate-100 p-5">
-            <p className="text-sm text-slate-500">
-              Inventory value relative to revenue
-            </p>
-
-            <p className="mt-2 text-xl font-semibold text-slate-900">
-              {formatPercentage(
-                inventoryToRevenueRatio,
-              )}
-            </p>
-
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              This is a reporting ratio only. It does
-              not represent inventory turnover or
-              working-capital efficiency.
-            </p>
-          </div>
-        </div>
-      </section>
-
+      {/* Reporting methodology */}
       <section className="rounded-3xl border border-amber-100 bg-amber-50/60 p-6">
         <h2 className="font-semibold text-slate-900">
-          Reporting methodology
+          Reporting methodology and limitations
         </h2>
 
         <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
           <p>
-            Revenue uses completed sales from the
-            existing reporting service.
+            Sales revenue excludes tax. Returns are displayed
+            separately, and net sales revenue is calculated
+            after deducting returned value excluding tax.
           </p>
 
           <p>
-            Purchase cost uses received purchases.
-            Expenses use recorded business expenses.
+            Received purchases are reported separately from
+            expenses. Purchases should not automatically be
+            treated as expenses or cost of goods sold.
           </p>
 
           <p>
-            Profit estimate is revenue minus received
-            purchases minus recorded expenses. It is an
-            estimate and should not be treated as an
-            accounting net-profit statement.
+            Expenses represent recorded incurred expenses.
+            They should not automatically be interpreted as
+            confirmed cash payments.
           </p>
 
           <p>
-            Inventory exposure uses the current inventory
-            balance valuation already provided by the
-            reporting layer.
+            Inventory value represents the current inventory
+            position, not historical inventory value at the
+            end of the selected reporting period.
+          </p>
+
+          <p>
+            Accounting profit is not presented because the
+            current accounting reporting foundation does not
+            yet establish cost of goods sold.
           </p>
         </div>
       </section>
@@ -334,7 +411,7 @@ function MetricCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-700">
           {icon}
@@ -345,47 +422,13 @@ function MetricCard({
         {title}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+      <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
         {value}
       </p>
 
       <p className="mt-2 text-xs leading-5 text-slate-500">
         {description}
       </p>
-    </div>
-  );
-}
-
-function ReportRow({
-  label,
-  value,
-  emphasis = false,
-}: {
-  label: string;
-  value: string;
-  emphasis?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <span
-        className={
-          emphasis
-            ? "text-sm font-semibold text-slate-900"
-            : "text-sm text-slate-600"
-        }
-      >
-        {label}
-      </span>
-
-      <span
-        className={
-          emphasis
-            ? "text-sm font-semibold text-slate-950"
-            : "text-sm font-medium text-slate-900"
-        }
-      >
-        {value}
-      </span>
     </div>
   );
 }

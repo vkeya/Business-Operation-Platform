@@ -8,7 +8,9 @@ import {
 import {
   generateBusinessReference,
 } from "@/lib/business/reference/referenceGenerator";
-
+import {
+  getCurrencyDecimalPlaces,
+} from "@/lib/localization/options";
 import {
   saleRepository,
   type CreateSaleInput,
@@ -106,8 +108,6 @@ function validateCheckoutInput(
   input: PosCheckoutInput,
 ) {
 
-
-
   if (!input.operationId?.trim()) {
   throw new Error("Checkout operation ID is required.");
 }
@@ -152,6 +152,15 @@ function validateCheckoutInput(
   if (input.payment.amount <= 0) {
     throw new Error(
       "Payment amount must be greater than zero.",
+    );
+  }
+
+  if (
+    input.payment.method === "CREDIT" &&
+    !input.customerId?.trim()
+  ) {
+    throw new Error(
+      "A customer is required for credit sales.",
     );
   }
 
@@ -843,6 +852,15 @@ if (existingOperation) {
     };
   }
 
+  if (
+    input.payment.method === "CREDIT" &&
+    existingSale.status === "COMPLETED"
+  ) {
+    return {
+      sale: existingSale,
+    };
+  }
+
     if (input.payment.method === "MPESA") {
     const existingPaymentAttempt =
       await paymentAttemptService.findBySaleId(
@@ -889,6 +907,25 @@ if (existingOperation) {
     calculatedTaxAmount,
     calculatedTotalAmount,
   } = await calculateCheckoutTax(input);
+
+  if (input.payment.method === "CREDIT") {
+  const decimalPlaces =
+    getCurrencyDecimalPlaces(input.currency);
+
+  const creditAmount = Number(
+    input.payment.amount.toFixed(decimalPlaces),
+  );
+
+  const saleAmount = Number(
+    calculatedTotalAmount.toFixed(decimalPlaces),
+  );
+
+  if (creditAmount !== saleAmount) {
+    throw new Error(
+      "Credit sale amount must equal the full sale total.",
+    );
+  }
+}
 
   // A pending M-Pesa checkout does not count as a completed sale.
   // This preflight prevents starting a checkout when the monthly allowance
@@ -1157,37 +1194,32 @@ if (!sale) {
       );
 
       const payment =
-        await paymentService.createSalePayment(
-          {
-            businessId:
-              input.businessId,
+  input.payment.method === "CREDIT"
+    ? undefined
+    : await paymentService.createSalePayment(
+        {
+          businessId: input.businessId,
 
-            saleId:
-              sale.id,
+          saleId: sale.id,
 
-			  operationId:
-  `SALE_PAYMENT:${input.operationId}`,
+          operationId:
+            `SALE_PAYMENT:${input.operationId}`,
 
-            reference:
-              input.payment.reference,
+          reference: input.payment.reference,
 
-            method:
-  input.payment.method,
+          method: input.payment.method,
 
-            amount:
-              input.payment.amount,
+          amount: input.payment.amount,
 
-            currency:
-              (
-                input.payment.currency ||
-                input.currency
-              ).trim(),
+          currency: (
+            input.payment.currency ||
+            input.currency
+          ).trim(),
 
-            createdBy:
-              input.createdBy,
-          },
-          tx,
-        );
+          createdBy: input.createdBy,
+        },
+        tx,
+      );
 
       const completedSale =
         await saleRepository.updateStatus(
@@ -1271,6 +1303,12 @@ if (!sale) {
       );
 
     if (existingPayments.length === 0) {
+      if (input.payment.method === "CREDIT") {
+        return {
+          sale: existingSale,
+        };
+      }
+
       throw error;
     }
 

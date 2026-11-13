@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import {
+  requireBusinessPermission,
+  BusinessPermissionError,
+} from "@/lib/business/businessPermissionService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
 import { productService } from "@/lib/inventory/productService";
 import { prisma } from "@/lib/database/prisma";
@@ -50,7 +54,14 @@ function buildCsv(
 
 export async function GET(request: NextRequest) {
   try {
-    const business = await getCurrentBusiness();
+    const context = await getCurrentBusinessContext();
+    const business = context.business;
+
+    await requireBusinessPermission(
+      context.user.id,
+      business.id,
+      "reports.export",
+    );
 
     const warehouseId =
       request.nextUrl.searchParams.get("warehouseId") ||
@@ -174,6 +185,17 @@ const csv = buildCsv(rows);
       },
     });
   } catch (error) {
+    if (error instanceof BusinessPermissionError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
     console.error(
       "Inventory export failed:",
       error,
@@ -181,8 +203,7 @@ const csv = buildCsv(rows);
 
     return NextResponse.json(
       {
-        error:
-          "Unable to export inventory.",
+        error: "Unable to export inventory.",
       },
       {
         status: 500,

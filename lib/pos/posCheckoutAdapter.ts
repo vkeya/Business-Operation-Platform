@@ -136,7 +136,10 @@ export async function executePosCheckout(
     };
   }
 
-  if (!result.payment) {
+  if (
+    request.payment.method !== "CREDIT" &&
+    !result.payment
+  ) {
     throw new Error(
       "POS checkout did not create a payment.",
     );
@@ -171,10 +174,12 @@ export async function executePosCheckout(
         request.payment.method,
 
       paymentAmount:
-        result.payment.amount,
+        result.payment
+          ? Number(result.payment.amount)
+          : 0,
 
       paymentReference:
-        result.payment.reference,
-    },
+        result.payment?.reference ?? "",
+          },
   };
 }

@@ -57,16 +57,31 @@ export async function GET(request: Request) {
         "lookbackDays",
       );
 
-    const parsedLookback =
-      lookbackParam
-        ? Number(lookbackParam)
-        : undefined;
+    let lookbackDays: number | undefined;
 
-    const lookbackDays =
-      parsedLookback !== undefined &&
-      Number.isFinite(parsedLookback)
-        ? parsedLookback
-        : undefined;
+    if (lookbackParam !== null) {
+      const parsedLookback =
+        Number(lookbackParam);
+
+      if (
+        !/^\d+$/.test(lookbackParam) ||
+        !Number.isInteger(parsedLookback) ||
+        parsedLookback < 1 ||
+        parsedLookback > 365
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "lookbackDays must be a whole number between 1 and 365.",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      lookbackDays = parsedLookback;
+    }
 
     const intelligence =
       await supermarketForecastingIntelligenceService.getForecastingIntelligence(

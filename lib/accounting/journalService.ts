@@ -3,6 +3,7 @@ import {
   type CreateJournalEntryInput,
 } from "./journalRepository";
 import { prisma } from "@/lib/database/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 type PrismaTransactionClient =
   Parameters<typeof prisma.$transaction>[0] extends (
@@ -53,24 +54,19 @@ export const journalService = {
     }
 
 
-    const totalDebit =
-      input.lines.reduce(
-        (total, line) =>
-          total + line.debit,
-        0,
-      );
+        const totalDebit = input.lines.reduce(
+      (total, line) =>
+        total.plus(new Prisma.Decimal(line.debit)),
+      new Prisma.Decimal(0),
+    );
 
-    const totalCredit =
-      input.lines.reduce(
-        (total, line) =>
-          total + line.credit,
-        0,
-      );
+    const totalCredit = input.lines.reduce(
+      (total, line) =>
+        total.plus(new Prisma.Decimal(line.credit)),
+      new Prisma.Decimal(0),
+    );
 
-
-    if (
-      totalDebit !== totalCredit
-    ) {
+    if (!totalDebit.equals(totalCredit)) {
       throw new Error(
         "Journal entry must be balanced.",
       );

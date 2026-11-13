@@ -241,6 +241,12 @@ function ReceiptContent({
           Payment Details
         </p>
 
+        {receipt.payments.length === 0 && (
+          <p className="mt-2 text-[10px] italic">
+            No payment has been collected.
+          </p>
+        )}
+
         {receipt.payments.map((payment, index) => (
           <div
             key={`${payment.reference}-${index}`}
@@ -266,6 +272,13 @@ function ReceiptContent({
             <strong>Amount Paid</strong>
             <strong>
               {formatAmount(receipt.amountPaid, receipt.currency)}
+            </strong>
+          </div>
+
+		  <div className="mt-1 flex justify-between gap-2">
+            <strong>Balance Due</strong>
+            <strong>
+              {formatAmount(receipt.balanceDue, receipt.currency)}
             </strong>
           </div>
 

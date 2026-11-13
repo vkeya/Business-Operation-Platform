@@ -236,10 +236,10 @@ export default function HospitalFinancialSummaryWorkspace() {
     setError(null);
 
     try {
-      const start = new Date(`${startDate}T00:00:00`);
-      const end = new Date(`${endDate}T23:59:59.999`);
-
-      const result = await getHospitalFinancialSummaryAction(start, end);
+    const result = await getHospitalFinancialSummaryAction(
+      startDate,
+      endDate,
+    );
       setReport(result);
     } catch (err) {
       setError(
@@ -404,8 +404,9 @@ export default function HospitalFinancialSummaryWorkspace() {
                 Period overview
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Activity from {dateLabel(report.period.startDate)} to{" "}
-                {dateLabel(report.period.endDate)}. Invoice totals are grouped
+                Activity from {report.period.startDateLocal} through{" "}
+               {report.period.endDateLocalExclusive} (exclusive),{" "}
+               {report.period.timezone}. Invoice totals are grouped
                 by invoice creation date; collections are grouped by payment
                 date.
               </p>
