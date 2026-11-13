@@ -82,16 +82,16 @@ const existingIndex = cart.items.findIndex(
       };
     } else {
       items.push({
-  ...selection,
-  lineId: crypto.randomUUID(),
-  inventoryQuantity: selection.quantity,
-  totalAmount: calculateLineTotal(
-    selection.unitPrice,
-    selection.quantity,
-    selection.discountAmount,
-    selection.taxAmount,
-  ),
-});
+        ...selection,
+        lineId: crypto.randomUUID(),
+        inventoryQuantity: selection.inventoryQuantity,
+        totalAmount: calculateLineTotal(
+          selection.unitPrice,
+          selection.quantity,
+          selection.discountAmount,
+          selection.taxAmount,
+        ),
+      });
     }
 
     return this.recalculate({

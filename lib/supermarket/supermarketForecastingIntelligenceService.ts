@@ -307,40 +307,43 @@ export const supermarketForecastingIntelligenceService =
         );
       }
 
-      const lookbackDays = Math.max(
-        1,
-        Math.min(
-          options?.lookbackDays ??
-            DEFAULT_LOOKBACK_DAYS,
-          365,
-        ),
-      );
+      const lookbackDays =
+        options?.lookbackDays ??
+        DEFAULT_LOOKBACK_DAYS;
+
+      if (
+        !Number.isInteger(lookbackDays) ||
+        lookbackDays < 1 ||
+        lookbackDays > 365
+      ) {
+        throw new Error(
+          "Lookback days must be a whole number between 1 and 365.",
+        );
+      }
 
       const now = new Date();
 
-      const recentSince = new Date(now);
+      const windowDurationMs =
+        lookbackDays * 24 * 60 * 60 * 1000;
 
-      recentSince.setDate(
-        recentSince.getDate() -
-          lookbackDays,
+      const recentSince = new Date(
+        now.getTime() - windowDurationMs,
       );
 
-      const previousSince =
-        new Date(recentSince);
-
-      previousSince.setDate(
-        previousSince.getDate() -
-          lookbackDays,
+      const previousSince = new Date(
+        recentSince.getTime() - windowDurationMs,
       );
 
       const products =
         await prisma.product.findMany({
           where: {
             businessId,
+            status: "ACTIVE",
+            type: "PRODUCT",
+            trackInventory: true,
             ...(options?.productId
               ? {
-                  id:
-                    options.productId,
+                  id: options.productId,
                 }
               : {}),
           },

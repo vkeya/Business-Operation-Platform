@@ -75,8 +75,9 @@ export interface PosReceipt {
 
   payments: PosReceiptPayment[];
   amountPaid: number;
+  balanceDue: number;
   changeAmount: number;
-}
+  }
 
 export const posReceiptService = {
   async getReceipt(
@@ -151,6 +152,11 @@ export const posReceiptService = {
         amountPaid -
           Number(sale.totalAmount),
       );
+
+	const balanceDue = Math.max(
+      0,
+      Number(sale.totalAmount) - amountPaid,
+    );
 
 	const sellingUnitIds = [
       ...new Set(
@@ -287,6 +293,7 @@ export const posReceiptService = {
         ),
 
       amountPaid,
+	  balanceDue,
       changeAmount,
     };
   },

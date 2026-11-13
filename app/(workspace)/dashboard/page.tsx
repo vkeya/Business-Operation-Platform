@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentBusiness } from "@/lib/business/currentBusiness";
 import { getBusinessSubscription } from "@/lib/subscription/subscriptionEntitlementService";
 import { getDashboardMetrics } from "@/lib/dashboard/dashboardMetrics";
+import { getLocalDateString } from "@/lib/reports/period/reportTimezone";
 import { saleService } from "@/lib/sales/saleService";
 import { purchaseService } from "@/lib/purchase/purchaseService";
 import { inventoryService } from "@/lib/inventory/inventoryService";
@@ -35,14 +36,6 @@ import {
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-function isSameDay(date: Date, comparison: Date) {
-  return (
-    date.getFullYear() === comparison.getFullYear() &&
-    date.getMonth() === comparison.getMonth() &&
-    date.getDate() === comparison.getDate()
-  );
-}
 
 function isSameMonth(date: Date, comparison: Date) {
   return (
@@ -132,15 +125,38 @@ export default async function DashboardPage() {
 
 
   const today = new Date();
+
+  const todayLocalDate = getLocalDateString(
+    today,
+    business.timezone,
+  );
+
   const isRestaurant = business.type === "restaurant";
 
   const completedSalesToday = sales.filter(
     (sale) =>
       sale.status === "COMPLETED" &&
-      isSameDay(new Date(sale.createdAt), today),
+      getLocalDateString(
+        new Date(sale.createdAt),
+        business.timezone,
+      ) === todayLocalDate,
   );
 
-  const salesTodayTotal = metrics.revenue;
+  const salesTodayByCurrency = completedSalesToday.reduce<
+    Record<string, number>
+  >((totals, sale) => {
+    const currency = sale.currency;
+
+    totals[currency] =
+      (totals[currency] ?? 0) +
+      Number(sale.totalAmount);
+
+    return totals;
+  }, {});
+
+  const salesTodayCurrencyEntries = Object.entries(
+    salesTodayByCurrency,
+  );
 
   const purchasesThisMonth = purchases.filter((purchase) =>
     isSameMonth(new Date(purchase.createdAt), today),
@@ -300,7 +316,7 @@ const lowStockBalanceCount =
   );
 
   const salesStatusLabel =
-    metrics.salesCount > 0
+    completedSalesToday.length > 0
       ? t.dashboard.tradingActivityRecorded
       : t.dashboard.noCompletedSalesToday;
 
@@ -510,16 +526,23 @@ const businessAlertPriority =
               {t.dashboard.salesToday}
             </p>
 
-            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-              {formatCurrency(
-                business.baseCurrency,
-                metrics.revenue,
+           <div className="mt-2 space-y-1 text-2xl font-bold tracking-tight text-slate-950">
+              {salesTodayCurrencyEntries.length > 0 ? (
+                salesTodayCurrencyEntries.map(([currency, amount]) => (
+                  <p key={currency}>
+                    {formatCurrency(currency, amount)}
+                  </p>
+                ))
+              ) : (
+                <p>
+                  {formatCurrency(business.baseCurrency, 0)}
+                </p>
               )}
-            </p>
+            </div>
 
             <p className="mt-2 text-xs text-slate-500">
-              {metrics.salesCount} completed{" "}
-              {metrics.salesCount === 1
+              {completedSalesToday.length} completed{" "}
+              {completedSalesToday.length === 1
                 ? t.dashboard.sale
                 : t.dashboard.sales}{" "}
               {t.dashboard.today}

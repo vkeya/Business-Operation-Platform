@@ -6,6 +6,7 @@ import { calculateTax } from "@/lib/tax/taxCalculationService";
 import { generateBusinessReference } from "@/lib/business/reference/referenceGenerator";
 import { paymentRepository } from "@/lib/payment/paymentRepository";
 import { reversePaymentAccounting } from "@/lib/accounting/posting/paymentReversalPosting";
+import { getCurrencyDecimalPlaces } from "@/lib/localization/options";
 
 interface SaleReturnItemInput {
   saleItemId: string;
@@ -359,29 +360,23 @@ export const saleReturnService = {
             });
           }
 
-          const payments =
-            await paymentRepository.listSalePayments(
-              input.businessId,
-              input.saleId,
-              tx,
-            );
+         const payments =
+           await paymentRepository.listSalePayments(
+             input.businessId,
+             input.saleId,
+             tx,
+           );
 
-          const paidAmount =
-            payments.reduce(
-              (total, payment) =>
-                total + Number(payment.amount),
-              0,
-            );
+         // Only confirmed payments represent money received.
+         const paidPayments = payments.filter(
+           (payment) => payment.status === "PAID",
+         );
 
-          if (
-            payments.length > 0 &&
-            totalAmount > paidAmount + 0.01
-          ) {
-            throw new Error(
-              "Return amount cannot exceed the amount already paid on the sale.",
-            );
-          }
-
+         const paidAmount = paidPayments.reduce(
+           (total, payment) =>
+             total + Number(payment.amount),
+           0,
+         );
           const saleReturn =
             await tx.saleReturn.create({
               data: {
@@ -450,6 +445,107 @@ export const saleReturnService = {
               },
             });
 
+		 // Calculate all completed returns, including this return.
+         // This query runs inside the current transaction.
+         const cumulativeReturns =
+           await tx.saleReturn.aggregate({
+             where: {
+               businessId: input.businessId,
+               saleId: input.saleId,
+               status: "COMPLETED",
+             },
+             _sum: {
+               totalAmount: true,
+             },
+           });
+
+         const cumulativeReturnAmount = Number(
+           cumulativeReturns._sum.totalAmount ?? 0,
+         );
+
+         const remainingSaleValue = Math.max(
+           0,
+           Number(sale.totalAmount) - cumulativeReturnAmount,
+         );
+
+         const decimalPlaces = getCurrencyDecimalPlaces(input.currency);
+
+         const monetaryTolerance =
+           0.5 * 10 ** -decimalPlaces;
+		 // Retrieve previous accounting reversals for confirmed payments.
+          const reversalEntries =
+            paidPayments.length > 0
+              ? await tx.journalEntry.findMany({
+                  where: {
+                    businessId: input.businessId,
+                    OR: paidPayments.map((payment) => ({
+                      reference: {
+                        startsWith:
+                          `PAY-${payment.reference}-REVERSAL`,
+                      },
+                    })),
+                  },
+                  include: {
+                    lines: {
+                      select: {
+                        debit: true,
+                        credit: true,
+                        currency: true,
+                      },
+                    },
+                  },
+                })
+              : [];
+
+          // Count the debit side only to avoid double-counting
+          // the debit and credit of each balanced reversal.
+          const previouslyReversedByPayment =
+            new Map<string, number>();
+
+          for (const payment of paidPayments) {
+            const reversalPrefix =
+              `PAY-${payment.reference}-REVERSAL`;
+
+            const previouslyReversed =
+              reversalEntries
+                .filter((entry) =>
+                  entry.reference.startsWith(reversalPrefix),
+                )
+                .reduce(
+                  (total, entry) =>
+                    total +
+                    entry.lines
+                      .filter(
+                        (line) =>
+                          line.currency === payment.currency,
+                      )
+                      .reduce(
+                        (lineTotal, line) =>
+                          lineTotal + Number(line.debit),
+                        0,
+                      ),
+                  0,
+                );
+
+            previouslyReversedByPayment.set(
+              payment.id,
+              previouslyReversed,
+            );
+          }
+
+          const previouslyReversedAmount =
+            Array.from(previouslyReversedByPayment.values())
+              .reduce((total, amount) => total + amount, 0);
+
+          const refundEntitlement = Math.max(
+            0,
+            paidAmount - remainingSaleValue,
+          );
+
+          const additionalRefund = Math.max(
+            0,
+            refundEntitlement - previouslyReversedAmount,
+          );
           /*
            * Inventory restoration happens BEFORE the
            * transaction commits.
@@ -577,68 +673,92 @@ export const saleReturnService = {
             tx,
           );
 
-          /*
+                    /*
            * Payment reversals.
+           *
+           * Only reverse the amount that exceeds the remaining
+           * sale value, accounting for previous return reversals.
            */
-          let remainingRefund =
-            Math.min(
-              totalAmount,
-              paidAmount,
-            );
+          let remainingRefund = additionalRefund;
 
-          for (const payment of payments) {
-            if (remainingRefund <= 0.01) {
+          for (const payment of paidPayments) {
+            if (remainingRefund <= monetaryTolerance) {
               break;
             }
 
-            const paymentAmount =
-              Number(payment.amount);
+            const paymentAmount = Number(payment.amount);
 
             if (paymentAmount <= 0) {
               continue;
             }
 
-            const refundAmount =
-              Math.min(
-                remainingRefund,
-                paymentAmount,
-              );
+            const previouslyReversed =
+              previouslyReversedByPayment.get(payment.id) ?? 0;
 
-            const amountRatio =
-              refundAmount /
-              paymentAmount;
+            const availableToReverse = Math.max(
+              0,
+              paymentAmount - previouslyReversed,
+            );
+
+            if (availableToReverse <= monetaryTolerance) {
+              continue;
+            }
+
+            const refundAmount = Math.min(
+              remainingRefund,
+              availableToReverse,
+            );
+
+            const amountRatio = refundAmount / paymentAmount;
 
             await reversePaymentAccounting({
-  businessId: input.businessId,
-  paymentReference: payment.reference,
-  currency: payment.currency,
-  createdBy: input.createdBy,
-  amountRatio,
-  reversalSuffix:
-    `-RETURN-${saleReturn.referenceNumber}`,
-  client: tx,
-});
+              businessId: input.businessId,
+              paymentReference: payment.reference,
+              currency: payment.currency,
+              createdBy: input.createdBy,
+              amountRatio,
+              reversalSuffix:
+                `-RETURN-${saleReturn.referenceNumber}`,
+              client: tx,
+            });
 
-            remainingRefund -=
-              refundAmount;
+            remainingRefund -= refundAmount;
           }
 
-          if (remainingRefund > 0.01) {
+          if (remainingRefund > monetaryTolerance) {
             throw new Error(
               "Unable to allocate the return refund across sale payments.",
             );
           }
 
-          const remainingPaidAmount =
-            Math.max(
-              0,
-              paidAmount - totalAmount,
-            );
+          const netPaidAmount = Math.max(
+            0,
+            paidAmount -
+              previouslyReversedAmount -
+              additionalRefund,
+          );
 
-          const paymentStatus =
-            remainingPaidAmount <= 0.01
-              ? "REFUNDED"
-              : "PARTIAL";
+          let paymentStatus:
+            | "PENDING"
+            | "PARTIAL"
+            | "PAID"
+            | "REFUNDED";
+
+          if (
+            remainingSaleValue <= monetaryTolerance &&
+            paidAmount > monetaryTolerance &&
+            netPaidAmount <= monetaryTolerance
+          ) {
+            paymentStatus = "REFUNDED";
+          } else if (netPaidAmount <= monetaryTolerance) {
+            paymentStatus = "PENDING";
+          } else if (
+            netPaidAmount + monetaryTolerance >= remainingSaleValue
+          ) {
+            paymentStatus = "PAID";
+          } else {
+            paymentStatus = "PARTIAL";
+          }
 
           await paymentRepository.updateSalePaymentStatus(
             input.businessId,

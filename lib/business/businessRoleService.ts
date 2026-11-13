@@ -32,6 +32,10 @@ export const DEFAULT_BUSINESS_ROLES = [
       "expenses.manage",
       "accounting.read",
       "accounting.manage",
+	  "reports.read",
+      "pharmacy.reports.read",
+      "reports.advanced.read",
+      "reports.export",
       "pharmacy.controlled_dispense",
 	  "pharmacy.batch_adjust",
 	  "pharmacy.batch_recall",
@@ -56,6 +60,10 @@ export const DEFAULT_BUSINESS_ROLES = [
       "expenses.manage",
       "accounting.read",
       "accounting.manage",
+	  "reports.read",
+      "pharmacy.reports.read",
+      "reports.advanced.read",
+      "reports.export",
       "pharmacy.controlled_dispense",
 	  "pharmacy.batch_adjust",
 	  "pharmacy.batch_recall",
@@ -169,51 +177,56 @@ export async function createDefaultBusinessRoles(
     skipDuplicates: true,
   });
 
-  // System roles are managed by the platform. Reconcile their
-  // permissions against the current definitions rather than
-  // continually appending permissions to existing roles.
-  if (business.type === "hospital") {
-    for (const roleDefinition of roleDefinitions.filter(
-      (role) =>
-        role.name === "Administrator" ||
-        role.name === "Receptionist",
-    )) {
-      const role = await prisma.role.findFirst({
-        where: {
-          businessId,
-          name: roleDefinition.name,
-          isSystemRole: true,
-        },
-        select: {
-          id: true,
-          permissions: true,
-        },
-      });
+    // System roles receive additive permission updates.
+  // Existing permissions are preserved so this process cannot
+  // accidentally remove permissions from an established role.
+  // Custom roles are never modified.
+   const rolesToReconcile = new Set([
+     "Administrator",
+     "Manager",
+     "Receptionist",
+   ]);
 
-      if (!role) continue;
+   for (const roleDefinition of roleDefinitions.filter(
+     (role) => rolesToReconcile.has(role.name),
+   )) {
+     const role = await prisma.role.findFirst({
+       where: {
+         businessId,
+         name: roleDefinition.name,
+         isSystemRole: true,
+       },
+       select: {
+         id: true,
+         permissions: true,
+       },
+     });
 
-      const desiredPermissions = [
-        ...new Set(roleDefinition.permissions),
-      ];
+     if (!role) continue;
 
-      const currentPermissions = Array.isArray(role.permissions)
-        ? role.permissions
-        : [];
+     const currentPermissions = Array.isArray(role.permissions)
+       ? role.permissions
+       : [];
 
-      const permissionsChanged =
-        JSON.stringify([...currentPermissions].sort()) !==
-        JSON.stringify([...desiredPermissions].sort());
+     const updatedPermissions = [
+       ...new Set([
+         ...currentPermissions,
+         ...roleDefinition.permissions,
+       ]),
+     ];
 
-      if (permissionsChanged) {
-        await prisma.role.update({
-          where: { id: role.id },
-          data: {
-            permissions: desiredPermissions,
-          },
-        });
-      }
-    }
-  }
+     const permissionsChanged =
+       updatedPermissions.length !== currentPermissions.length;
+
+     if (permissionsChanged) {
+       await prisma.role.update({
+         where: { id: role.id },
+         data: {
+           permissions: updatedPermissions,
+         },
+       });
+     }
+   }
 
 
   const ownerRole = await prisma.role.findUnique({

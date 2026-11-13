@@ -169,3 +169,15 @@ export const currencyOptions: CurrencyOption[] = [
     decimalPlaces: 2,
   },
 ];
+
+export function getCurrencyDecimalPlaces(
+  currency: string,
+): number {
+  const normalizedCurrency = currency.trim().toUpperCase();
+
+  return (
+    currencyOptions.find(
+      (option) => option.code === normalizedCurrency,
+    )?.decimalPlaces ?? 2
+  );
+}

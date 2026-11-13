@@ -1,26 +1,67 @@
 "use server";
 
 import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
+import { requireBusinessPermission } from "@/lib/business/businessPermissionService";
 import { requireBusinessOperationAccess } from "@/lib/subscription/businessOperationAccessService";
 import { requireHospitalBusiness } from "@/lib/hospital/hospitalAccessService";
 import type { BusinessType } from "@/types";
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
-import {
-  reportService,
-} from "./reportService";
+import { reportService } from "./reportService";
+import type { ReportPeriodInput } from "./period/reportPeriodTypes";
+import { resolveReportPeriod } from "./period/reportPeriodService";
+
+async function requireBusinessReportAccess() {
+  const context = await getCurrentBusinessContext();
+
+  await requireBusinessPermission(
+    context.user.id,
+    context.business.id,
+    "reports.read",
+  );
+
+  return context.business;
+}
+
+async function requirePharmacyReportAccess() {
+  const context = await getCurrentBusinessContext();
+
+  await requireBusinessPermission(
+    context.user.id,
+    context.business.id,
+    "pharmacy.reports.read",
+  );
+
+  if (context.business.type !== "pharmacy") {
+    throw new Error(
+      "Pharmacy reports are only available to pharmacy businesses.",
+    );
+  }
+
+  return context.business;
+}
 
 export async function getBusinessReportAction() {
-  const business =
-    await getCurrentBusiness();
+  const business = await requireBusinessReportAccess();
 
-  return reportService.getBusinessReport(
+  return reportService.getBusinessReport(business.id);
+}
+
+export async function getCoreBusinessReportAction(
+  input?: ReportPeriodInput,
+) {
+  const business = await requireBusinessReportAccess();
+
+  const period = input
+    ? resolveReportPeriod(input, business.timezone)
+    : undefined;
+
+  return reportService.getCoreBusinessReport(
     business.id,
+    period,
   );
 }
 
 export async function getPharmacyControlledDispensingRegisterAction() {
-  const business =
-    await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyControlledDispensingRegister(
     business.id,
@@ -28,7 +69,7 @@ export async function getPharmacyControlledDispensingRegisterAction() {
 }
 
 export async function getPharmacyPrescriptionDispensingReportAction() {
-  const business = await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyPrescriptionDispensingReport(
     business.id,
@@ -36,7 +77,7 @@ export async function getPharmacyPrescriptionDispensingReportAction() {
 }
 
 export async function getPharmacyExpiryReportAction() {
-  const business = await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyExpiryReport(
     business.id,
@@ -44,7 +85,7 @@ export async function getPharmacyExpiryReportAction() {
 }
 
 export async function getPharmacyBatchMovementReportAction() {
-  const business = await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyBatchMovementReport(
     business.id,
@@ -52,7 +93,7 @@ export async function getPharmacyBatchMovementReportAction() {
 }
 
 export async function getPharmacyBatchStockValuationAction() {
-  const business = await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyBatchStockValuation(
     business.id,
@@ -60,7 +101,7 @@ export async function getPharmacyBatchStockValuationAction() {
 }
 
 export async function getPharmacyRecallReportAction() {
-  const business = await getCurrentBusiness();
+  const business = await requirePharmacyReportAccess();
 
   return reportService.getPharmacyRecallReport(
     business.id,
@@ -68,8 +109,8 @@ export async function getPharmacyRecallReportAction() {
 }
 
 export async function getHospitalFinancialSummaryAction(
-  startDate: Date,
-  endDate: Date,
+  startDate: string,
+  endDate: string,
 ) {
   const context = await getCurrentBusinessContext();
 
@@ -81,9 +122,17 @@ export async function getHospitalFinancialSummaryAction(
 
   requireHospitalBusiness(context.business.type as BusinessType);
 
+  const period = resolveReportPeriod(
+    {
+      preset: "custom",
+      startDate,
+      endDate,
+    },
+    context.business.timezone,
+  );
+
   return reportService.getHospitalFinancialSummary(
     context.business.id,
-    startDate,
-    endDate,
+    period,
   );
 }

@@ -1,4 +1,5 @@
 import { reportRepository } from "./reportRepository";
+import type { ResolvedReportPeriod } from "./period/reportPeriodTypes";
 
 export const reportService = {
   async getBusinessReport(businessId: string) {
@@ -88,6 +89,230 @@ export const reportService = {
     };
   },
   
+
+  async getCoreBusinessReport(
+    businessId: string,
+    period?: ResolvedReportPeriod,
+  ) {
+    if (!businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    const data = await reportRepository.getCoreReportData(
+      businessId,
+      period,
+    );
+
+    type CurrencyTotals = {
+      currency: string;
+      sales: {
+        count: number;
+        grossSales: number;
+        revenueExcludingTax: number;
+        taxCollected: number;
+      };
+      returns: {
+        count: number;
+        totalAmount: number;
+        taxAmount: number;
+      };
+      purchases: {
+        statuses: Array<{
+          status: string;
+          count: number;
+          amount: number;
+        }>;
+        receivedCount: number;
+        receivedAmount: number;
+      };
+      collections: {
+        count: number;
+        amount: number;
+      };
+      supplierPayments: {
+        count: number;
+        amount: number;
+      };
+      expenses: {
+        count: number;
+        incurredAmount: number;
+        byPaymentStatus: Array<{
+          status: string;
+          count: number;
+          amount: number;
+        }>;
+      };
+      inventory: {
+        units: number;
+        value: number;
+      };
+    };
+
+    const currencyMap = new Map<string, CurrencyTotals>();
+
+    const getCurrency = (currency: string) => {
+      let result = currencyMap.get(currency);
+
+      if (!result) {
+        result = {
+          currency,
+          sales: {
+            count: 0,
+            grossSales: 0,
+            revenueExcludingTax: 0,
+            taxCollected: 0,
+          },
+          returns: {
+            count: 0,
+            totalAmount: 0,
+            taxAmount: 0,
+          },
+          purchases: {
+            statuses: [],
+            receivedCount: 0,
+            receivedAmount: 0,
+          },
+          collections: {
+            count: 0,
+            amount: 0,
+          },
+          supplierPayments: {
+            count: 0,
+            amount: 0,
+          },
+          expenses: {
+            count: 0,
+            incurredAmount: 0,
+            byPaymentStatus: [],
+          },
+          inventory: {
+            units: 0,
+            value: 0,
+          },
+        };
+
+        currencyMap.set(currency, result);
+      }
+
+      return result;
+    };
+
+    for (const row of data.sales) {
+      const result = getCurrency(row.currency);
+
+      const subtotal = Number(row._sum.subtotal ?? 0);
+      const discount = Number(row._sum.discountAmount ?? 0);
+
+      result.sales.count = row._count;
+      result.sales.grossSales = Number(row._sum.totalAmount ?? 0);
+      result.sales.revenueExcludingTax = subtotal - discount;
+      result.sales.taxCollected = Number(row._sum.taxAmount ?? 0);
+    }
+
+    for (const row of data.returns) {
+      const result = getCurrency(row.currency);
+
+      result.returns.count = row._count;
+      result.returns.totalAmount = Number(row._sum.totalAmount ?? 0);
+      result.returns.taxAmount = Number(row._sum.taxAmount ?? 0);
+    }
+
+    for (const row of data.purchases) {
+      const result = getCurrency(row.currency);
+
+      result.purchases.statuses.push({
+        status: row.status,
+        count: row._count,
+        amount: Number(row._sum.totalAmount ?? 0),
+      });
+    }
+
+    const purchaseCurrencyById = new Map(
+      data.receivedPurchases.map((purchase) => [
+        purchase.id,
+        purchase.currency,
+      ]),
+    );
+
+    for (const receipt of data.purchaseReceipts) {
+      const currency = receipt.referenceId
+        ? purchaseCurrencyById.get(receipt.referenceId)
+        : undefined;
+
+      if (!currency) continue;
+
+      const result = getCurrency(currency);
+
+      // purchaseReceipts is grouped by referenceId,
+      // so each purchase is counted once, even when
+      // it has multiple partial receipt movements.
+      result.purchases.receivedCount += 1;
+
+      // Report the actual received movement cost,
+      // not the full purchase order value.
+      result.purchases.receivedAmount += Number(
+        receipt._sum.totalCost ?? 0,
+      );
+    }
+
+
+    for (const row of data.saleCollections) {
+      const result = getCurrency(row.currency);
+
+      result.collections.count = row._count;
+      result.collections.amount = Number(row._sum.amount ?? 0);
+    }
+
+    for (const row of data.supplierPayments) {
+      const result = getCurrency(row.currency);
+
+      result.supplierPayments.count = row._count;
+      result.supplierPayments.amount = Number(row._sum.amount ?? 0);
+    }
+
+    for (const row of data.expenses) {
+      const result = getCurrency(row.currency);
+      const amount = Number(row._sum.amount ?? 0);
+
+      result.expenses.incurredAmount += amount;
+      result.expenses.count += row._count;
+
+      result.expenses.byPaymentStatus.push({
+        status: row.paymentStatus,
+        count: row._count,
+        amount,
+      });
+    }
+
+    for (const row of data.inventoryBalances) {
+      const result = getCurrency(row.currency);
+      const units = Number(row._sum.quantity ?? 0);
+
+      result.inventory.units += units;
+      result.inventory.value +=
+        units * Number(row.averageCost);
+    }
+
+    return {
+      period: period
+        ? {
+            startDate: period.startDate,
+            endDateExclusive: period.endDateExclusive,
+            timezone: period.timezone,
+            startDateLocal: period.startDateLocal,
+            endDateLocalExclusive: period.endDateLocalExclusive,
+          }
+        : null,
+      currencies: Array.from(currencyMap.values()).sort(
+        (a, b) => a.currency.localeCompare(b.currency),
+      ),
+      inventoryIsCurrentPosition: true,
+      supplierOutstandingBalanceAvailable: false,
+      accountingProfitAvailable: false,
+    };
+  },
+
+
     async getPharmacyControlledDispensingRegister(
     businessId: string,
   ) {
@@ -519,18 +744,17 @@ export const reportService = {
   
 
   async getHospitalFinancialSummary(
-    businessId: string,
-    startDate: Date,
-    endDate: Date,
-  ) {
+      businessId: string,
+      period: ResolvedReportPeriod,
+    ) {
     if (!businessId) {
       throw new Error("Business context is required.");
     }
 
     if (
-      Number.isNaN(startDate.getTime()) ||
-      Number.isNaN(endDate.getTime()) ||
-      startDate > endDate
+      Number.isNaN(period.startDate.getTime()) ||
+      Number.isNaN(period.endDateExclusive.getTime()) ||
+      period.startDate >= period.endDateExclusive
     ) {
       throw new Error("A valid report date range is required.");
     }
@@ -538,8 +762,7 @@ export const reportService = {
     const summary =
       await reportRepository.getHospitalFinancialSummary(
         businessId,
-        startDate,
-        endDate,
+        period,
       );
 
     const invoiceStatuses = summary.invoiceStatuses.map((group) => ({
@@ -586,17 +809,22 @@ export const reportService = {
       })
       .filter((invoice) => invoice.balanceDue > 0);
 
+    const now = new Date();
+
     const overdueInvoices = collectibleInvoices.filter(
       (invoice) =>
         invoice.dueAt !== null &&
-        invoice.dueAt < endDate,
+        invoice.dueAt < now,
     );
 
     return {
       period: {
-        startDate,
-        endDate,
-      },
+       startDate: period.startDate,
+       endDateExclusive: period.endDateExclusive,
+       startDateLocal: period.startDateLocal,
+       endDateLocalExclusive: period.endDateLocalExclusive,
+       timezone: period.timezone,
+     },
       invoiceStatuses,
       paymentCollections,
       outstanding: {

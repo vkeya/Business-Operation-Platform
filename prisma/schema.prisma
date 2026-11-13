@@ -952,6 +952,10 @@ model SupermarketAutopilotAction {
   id         String @id @default(cuid())
   businessId String
 
+  identityKey String
+  isCurrent   Boolean  @default(true)
+  lastSeenAt  DateTime @default(now())
+
   actionType  String
   productId   String?
   productName String

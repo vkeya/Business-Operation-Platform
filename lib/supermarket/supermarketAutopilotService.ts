@@ -43,6 +43,7 @@ export type SupermarketAutopilotSource =
 
 export interface SupermarketAutopilotAction {
   id: string;
+  status?: SupermarketAutopilotActionStatus;
 
   productId: string | null;
 
@@ -152,6 +153,180 @@ function addAction(
   }
 }
 
+function getAutopilotIdentityKey(
+  action: SupermarketAutopilotAction,
+  scope?: {
+    warehouseId?: string;
+    productId?: string;
+  },
+): string {
+  if (!action.productId) {
+    throw new Error(
+      "Autopilot recommendations require a product identity.",
+    );
+  }
+
+  const warehouseScope =
+    scope?.warehouseId ?? "all-warehouses";
+
+  const productScope =
+    scope?.productId ?? "all-products";
+
+  return [
+    warehouseScope,
+    productScope,
+    action.action,
+    action.productId,
+  ].join(":");
+}
+
+
+async function reconcileAutopilotActions(
+  businessId: string,
+  actions: SupermarketAutopilotAction[],
+  scope?: {
+    warehouseId?: string;
+    productId?: string;
+  },
+) {
+  const warehouseScope =
+    scope?.warehouseId ?? "all-warehouses";
+
+  const productScope =
+    scope?.productId ?? "all-products";
+
+  const identityPrefix =
+    `${warehouseScope}:${productScope}:`;
+
+  const identityKeys = actions.map((action) =>
+    getAutopilotIdentityKey(action, scope),
+  );
+
+  return prisma.$transaction(
+    async (tx) => {
+      // Serialize reconciliation for this business.
+      await tx.$queryRaw`
+        WITH lock_result AS MATERIALIZED (
+          SELECT pg_advisory_xact_lock(
+            hashtext(${businessId})
+          )
+        )
+        SELECT 1::integer AS locked
+        FROM lock_result
+      `;
+
+      const now = new Date();
+
+      const existingRecords =
+        await tx.supermarketAutopilotAction.findMany({
+          where: {
+            businessId,
+            isCurrent: true,
+            identityKey: {
+              startsWith: identityPrefix,
+            },
+          },
+        });
+
+      const existingByIdentity = new Map(
+        existingRecords.map((record) => [
+          record.identityKey,
+          record,
+        ]),
+      );
+
+      const persistedRecords = [];
+
+      for (const action of actions) {
+        const identityKey =
+          getAutopilotIdentityKey(action, scope);
+
+        const existing =
+          existingByIdentity.get(identityKey);
+
+        const recommendationData = {
+          actionType: action.action,
+          productId: action.productId,
+          productName: action.productName,
+          sku: action.sku,
+          priority: action.priority,
+          title: action.title,
+          reason: action.reason,
+          source: action.source,
+          score: action.score,
+          evidence: JSON.parse(
+            JSON.stringify(action.evidence),
+          ),
+          lastSeenAt: now,
+        };
+
+        if (existing) {
+          const snoozeExpired =
+            existing.status === "SNOOZED" &&
+            existing.snoozedUntil !== null &&
+            existing.snoozedUntil <= now;
+
+          const updated =
+            await tx.supermarketAutopilotAction.update({
+              where: {
+                id: existing.id,
+              },
+              data: {
+                ...recommendationData,
+                ...(snoozeExpired
+                  ? {
+                      status: "PENDING",
+                      snoozedUntil: null,
+                    }
+                  : {}),
+              },
+            });
+
+          persistedRecords.push(updated);
+        } else {
+          const created =
+            await tx.supermarketAutopilotAction.create({
+              data: {
+                businessId,
+                identityKey,
+                isCurrent: true,
+                ...recommendationData,
+              },
+            });
+
+          persistedRecords.push(created);
+        }
+      }
+
+      // Only expire recommendations belonging to this scope.
+      const identityFilter = {
+        startsWith: identityPrefix,
+        ...(identityKeys.length > 0
+          ? { notIn: identityKeys }
+          : {}),
+      };
+
+      await tx.supermarketAutopilotAction.updateMany({
+        where: {
+          businessId,
+          isCurrent: true,
+          identityKey: identityFilter,
+        },
+        data: {
+          isCurrent: false,
+        },
+      });
+
+      return persistedRecords;
+    },
+    {
+      maxWait: 10000,
+      timeout: 15000,
+    },
+  );
+}
+
+
 export const supermarketAutopilotService = {
   async getAutopilotIntelligence(
     businessId: string,
@@ -238,6 +413,33 @@ export const supermarketAutopilotService = {
       ),
     ]);
 
+	    const eligibleProducts =
+      await prisma.product.findMany({
+        where: {
+          businessId,
+          status: "ACTIVE",
+          type: "PRODUCT",
+        },
+        select: {
+          id: true,
+          trackInventory: true,
+        },
+      });
+
+    const activeProductIds = new Set(
+      eligibleProducts.map(
+        (product) => product.id,
+      ),
+    );
+
+    const inventoryTrackedProductIds = new Set(
+      eligibleProducts
+        .filter(
+          (product) => product.trackInventory,
+        )
+        .map((product) => product.id),
+    );
+
     const actions: SupermarketAutopilotAction[] =
       [];
 
@@ -277,6 +479,15 @@ export const supermarketAutopilotService = {
      * priority.
      */
     for (const item of forecast.items) {
+
+	  if (
+         !inventoryTrackedProductIds.has(
+           item.productId,
+         )
+       ) {
+         continue;
+       }
+
       const stockItem =
         stockByProduct.get(
           item.productId,
@@ -294,8 +505,12 @@ export const supermarketAutopilotService = {
 
       if (
         availableStock <= 0 ||
-        (stockoutDays !== null &&
-          stockoutDays <= 7)
+        (
+          (item.confidence === "HIGH" ||
+            item.confidence === "MEDIUM") &&
+          stockoutDays !== null &&
+          stockoutDays <= 7
+        )
       ) {
         const score =
           availableStock <= 0
@@ -371,8 +586,12 @@ export const supermarketAutopilotService = {
       if (
         stockItem?.risk === "CRITICAL" ||
         stockItem?.risk === "LOW" ||
-        (coverage !== null &&
-          coverage <= 14)
+        (
+          (item.confidence === "HIGH" ||
+            item.confidence === "MEDIUM") &&
+          coverage !== null &&
+          coverage <= 14
+        )
       ) {
         const score =
           coverage !== null &&
@@ -446,6 +665,24 @@ export const supermarketAutopilotService = {
      * stock protection requirement.
      */
     for (const item of pricing.items) {
+
+	  if (
+        !activeProductIds.has(
+          item.productId,
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        item.action === "CLEARANCE" &&
+        !inventoryTrackedProductIds.has(
+          item.productId,
+        )
+      ) {
+        continue;
+      }
+
       const forecastItem =
         forecastByProduct.get(
           item.productId,
@@ -708,6 +945,13 @@ export const supermarketAutopilotService = {
       const productB =
         association.productB;
 
+      if (
+        !activeProductIds.has(productA.id) ||
+        !activeProductIds.has(productB.id)
+      ) {
+        continue;
+      }
+
       addAction(actions, {
         id: `cross-sell-${productA.id}-${productB.id}`,
 
@@ -791,6 +1035,15 @@ export const supermarketAutopilotService = {
      * yet critically low becomes a monitoring action.
      */
     for (const item of demand.items) {
+
+	  if (
+        !activeProductIds.has(
+          item.productId,
+        )
+      ) {
+        continue;
+      }
+
       if (
         item.trend !==
         "ACCELERATING"
@@ -908,8 +1161,52 @@ export const supermarketAutopilotService = {
       return b.score - a.score;
     });
 
+    const persistedRecords =
+      await reconcileAutopilotActions(
+        businessId,
+        actions,
+        {
+          warehouseId: options?.warehouseId,
+          productId: options?.productId,
+        },
+      );
+
+    const generatedByIdentity = new Map(
+      actions.map((action) => [
+        getAutopilotIdentityKey(action, {
+          warehouseId: options?.warehouseId,
+          productId: options?.productId,
+        }),
+        action,
+      ]),
+    );
+
+    const visibleActions = persistedRecords
+      .filter(
+        (record) =>
+          record.status !== "DISMISSED" &&
+          record.status !== "COMPLETED" &&
+          record.status !== "SNOOZED",
+      )
+      .map((record) => {
+        const generated =
+          generatedByIdentity.get(record.identityKey);
+
+        if (!generated) {
+          throw new Error(
+            "Persisted Autopilot recommendation could not be matched.",
+          );
+        }
+
+        return {
+          ...generated,
+          id: record.id,
+          status: record.status,
+        };
+      });
+
     const limitedActions =
-      actions.slice(0, maxActions);
+      visibleActions.slice(0, maxActions);
 
     return {
       businessId,
@@ -1016,6 +1313,7 @@ export const supermarketAutopilotService = {
         where: {
           id: actionId,
           businessId,
+          isCurrent: true,
         },
       });
 

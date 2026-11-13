@@ -1,6 +1,176 @@
 import { prisma } from "@/lib/database/prisma";
+import type { ResolvedReportPeriod } from "./period/reportPeriodTypes";
 
 export const reportRepository = {
+  async getCoreReportData(
+    businessId: string,
+    period?: ResolvedReportPeriod,
+  ) {
+    if (!businessId) {
+      throw new Error("Business context is required.");
+    }
+
+    const dateFilter = period
+      ? {
+          gte: period.startDate,
+          lt: period.endDateExclusive,
+        }
+      : undefined;
+
+    const [
+      sales,
+      returns,
+      purchases,
+      expenses,
+      saleCollections,
+      supplierPayments,
+      inventoryBalances,
+      purchaseReceipts,
+    ] = await Promise.all([
+      prisma.sale.groupBy({
+        by: ["currency"],
+        where: {
+          businessId,
+          status: "COMPLETED",
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          subtotal: true,
+          discountAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.saleReturn.groupBy({
+        by: ["currency"],
+        where: {
+          businessId,
+          status: "COMPLETED",
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          subtotal: true,
+          discountAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.purchase.groupBy({
+        by: ["currency", "status"],
+        where: {
+          businessId,
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          totalAmount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.expense.groupBy({
+        by: ["currency", "paymentStatus"],
+        where: {
+          businessId,
+          ...(dateFilter ? { expenseDate: dateFilter } : {}),
+        },
+        _sum: {
+          amount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.payment.groupBy({
+        by: ["currency"],
+        where: {
+          businessId,
+          status: "PAID",
+          saleId: { not: null },
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          amount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.payment.groupBy({
+        by: ["currency"],
+        where: {
+          businessId,
+          status: "PAID",
+          purchaseId: { not: null },
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          amount: true,
+        },
+        _count: true,
+      }),
+
+      prisma.inventoryBalance.groupBy({
+        by: ["currency", "averageCost"],
+        where: {
+          businessId,
+        },
+        _sum: {
+          quantity: true,
+        },
+      }),
+
+      prisma.inventoryMovement.groupBy({
+        by: ["referenceId"],
+        where: {
+          businessId,
+          type: "RECEIPT",
+          referenceType: "PURCHASE",
+          referenceId: { not: null },
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _sum: {
+          quantity: true,
+          totalCost: true,
+        },
+        _count: true,
+      }),
+    ]);
+
+    const receivedPurchaseIds = purchaseReceipts
+      .map((receipt) => receipt.referenceId)
+      .filter((id): id is string => Boolean(id));
+
+    const receivedPurchases =
+      receivedPurchaseIds.length > 0
+        ? await prisma.purchase.findMany({
+            where: {
+              businessId,
+              id: { in: receivedPurchaseIds },
+            },
+            select: {
+              id: true,
+              totalAmount: true,
+              currency: true,
+              status: true,
+            },
+          })
+        : [];
+
+    return {
+      sales,
+      returns,
+      purchases,
+      expenses,
+      saleCollections,
+      supplierPayments,
+      inventoryBalances,
+      purchaseReceipts,
+      receivedPurchases,
+    };
+  },
+
   async getSalesSummary(
     businessId: string,
   ) {
@@ -474,19 +644,18 @@ export const reportRepository = {
   },
   
 
-  async getHospitalFinancialSummary(
-    businessId: string,
-    startDate: Date,
-    endDate: Date,
-  ) {
+    async getHospitalFinancialSummary(
+      businessId: string,
+      period: ResolvedReportPeriod,
+    ) {
     if (!businessId) {
       throw new Error("Business context is required.");
     }
 
     if (
-      Number.isNaN(startDate.getTime()) ||
-      Number.isNaN(endDate.getTime()) ||
-      startDate > endDate
+      Number.isNaN(period.startDate.getTime()) ||
+      Number.isNaN(period.endDateExclusive.getTime()) ||
+      period.startDate >= period.endDateExclusive
     ) {
       throw new Error("A valid report date range is required.");
     }
@@ -498,8 +667,8 @@ export const reportRepository = {
           where: {
             businessId,
             createdAt: {
-              gte: startDate,
-              lte: endDate,
+              gte: period.startDate,
+              lt: period.endDateExclusive,
             },
           },
           _count: { _all: true },
@@ -517,8 +686,8 @@ export const reportRepository = {
           where: {
             businessId,
             createdAt: {
-              gte: startDate,
-              lte: endDate,
+              gte: period.startDate,
+              lt: period.endDateExclusive,
             },
           },
           _count: { _all: true },

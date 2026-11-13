@@ -1,4 +1,4 @@
-import { getCurrentBusiness } from "@/lib/business/currentBusiness";
+import { getCurrentBusinessContext } from "@/lib/business/currentBusiness";
 import { profitabilityIntelligenceService } from "@/lib/intelligence/profitabilityIntelligenceService";
 
 function money(value: number, currency: string) {
@@ -14,9 +14,13 @@ function percent(value: number | null) {
 }
 
 export default async function ProfitabilityIntelligencePage() {
-  const business = await getCurrentBusiness();
+  const context = await getCurrentBusinessContext();
+
   const data =
-    await profitabilityIntelligenceService.getSummary(business.id);
+    await profitabilityIntelligenceService.getSummary(
+      context.user.id,
+      context.business.id,
+    );
 
   return (
     <main className="space-y-6 p-6">
