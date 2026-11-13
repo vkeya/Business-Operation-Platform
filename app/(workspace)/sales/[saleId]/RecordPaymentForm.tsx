@@ -189,29 +189,22 @@ try {
 }
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
           >
-            <option value="Cash">
+            <option value="CASH">
               {t.recordPayment.cash}
             </option>
 
-            <option value="Bank Transfer">
+            <option value="BANK">
               {t.recordPayment.bankTransfer}
             </option>
 
-            <option value="Card">
+            <option value="CARD">
               {t.recordPayment.card}
             </option>
 
 			<option value="MPESA">
-  MPESA
-</option>
-
-            <option value="Mobile Money">
-              {t.recordPayment.mobileMoney}
+              MPESA
             </option>
 
-            <option value="Cheque">
-              {t.recordPayment.cheque}
-            </option>
           </select>
         </div>
 
